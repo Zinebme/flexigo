@@ -175,10 +175,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     if (input.action === "shipping") {
-      const config: Record<string, string> = {};
-      if (input.api_base_url) config.api_base_url = input.api_base_url;
+      const { data: currentShipping } = await admin
+        .from("shipping_integrations")
+        .select("config")
+        .eq("store_id", storeId)
+        .eq("provider_key", input.provider_key)
+        .maybeSingle();
+      const config: Record<string, string> = {
+        ...(((currentShipping as { config?: Record<string, string> } | null)?.config) ?? {}),
+      };
+      if (input.api_base_url !== undefined && input.api_base_url !== null) config.api_base_url = input.api_base_url;
       if (input.api_token) config.api_token = encryptSecret(input.api_token);
-      if (input.account) config.account = input.account;
+      if (input.account !== undefined && input.account !== null) config.account = input.account;
       const { error } = await admin.from("shipping_integrations").upsert({
         store_id: storeId,
         provider_key: input.provider_key,
