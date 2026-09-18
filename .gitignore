@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+
+# Next.js
+.next
+out
+next-env.d.ts
+
+# Production build output
+build
+dist
+
+# Environment — NEVER commit real secrets
+.env
+.env.local
+.env*.local
+.env.development
+.env.production
+
+# Test artifacts
+coverage
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# Supabase CLI local state
+supabase/.temp
+supabase/.branches
+
+# Logs
+*.log

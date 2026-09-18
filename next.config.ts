@@ -1,0 +1,46 @@
+import type { NextConfig } from "next";
+
+/**
+ * FlexiGo — Next.js configuration.
+ *
+ * - `output: "standalone"` enables a minimal, portable build output for Docker
+ *   deployment (Hostinger VPS, any Linux host). It does not affect Vercel.
+ * - Security headers are set globally here; storefront routes add a dynamic,
+ *   provider-aware Content-Security-Policy in the store layout (see
+ *   app/(storefront)/s/[slug]/layout.tsx).
+ */
+const config: NextConfig = {
+  output: "standalone",
+  images: {
+    // Product / banner images live in the Supabase public bucket; demo data
+    // uses picsum.photos. Hostname patterns are allow-listed, never user input.
+    remotePatterns: [
+      { protocol: "https", hostname: "*.supabase.co" },
+      { protocol: "https", hostname: "picsum.photos" },
+    ],
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+          { key: "X-XSS-Protection", value: "1; mode=block" },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin",
+          },
+        ],
+      },
+    ];
+  },
+};
+
+export default config;
