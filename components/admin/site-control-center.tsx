@@ -71,7 +71,6 @@ export function SiteControlCenter(props: Props) {
         </div>
         <div className="flex flex-wrap gap-2">
           <a href={`/s/${s.slug as string}`} target="_blank" rel="noreferrer" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Voir site</a>
-          <Link href={`/dashboard?store=${s.id as string}`} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Dashboard client</Link>
           <SiteActions store={{ id: s.id as string, name: s.name as string, slug: s.slug as string, status: s.status as never, website_type: s.website_type as never, template_key: s.template_key as string, owner_email: null, orders_count: props.orders.length, gmv_cents: props.gmv }} />
         </div>
       </div>
