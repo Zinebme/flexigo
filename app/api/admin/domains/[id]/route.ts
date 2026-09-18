@@ -19,10 +19,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const updates: Record<string, unknown> = {};
     if (typeof body.is_primary === "boolean" && body.is_primary) {
+      if ((domain as { status: string }).status !== "verified") {
+        throw err("VALIDATION", "Un domaine doit être vérifié avant de devenir principal.");
+      }
       await admin.from("domains").update({ is_primary: false } as never).eq("store_id", (domain as { store_id: string }).store_id);
       updates.is_primary = true;
     }
-    if (body.status && ["pending", "verified", "failed"].includes(body.status)) {
+    // "verified" can only be set by the DNS verification endpoint.
+    if (body.status && ["pending", "failed"].includes(body.status)) {
       updates.status = body.status;
     }
 
@@ -31,7 +35,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { error } = await admin.from("domains").update(updates as never).eq("id", id);
     if (error) throw error;
 
-    void logAudit({
+    await logAudit({
       actorId: ctx.user.id,
       storeId: (domain as { store_id: string }).store_id,
       action: "domain.updated",
@@ -58,7 +62,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     const { error } = await admin.from("domains").delete().eq("id", id);
     if (error) throw error;
 
-    void logAudit({
+    await logAudit({
       actorId: ctx.user.id,
       storeId: (domain as { store_id: string }).store_id,
       action: "domain.deleted",
