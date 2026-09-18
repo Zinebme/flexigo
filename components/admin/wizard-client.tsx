@@ -405,9 +405,8 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
                   className={`group relative overflow-hidden rounded-2xl border-2 text-left transition ${form.template_key === tpl.key ? "border-violet-600 bg-violet-50 ring-4 ring-violet-100" : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-lg"}`}
                 >
                   <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
-                    <div className="absolute inset-0 flex items-center justify-center text-5xl">
-                      {tpl.key === "elegance" ? "👗" : tpl.key === "glow" ? "💄" : tpl.key === "tech" ? "🎧" : tpl.key === "casa" ? "🏠" : tpl.key === "little" ? "🧸" : tpl.key === "active" ? "💪" : tpl.key === "market" ? "🛒" : tpl.key === "convert" ? "🔥" : "📦"}
-                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={tpl.screenshotUrl} alt={`Aperçu ${tpl.name}`} className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
                     <div className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-1 text-[10px] font-bold text-white">{tpl.category}</div>
                     {form.template_key === tpl.key && <div className="absolute right-2 top-2 rounded-full bg-violet-600 px-2 py-1 text-xs font-bold text-white">✓ Sélectionné</div>}
                   </div>
