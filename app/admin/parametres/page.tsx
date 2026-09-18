@@ -16,9 +16,8 @@ export default async function AdminParametresPage() {
           <ul className="mt-3 space-y-2 text-sm text-slate-600">
             <li><code className="font-mono">NEXT_PUBLIC_SUPABASE_URL</code> — URL Supabase</li>
             <li><code className="font-mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> — anon key (client)</li>
-            <li><code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code> — service_role (server only, jamais NEXT_PUBLIC_, jamais commité)</li>
-            <li><code className="font-mono">SUPABASE_JWT_SECRET</code> / <code className="font-mono">DATABASE_URL</code> — selon setup</li>
-            <li><code className="font-mono">ENCRYPTION_KEY</code> — 32 bytes hex pour chiffrer credentials (fxenc1.*)</li>
+            <li><code className="font-mono">Clé service Supabase</code> — serveur uniquement, jamais exposée au navigateur ni commitée</li>
+            <li><code className="font-mono">CREDENTIALS_ENCRYPTION_KEY</code> — clé dédiée pour chiffrer les credentials externes (fxenc1.*)</li>
             <li><code className="font-mono">NEXT_PUBLIC_APP_URL</code> — ex: https://flexigo.com</li>
           </ul>
           <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
@@ -36,11 +35,11 @@ export default async function AdminParametresPage() {
             <li>Zod partout, recalcul server-side des totaux (jamais confiance au browser).</li>
             <li>Audit logs: actor, tenant, action, entity, safe before/after, pas de secrets.</li>
             <li>Rate limits checkout (10/10min IP) + honeypot + détection doublons + validation téléphone DZ.</li>
-            <li>Upload validation (MIME/size, signed URLs, bucket public pour images produits).</li>
+            <li>Upload validation (MIME/taille) + bucket public dédié aux assets storefront.</li>
             <li>CSP + security headers dans next.config + proxy.ts.</li>
             <li>Secrets chiffrés (AES-256-GCM, prefix fxenc1.*).</li>
-            <li>Soft deletion, confirmations UI, re-auth pour ops critiques super-admin.</li>
-            <li>Support impersonation: silent pour client, 100% loggé interne, bannière + quit.</li>
+            <li>Soft deletion et confirmations UI. MFA/ré-auth forte à activer avant mise en production réelle.</li>
+            <li>Support impersonation: silencieux pour le client, journalisé côté plateforme, session limitée à 8 h.</li>
             <li>Pas de raw SQL editor.</li>
           </ul>
         </Card>
