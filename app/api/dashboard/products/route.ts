@@ -66,13 +66,13 @@ export async function POST(req: Request) {
     if (prodError) throw prodError;
     const productId = (product as { id: string }).id;
 
-    // Variants (server-side price conversion).
+    // Variants: price_cents is already in cents (variantSchema), not DA.
     if (input.variants.length > 0) {
       const rows = input.variants.map((v, idx) => ({
         product_id: productId,
         name: v.name,
         options: v.options,
-        price_cents: v.price_cents != null ? Math.round(v.price_cents * 100) : null,
+        price_cents: v.price_cents ?? null,
         sku: v.sku || null,
         stock: v.stock,
         is_active: v.is_active,

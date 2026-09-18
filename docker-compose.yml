@@ -1,0 +1,35 @@
+version: "3.9"
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+    restart: unless-stopped
+    # If using Hostinger VPS with Traefik:
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.http.routers.flexigo.rule=Host(`flexigo.com`) || HostRegexp(`{subdomain:[a-z0-9-]+}.flexigo.com`)"
+    #   - "traefik.http.routers.flexigo.entrypoints=websecure"
+    #   - "traefik.http.routers.flexigo.tls.certresolver=myresolver"
+
+  # Optional local Postgres for integration tests (not for prod — use Supabase)
+  # db:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: flexigo_test
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #
+  # volumes:
+  #   pgdata:

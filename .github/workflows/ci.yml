@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main, arena/**]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint (no secret leaks)
+        run: |
+          npm run lint
+          # Ensure no service_role or secrets committed
+          ! grep -R "SUPABASE_SERVICE_ROLE_KEY" --include="*.ts" --include="*.tsx" --include="*.js" app/ components/ lib/ | grep -v "admin.ts" | grep -v "config" || (echo "service_role leak detected in client code" && exit 1)
+          ! grep -R "NEXT_PUBLIC_.*SERVICE_ROLE\|NEXT_PUBLIC_.*SECRET" --include="*.ts" --include="*.tsx" . || (echo "NEXT_PUBLIC secret leak" && exit 1)
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example
+          SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.service_role_example
+          CREDENTIALS_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      - name: Integration tests (RLS / tenant isolation)
+        run: npm run test:integration

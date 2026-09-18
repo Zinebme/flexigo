@@ -111,7 +111,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           product_id: id,
           name: v.name,
           options: v.options,
-          price_cents: v.price_cents != null ? Math.round(v.price_cents * 100) : null,
+          price_cents: v.price_cents ?? null,
           sku: v.sku || null,
           stock: v.stock,
           is_active: v.is_active,
@@ -134,7 +134,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       }
     }
 
-    // Quantity offers: replace when provided (product-specific).
+    // Quantity offers: total_price_cents is already in cents (quantityOfferSchema).
     if (offers !== undefined) {
       await admin.from("quantity_offers").delete().eq("product_id", id);
       if (offers.length > 0) {
@@ -142,7 +142,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           store_id: ctx.store.id,
           product_id: id,
           min_quantity: o.min_quantity,
-          total_price_cents: Math.round(o.total_price_cents * 100),
+          total_price_cents: o.total_price_cents,
           label: o.label || `Offre ${o.min_quantity}+`,
           is_active: o.is_active,
           position: idx,
