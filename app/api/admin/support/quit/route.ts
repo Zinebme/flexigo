@@ -37,7 +37,7 @@ export async function POST() {
           .eq("id", session.id);
         if (error) throw error;
 
-        void logAudit({
+        await logAudit({
           actorId: ctx.user.id,
           storeId: session.store_id,
           action: "support.session_ended",
