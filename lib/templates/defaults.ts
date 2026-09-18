@@ -336,7 +336,15 @@ export function defaultPages(templateKey: string, websiteType: WebsiteType, busi
 
 export function defaultSettings(
   contact: Record<string, string | null>,
-  business: { cod_enabled?: boolean; reviews_enabled?: boolean; faq_enabled?: boolean; allow_negative_stock?: boolean; max_items_per_order?: number },
+  business: {
+    cod_enabled?: boolean;
+    reviews_enabled?: boolean;
+    faq_enabled?: boolean;
+    allow_negative_stock?: boolean;
+    max_items_per_order?: number;
+    office_delivery_enabled?: boolean;
+    accent_color?: string | null;
+  },
 ): StoreSettings {
   return {
     contact: {
@@ -353,7 +361,11 @@ export function defaultSettings(
       reviews_enabled: business.reviews_enabled ?? true,
       faq_enabled: business.faq_enabled ?? true,
       allow_negative_stock: false,
-      max_items_per_order: 10,
+      max_items_per_order: business.max_items_per_order ?? 10,
+      office_delivery_enabled: business.office_delivery_enabled ?? true,
+    },
+    appearance: {
+      accent_color: business.accent_color ?? null,
     },
   };
 }
