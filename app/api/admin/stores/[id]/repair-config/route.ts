@@ -40,7 +40,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       if (!page) throw err("NOT_FOUND", "Page d'accueil introuvable");
       const { error } = await admin.from("pages").update({ content: { sections }, updated_at: new Date().toISOString() } as never).eq("id", (page as { id: string }).id);
       if (error) throw error;
-      void logAudit({ actorId: ctx.user.id, storeId: id, action: "page.regenerated", entity: "page", entityId: "home", metadata: { template: s.template_key } });
+      await logAudit({ actorId: ctx.user.id, storeId: id, action: "page.regenerated", entity: "page", entityId: "home", metadata: { template: s.template_key } });
       return NextResponse.json({ ok: true, action: "regenerate_sections" });
     }
 
@@ -68,31 +68,31 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       );
       const { error } = await admin.from("stores").update({ settings: fixed as never, updated_at: new Date().toISOString() } as never).eq("id", id);
       if (error) throw error;
-      void logAudit({ actorId: ctx.user.id, storeId: id, action: "store.settings_repaired", entity: "store", entityId: id, metadata: {} });
+      await logAudit({ actorId: ctx.user.id, storeId: id, action: "store.settings_repaired", entity: "store", entityId: id, metadata: {} });
       return NextResponse.json({ ok: true, action: "fix_settings" });
     }
 
     // --- disconnect shipping ---
     if (body.action === "disconnect_shipping") {
       await admin.from("shipping_integrations").update({ is_active: false, status: "error", last_error: "Déconnecté par super admin" } as never).eq("store_id", id);
-      void logAudit({ actorId: ctx.user.id, storeId: id, action: "integration.disconnected", entity: "shipping_integration", entityId: id, metadata: { provider: "all" } });
+      await logAudit({ actorId: ctx.user.id, storeId: id, action: "integration.disconnected", entity: "shipping_integration", entityId: id, metadata: { provider: "all" } });
       return NextResponse.json({ ok: true, action: "disconnect_shipping" });
     }
 
     if (body.action === "disconnect_sheets") {
       await admin.from("google_sheet_integrations").update({ is_active: false, last_status: "failure", last_error: "Déconnecté par super admin" } as never).eq("store_id", id);
-      void logAudit({ actorId: ctx.user.id, storeId: id, action: "integration.disconnected", entity: "google_sheet_integration", entityId: id, metadata: {} });
+      await logAudit({ actorId: ctx.user.id, storeId: id, action: "integration.disconnected", entity: "google_sheet_integration", entityId: id, metadata: {} });
       return NextResponse.json({ ok: true, action: "disconnect_sheets" });
     }
 
     if (body.action === "reset_marketing") {
       await admin.from("marketing_integrations").update({ is_active: false } as never).eq("store_id", id);
-      void logAudit({ actorId: ctx.user.id, storeId: id, action: "integration.reset", entity: "marketing_integration", entityId: id, metadata: {} });
+      await logAudit({ actorId: ctx.user.id, storeId: id, action: "integration.reset", entity: "marketing_integration", entityId: id, metadata: {} });
       return NextResponse.json({ ok: true, action: "reset_marketing" });
     }
 
     // default: no-op repair
-    void logAudit({ actorId: ctx.user.id, storeId: id, action: "store.repair_checked", entity: "store", entityId: id, metadata: body });
+    await logAudit({ actorId: ctx.user.id, storeId: id, action: "store.repair_checked", entity: "store", entityId: id, metadata: body });
     return NextResponse.json({ ok: true, message: "Aucune action — payload vide, vérification OK." });
   } catch (e) {
     return toErrorResponse(e);
