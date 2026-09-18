@@ -41,7 +41,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .eq("id", id);
     if (error) throw error;
 
-    void logAudit({
+    await logAudit({
       actorId: ctx.user.id,
       storeId: id,
       action: "store.status_changed",
