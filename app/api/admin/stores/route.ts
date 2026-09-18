@@ -215,7 +215,7 @@ export async function POST(req: Request) {
       } as never, { onConflict: "store_id,provider_key" });
     }
 
-    void logAudit({
+    await logAudit({
       actorId: ctx.user.id,
       storeId: newStoreId,
       action: "store.created",
