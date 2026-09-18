@@ -34,18 +34,14 @@ export async function POST(req: Request) {
       .insert({
         store_id: input.store_id,
         hostname: input.hostname,
-        is_primary: input.is_primary ?? false,
+        // A domain can only become primary after real DNS verification.
+        is_primary: false,
         status: "pending",
         verification_token: token,
       } as never)
       .select("id, hostname")
       .single();
     if (error) throw error;
-
-    if (input.is_primary) {
-      await admin.from("domains").update({ is_primary: false } as never).eq("store_id", input.store_id).neq("id", (data as { id: string }).id);
-      await admin.from("domains").update({ is_primary: true } as never).eq("id", (data as { id: string }).id);
-    }
 
     await logAudit({
       actorId: ctx.user.id,
