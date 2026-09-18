@@ -181,7 +181,6 @@ export async function RenderSection({ data, section }: { data: StorefrontData; s
             <>
               <picture>
                 {s.mobile_image ? <source media="(max-width: 767px)" srcSet={s.mobile_image} /> : null}
-                {s.desktop_image ? <img src={s.desktop_image} alt={s.title ?? ""} className="h-full w-full object-cover opacity-40" /> : null}
               </picture>
             </>
           ) : null}

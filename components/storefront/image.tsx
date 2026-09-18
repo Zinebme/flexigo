@@ -17,6 +17,7 @@ export function StorefrontImage(props: {
   return (
     <Image
       {...props}
+      alt={props.alt}
       sizes={props.sizes ?? "100vw"}
       style={props.fill ? { objectFit: "cover" } : undefined}
     />

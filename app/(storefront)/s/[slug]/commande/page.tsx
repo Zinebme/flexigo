@@ -136,7 +136,6 @@ export default async function CommandePage({
       </div>
 
       <CheckoutForm
-        storeId={data.id}
         storeSlug={data.slug}
         line={lineInput}
         currency={data.currency}

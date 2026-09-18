@@ -3,9 +3,11 @@
  * Store resolution is cached 30 s (see resolve.ts); theme/settings are cheap
  * point reads.
  */
+import { cookies } from "next/headers";
+import { LANG_COOKIE, normalizeLang } from "./lang";
 import { getAnonSupabase } from "../supabase/anon";
 import { t, type StorefrontDict } from "../i18n/dictionaries";
-import { STORE_LANGUAGES, type StoreLanguage } from "../types";
+import type { StoreLanguage } from "../types";
 import type { StoreSettings } from "../supabase/database.types";
 import { resolveStoreBySlug } from "./resolve";
 
@@ -38,9 +40,14 @@ export async function getStorefrontData(
   const store = await resolveStoreBySlug(slug);
   if (!store) return null;
 
-  const chosenLang: StoreLanguage = STORE_LANGUAGES.includes(lang as StoreLanguage)
-    ? (lang as StoreLanguage)
-    : (store.language as StoreLanguage);
+  // Language priority: explicit arg > fx_lang cookie (set by the switcher) > store default.
+  let cookieLang: string | null = null;
+  try {
+    cookieLang = (await cookies()).get(LANG_COOKIE)?.value ?? null;
+  } catch {
+    cookieLang = null;
+  }
+  const chosenLang: StoreLanguage = normalizeLang(lang) ?? normalizeLang(cookieLang) ?? (store.language as StoreLanguage);
   const dict = t(chosenLang);
 
   const anon = getAnonSupabase();

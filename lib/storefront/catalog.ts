@@ -4,8 +4,6 @@
 import { getAnonSupabase } from "../supabase/anon";
 import type { ShopProduct } from "../../components/storefront/shop-browser";
 
-export interface CatalogProduct extends ShopProduct {}
-
 export async function loadCatalog(storeId: string): Promise<{ products: ShopProduct[]; categories: { id: string; slug: string; name: string }[] }> {
   const anon = getAnonSupabase();
   const [{ data: products }, { data: categories }] = await Promise.all([

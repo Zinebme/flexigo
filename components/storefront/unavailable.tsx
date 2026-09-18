@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { StoreStatus } from "../../lib/types";
 
 /**
@@ -26,12 +27,12 @@ export function UnavailableScreen({ kind }: { kind: StoreStatus }) {
       <div className="text-6xl">🛠️</div>
       <h1 className="mt-6 text-2xl font-bold text-slate-900">{m.title}</h1>
       <p className="mt-2 max-w-md text-slate-500">{m.text}</p>
-      <a
+      <Link
         href="/"
         className="mt-8 rounded-lg bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
       >
         Retour à l'accueil
-      </a>
+      </Link>
     </div>
   );
 }

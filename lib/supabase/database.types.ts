@@ -596,7 +596,7 @@ export interface Database {
         Returns: boolean;
       };
     };
-    Enums: {};
+    Enums: {}; // eslint-disable-line @typescript-eslint/no-empty-object-type
     CompositeTypes: {
       [_ in never]: never;
     };

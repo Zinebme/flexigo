@@ -1,12 +1,16 @@
-import { FlatCompat } from "@eslint/eslintrc";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const dirname = path.dirname(fileURLToPath(import.meta.url));
-const compat = new FlatCompat({ baseDirectory: dirname });
+import nextConfig from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...nextConfig,
+  ...nextTs,
+  {
+    rules: {
+      // French UI: typographic apostrophes everywhere; escaping them all is
+      // noise. Real XSS is not a concern here (React escapes by default).
+      "react/no-unescaped-entities": "off",
+    },
+  },
   {
     ignores: [
       ".next/**",
@@ -14,6 +18,7 @@ const eslintConfig = [
       "out/**",
       "next-env.d.ts",
       "supabase/.temp/**",
+      ".next/types/**",
     ],
   },
 ];

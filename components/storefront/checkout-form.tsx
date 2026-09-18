@@ -31,12 +31,10 @@ type SubmitState =
  * Anti-spam: honeypot field + server rate limiting + duplicate detection.
  */
 export function CheckoutForm({
-  storeId,
   storeSlug,
   line,
   dict,
 }: {
-  storeId: string;
   storeSlug: string;
   line: CheckoutLineInput;
   currency: string;

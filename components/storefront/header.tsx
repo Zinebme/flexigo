@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { StorefrontData } from "../../lib/storefront/data";
+import { LangSwitcher } from "./lang-switcher";
 
 export function StorefrontHeader({ data }: { data: StorefrontData }) {
   const { dict, settings, theme, website_type, slug, name } = data;
@@ -36,6 +37,7 @@ export function StorefrontHeader({ data }: { data: StorefrontData }) {
           ))}
         </nav>
         <div className="flex items-center gap-3">
+          <LangSwitcher current={data.lang} />
           {settings?.contact?.phone ? (
             <a href={`tel:${settings.contact.phone}`} className="hidden text-sm font-semibold text-slate-600 lg:block">
               {settings.contact.phone}

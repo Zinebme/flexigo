@@ -81,7 +81,7 @@ const PUBLIC_MESSAGES: Record<AppErrorCode, string> = {
   UNSUPPORTED: "Cette fonctionnalité n'est pas encore disponible.",
 };
 
-function isAppError(e: unknown): e is AppError {
+export function isAppError(e: unknown): e is AppError {
   return e instanceof AppError;
 }
 

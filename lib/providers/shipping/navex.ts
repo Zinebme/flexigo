@@ -18,7 +18,6 @@ import { err } from "../../errors";
 import type {
   ShippingProvider,
   ShipmentResult,
-  ShipmentRequest,
   ProviderTestResult,
   DecryptedConfig,
 } from "./types";

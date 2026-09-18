@@ -6,7 +6,7 @@
 import { manualProvider } from "./manual";
 import { navexProvider } from "./navex";
 import { mockProvider } from "./mock";
-import type { ShippingProvider, DecryptedConfig, ShipmentRequest, ShipmentResult, ProviderTestResult } from "./types";
+import type { ShippingProvider, DecryptedConfig, ShipmentRequest, ShipmentResult } from "./types";
 import { decryptSecret } from "../../crypto/encrypt";
 import { err } from "../../errors";
 

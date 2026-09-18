@@ -20,7 +20,7 @@
  *
  * Run: npm run test:integration
  */
-import { readFileSync, readdirSync, rmSync, mkdirSync } from "node:fs";
+import { readFileSync, readdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
@@ -149,7 +149,6 @@ async function main() {
   const HORIZON = "b0000000-0000-4000-8000-000000000004";
   const KARIM = "a0000000-0000-4000-8000-000000000012"; // NovaShop OWNER
   const YACINE = "a0000000-0000-4000-8000-000000000013"; // NovaShop ORDER_MANAGER
-  const AMINE = "a0000000-0000-4000-8000-000000000014"; // NovaShop CONTENT_EDITOR
   const SOFIA = "a0000000-0000-4000-8000-000000000011"; // Almasa OWNER
   const LINA = "a0000000-0000-4000-8000-000000000021"; // PureSkin OWNER
   const ADMIN = "a0000000-0000-4000-8000-000000000001"; // SUPER_ADMIN
@@ -181,7 +180,7 @@ async function main() {
   try {
     const r = await runAs("authenticated", KARIM, `update stores set name = 'HACKED' where id = $1`, [ALMASA]);
     check("NovaShop owner CANNOT update Almasa store", r.rowCount === 0, `updated ${r.rowCount} row(s)!`);
-  } catch (e) {
+  } catch {
     check("NovaShop owner CANNOT update Almasa store", true);
   }
   const nameAfter = await runAs("authenticated", SOFIA, `select name from stores where id = $1`, [ALMASA]);
@@ -191,7 +190,7 @@ async function main() {
   try {
     const r = await runAs("authenticated", KARIM, `update pages set title = 'XSS' where store_id = $1 and key = 'home'`, [ALMASA]);
     check("NovaShop owner CANNOT edit Almasa homepage", r.rowCount === 0, `updated ${r.rowCount} row(s)!`);
-  } catch (e) {
+  } catch {
     check("NovaShop owner CANNOT edit Almasa homepage", true);
   }
 
@@ -222,7 +221,7 @@ async function main() {
     const r = await runAs("authenticated", VIEWER, `
       insert into products (store_id, name, slug, price_cents) values ($1, 'Viewer Hack', 'viewer-hack', 100) returning id`, [NOVA]);
     check("VIEWER cannot insert products", (r.rows ?? []).length === 0, `inserted ${r.rows?.length} row(s)!`);
-  } catch (e) {
+  } catch {
     check("VIEWER cannot insert products", true);
   }
 
@@ -235,7 +234,7 @@ async function main() {
   try {
     const r = await runAs("authenticated", YACINE, `update products set price_cents = 1 where store_id = $1`, [NOVA]);
     check("ORDER_MANAGER cannot edit products (price tamper)", r.rowCount === 0, `updated ${r.rowCount}!`);
-  } catch (e) {
+  } catch {
     check("ORDER_MANAGER cannot edit products (price tamper)", true);
   }
 
@@ -249,7 +248,7 @@ async function main() {
   try {
     const r = await runAs("authenticated", KARIM, `insert into platform_admins (user_id, role) values ($1, 'SUPER_ADMIN') returning id`, [KARIM]);
     check("merchants cannot insert into platform_admins", (r.rows ?? []).length === 0, `inserted!`);
-  } catch (e) {
+  } catch {
     check("merchants cannot insert into platform_admins", true);
   }
 
@@ -362,7 +361,7 @@ async function main() {
   try {
     const r = await runAs("authenticated", KARIM, `insert into support_sessions (admin_user_id, store_id) values ($1, $2) returning id`, [KARIM, ALMASA]);
     check("Merchants cannot start support sessions", (r.rows ?? []).length === 0, "insert succeeded!");
-  } catch (e) {
+  } catch {
     check("Merchants cannot start support sessions", true);
   }
 
