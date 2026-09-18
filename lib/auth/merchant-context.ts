@@ -78,6 +78,7 @@ export async function getMerchantContext(): Promise<MerchantContext> {
       .eq("id", supportCookie)
       .eq("admin_user_id", user.id)
       .is("ended_at", null)
+      .gt("expires_at", new Date().toISOString())
       .maybeSingle();
     if (data) {
       // Only platform admins may hold support sessions (defense in depth).
