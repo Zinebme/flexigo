@@ -26,7 +26,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ user
     const { error } = await admin.from("platform_admins").delete().eq("user_id", userId);
     if (error) throw error;
 
-    void logAudit({
+    await logAudit({
       actorId: ctx.user.id,
       action: "platform_admin.removed",
       entity: "platform_admin",
