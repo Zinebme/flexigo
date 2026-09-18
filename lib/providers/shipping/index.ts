@@ -6,6 +6,7 @@
 import { manualProvider } from "./manual";
 import { navexProvider } from "./navex";
 import { mockProvider } from "./mock";
+import { createUndocumentedProvider } from "./undocumented";
 import type { ShippingProvider, DecryptedConfig, ShipmentRequest, ShipmentResult } from "./types";
 import { decryptSecret } from "../../crypto/encrypt";
 import { err } from "../../errors";
@@ -13,6 +14,10 @@ import { err } from "../../errors";
 export const SHIPPING_PROVIDERS: Record<string, ShippingProvider> = {
   manual: manualProvider,
   navex: navexProvider,
+  yalidine: createUndocumentedProvider("yalidine", "Yalidine"),
+  ecotrack: createUndocumentedProvider("ecotrack", "Ecotrack"),
+  zr: createUndocumentedProvider("zr", "ZR Express"),
+  generic: createUndocumentedProvider("generic", "Transporteur générique"),
   mock: mockProvider,
 };
 
