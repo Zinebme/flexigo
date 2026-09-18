@@ -169,3 +169,8 @@ GitHub Actions (typecheck, lint, build, tests; pas de fuite secrets)
 ## Licence
 
 Privé — tous droits réservés.
+
+
+### Hardening sécurité V1
+
+Avant production, la migration `0014_security_hardening.sql` applique notamment : protection colonne des brouillons, EXECUTE SQL deny-by-default, expiration DB des sessions support et politiques Storage alignées sur `store-assets`. La vérification des domaines passe par un TXT DNS réel.
