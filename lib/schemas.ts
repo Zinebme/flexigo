@@ -233,27 +233,30 @@ export const storeStatusSchema = z.object({
 });
 
 export const wizardSchema = z.object({
-  // Step 1 — client
+  // Step 1 — client/account
   organization_id: uuid.optional().nullable(),
   create_new_client: z.boolean().default(true),
   client_name: z.string().trim().min(2).max(120),
   owner_name: z.string().trim().max(120).optional().or(z.literal("")).nullable(),
   owner_email: z.string().trim().email("Email du client invalide").max(120).optional().or(z.literal("")).nullable(),
   owner_phone: z.string().trim().max(20).optional().or(z.literal("")).nullable(),
-  // Step 2 — type
+  owner_whatsapp: z.string().trim().max(40).optional().or(z.literal("")).nullable(),
+  account_mode: z.enum(["create_now", "invite_later"]).default("invite_later"),
+
+  // Step 2/3 — template + identity
   website_type: z.enum(WEBSITE_TYPES),
-  // Step 3 — template
   template_key: z.string().min(1).max(60),
-  // Step 4 — identity
   business_name: z.string().trim().min(2).max(80),
   slug: z.string().trim().max(80).optional().or(z.literal("")).nullable(),
   logo_url: imageUrl,
   favicon_url: imageUrl,
   primary_color: color,
   secondary_color: color,
+  accent_color: color.optional().nullable(),
   language: z.enum(STORE_LANGUAGES).default("fr"),
   currency: z.string().length(3).default("DZD"),
-  // Step 5 — contact
+
+  // Contact
   contact_email: z.string().trim().email("Email invalide").max(120).optional().or(z.literal("")).nullable(),
   contact_phone: z.string().trim().max(20).optional().or(z.literal("")).nullable(),
   whatsapp: socialUrl,
@@ -261,33 +264,68 @@ export const wizardSchema = z.object({
   facebook: socialUrl,
   tiktok: socialUrl,
   address: z.string().trim().max(200).optional().or(z.literal("")).nullable(),
-  // Step 6 — business
+
+  // Homepage structured overrides
+  homepage_sections: z.array(z.object({
+    id: z.string().min(1).max(80),
+    type: z.string().min(1).max(80),
+    title: z.string().max(160).default(""),
+    enabled: z.boolean().default(true),
+  })).max(30).default([]),
+
+  // Business / catalog
   cod_enabled: z.boolean().default(true),
   reviews_enabled: z.boolean().default(true),
   faq_enabled: z.boolean().default(true),
   default_home_fee: priceDA,
   default_office_fee: priceDA,
   office_delivery_enabled: z.boolean().default(true),
-  initial_categories: z.array(z.object({ name: z.string().trim().min(2).max(80) })).max(10).default([]),
-  initial_products: z
-    .array(
-      z.object({
-        name: z.string().trim().min(2).max(120),
-        price: priceDA,
-        description: z.string().max(6000).optional().or(z.literal("")).nullable(),
-        image_url: imageUrl,
-        category: z.string().trim().max(80).optional().or(z.literal("")).nullable(),
-        stock: z.number().int().min(0).max(1_000_000).default(0),
-      }),
-    )
-    .max(20)
-    .default([]),
-  // Step 7 — integrations
+
+  initial_categories: z.array(z.object({
+    name: z.string().trim().min(2).max(80),
+    image_url: imageUrl,
+    slug: z.string().trim().max(80).optional().or(z.literal("")).nullable(),
+    position: z.number().int().min(0).max(1000).optional(),
+    is_visible: z.boolean().optional().default(true),
+  })).max(30).default([]),
+
+  initial_products: z.array(z.object({
+    name: z.string().trim().min(2).max(120),
+    price: priceDA,
+    compare_price: priceDA.optional().nullable(),
+    description: z.string().max(6000).optional().or(z.literal("")).nullable(),
+    image_url: imageUrl,
+    category: z.string().trim().max(80).optional().or(z.literal("")).nullable(),
+    stock: z.number().int().min(0).max(1_000_000).default(0),
+    sku: z.string().max(60).optional().or(z.literal("")).nullable(),
+    featured: z.boolean().optional().default(false),
+  })).max(50).default([]),
+
+  // Shipping provider
+  shipping_provider: z.enum(["manual","navex","yalidine","ecotrack","zr","generic"]).default("manual"),
+  shipping_api_base: z.string().trim().url("URL API invalide").max(300).optional().or(z.literal("")).nullable(),
+  shipping_api_token: z.string().trim().max(500).optional().or(z.literal("")).nullable(),
+  shipping_account: z.string().trim().max(120).optional().or(z.literal("")).nullable(),
+
+  // Marketing
   meta_pixel_id: z.string().max(60).regex(/^[A-Za-z0-9._-]*$/).optional().or(z.literal("")).nullable(),
   tiktok_pixel_id: z.string().max(60).regex(/^[A-Za-z0-9._-]*$/).optional().or(z.literal("")).nullable(),
+  snapchat_pixel_id: z.string().max(80).regex(/^[A-Za-z0-9._-]*$/).optional().or(z.literal("")).nullable(),
+  pinterest_tag_id: z.string().max(80).regex(/^[A-Za-z0-9._-]*$/).optional().or(z.literal("")).nullable(),
   ga4_measurement_id: z.string().max(60).regex(/^[A-Za-z0-9._-]*$/).optional().or(z.literal("")).nullable(),
   gtm_container_id: z.string().max(60).regex(/^[A-Za-z0-9._-]*$/).optional().or(z.literal("")).nullable(),
   google_ads_customer_id: z.string().max(60).regex(/^[A-Za-z0-9._-]*$/).optional().or(z.literal("")).nullable(),
+
+  // Google Sheets + Telegram
+  google_sheets_id: z.string().trim().max(120).optional().or(z.literal("")).nullable(),
+  google_sheets_json: z.string().max(100_000).optional().or(z.literal("")).nullable(),
+  telegram_bot_token: z.string().trim().max(200).optional().or(z.literal("")).nullable(),
+  telegram_chat_id: z.string().trim().max(120).optional().or(z.literal("")).nullable(),
+
+  // Domain + merchant dashboard
+  custom_domain: z.string().trim().toLowerCase().max(253).optional().or(z.literal("")).nullable(),
+  dashboard_language: z.enum(["fr","ar","en"]).default("fr"),
+  publish_mode: z.enum(["draft","publish","deliver"]).default("draft"),
 });
 export type WizardInput = z.infer<typeof wizardSchema>;
 
