@@ -48,6 +48,10 @@ export interface StoreSettings {
     faq_enabled: boolean;
     allow_negative_stock: boolean;
     max_items_per_order: number;
+    office_delivery_enabled?: boolean;
+  };
+  appearance?: {
+    accent_color?: string | null;
   };
 }
 
