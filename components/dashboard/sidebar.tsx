@@ -20,6 +20,7 @@ const NAV: Array<{ section: string; items: NavItem[] }> = [
       { href: "/dashboard/produits", label: "Produits", icon: "🛍️", roles: ["OWNER", "MANAGER", "ORDER_MANAGER", "CONTENT_EDITOR", "VIEWER"] },
       { href: "/dashboard/categories", label: "Catégories", icon: "🗂️", roles: ["OWNER", "MANAGER", "CONTENT_EDITOR"] },
       { href: "/dashboard/clients", label: "Clients", icon: "👥", roles: ["OWNER", "MANAGER", "ORDER_MANAGER", "VIEWER"] },
+      { href: "/dashboard/inventaire", label: "Inventaire", icon: "📦", roles: ["OWNER", "MANAGER", "ORDER_MANAGER"] },
       { href: "/dashboard/statistiques", label: "Statistiques", icon: "📈" },
     ],
   },
@@ -27,6 +28,9 @@ const NAV: Array<{ section: string; items: NavItem[] }> = [
     section: "Mon site",
     items: [
       { href: "/dashboard/site", label: "Pages & sections", icon: "📄", roles: ["OWNER", "MANAGER", "CONTENT_EDITOR"] },
+      { href: "/dashboard/bannieres", label: "Bannières", icon: "🖼️", roles: ["OWNER", "MANAGER", "CONTENT_EDITOR"] },
+      { href: "/dashboard/avis", label: "Avis clients", icon: "⭐", roles: ["OWNER", "MANAGER", "CONTENT_EDITOR"] },
+      { href: "/dashboard/faq", label: "FAQ", icon: "❓", roles: ["OWNER", "MANAGER", "CONTENT_EDITOR"] },
       { href: "/dashboard/apparence", label: "Apparence", icon: "🎨", roles: ["OWNER", "MANAGER", "CONTENT_EDITOR"] },
       { href: "/dashboard/livraison", label: "Livraison", icon: "🚚", roles: ["OWNER", "MANAGER", "ORDER_MANAGER"] },
       { href: "/dashboard/marketing", label: "Marketing", icon: "📣", roles: ["OWNER", "MANAGER"] },

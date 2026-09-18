@@ -60,10 +60,22 @@ export function DashboardTopbar({
     <>
       {supportMode ? (
         <div className="sticky top-0 z-50 flex items-center justify-between gap-3 bg-violet-700 px-4 py-2 text-sm font-semibold text-white sm:px-6">
-          <span>🛟 Mode assistance — {supportStoreName}</span>
-          <span className="hidden text-xs font-normal text-violet-200 sm:block">
-            Session d'assistance tracée et journalisée par la plateforme
-          </span>
+          <div className="flex items-center gap-3">
+            <span>🛟 Mode assistance — {supportStoreName}</span>
+            <span className="hidden text-xs font-normal text-violet-200 sm:block">
+              Session d'assistance tracée et journalisée par la plateforme
+            </span>
+          </div>
+          <button
+            onClick={async () => {
+              await fetch("/api/admin/support/quit", { method: "POST" });
+              router.push("/admin/support");
+              router.refresh();
+            }}
+            className="rounded-lg bg-white px-3 py-1 text-xs font-bold text-violet-700 shadow-sm hover:bg-violet-50"
+          >
+            Quitter le mode assistance
+          </button>
         </div>
       ) : null}
       <div className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6">

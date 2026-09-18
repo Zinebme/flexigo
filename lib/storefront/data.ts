@@ -16,6 +16,7 @@ export interface StorefrontData {
   slug: string;
   name: string;
   website_type: string;
+  template_key: string;
   currency: string;
   settings: StoreSettings | null;
   theme: {
@@ -61,6 +62,7 @@ export async function getStorefrontData(
     slug: store.slug,
     name: store.name,
     website_type: store.website_type,
+    template_key: store.template_key,
     currency: store.currency,
     settings: (storeRow?.settings as StoreSettings | null) ?? null,
     theme: theme

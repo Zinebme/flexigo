@@ -253,7 +253,7 @@ export default async function ProductPage({
             <h2 className="text-xl font-bold text-slate-900">{data.dict.product.related}</h2>
             <div className="mt-6 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
               {related.map((rp) => (
-                <ProductCard key={rp.id} p={rp} base={data.base} orderLabel={data.dict.actions.order} />
+                <ProductCard key={rp.id} p={rp} base={data.base} orderLabel={data.dict.actions.order} tpl={data.template_key} />
               ))}
             </div>
           </div>

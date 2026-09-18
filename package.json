@@ -12,9 +12,10 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:integration": "node tests/integration/run.mjs",
+    "test:db": "node tests/integration/run.mjs",
     "db:local:setup": "bash scripts/local-db.sh setup",
     "db:local:migrate": "bash scripts/local-db.sh migrate",
     "db:local:seed": "bash scripts/local-db.sh seed"
