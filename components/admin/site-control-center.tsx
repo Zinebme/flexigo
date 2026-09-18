@@ -6,6 +6,7 @@ import { formatDA, formatDateTimeFr, timeAgoFr } from "@/lib/utils";
 import { Badge, Card, Table, Th, Td } from "@/components/ui";
 import { SiteActions } from "./site-actions";
 import { AdvancedAdminClient } from "./advanced-admin-client";
+import { StoreSettingsEditor, ThemeEditor, ProductQuickEditor, CategoryQuickEditor, IntegrationsEditor, OwnerEditor } from "./site-control-forms";
 
 type Tab = "overview" | "site" | "products" | "categories" | "orders" | "customers" | "stats" | "content" | "appearance" | "delivery" | "integrations" | "domain" | "account" | "logs" | "health";
 
@@ -128,37 +129,22 @@ export function SiteControlCenter(props: Props) {
       {tab === "site" && (
         <Card className="p-5">
           <h3 className="font-bold">Site — informations générales</h3>
-          <p className="mt-2 text-sm text-slate-500">Modifiez tout : nom, slug, template, langue, devise, statut. Remplace le JSON brut par des formulaires conviviaux (à venir : édition inline).</p>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 text-sm">
-            <div><strong>Nom :</strong> {s.name as string}</div>
-            <div><strong>Slug :</strong> {s.slug as string}</div>
-            <div><strong>Type :</strong> {s.website_type as string}</div>
-            <div><strong>Template :</strong> {s.template_key as string}</div>
-            <div><strong>Langue :</strong> {s.language as string}</div>
-            <div><strong>Devise :</strong> {s.currency as string}</div>
-          </div>
+          <p className="mt-2 text-sm text-slate-500">Modifiez directement le nom, le slug, la langue et la devise depuis le Master.</p>
+          <div className="mt-4"><StoreSettingsEditor storeId={s.id as string} store={s} /></div>
         </Card>
       )}
 
       {tab === "products" && (
-        <Card>
-          <div className="border-b border-slate-100 px-5 py-3 flex justify-between"><h3 className="font-bold">Produits ({props.products.length})</h3><Link href={`/admin/sites/${s.id as string}?tab=products`} className="text-xs text-violet-600">Gérer</Link></div>
-          <Table head={<><Th>Nom</Th><Th>Prix</Th><Th>Stock</Th><Th>Actif</Th></>}>
-            {props.products.map((p) => (
-              <tr key={p.id as string} className="hover:bg-slate-50"><Td className="font-medium">{p.name as string}</Td><Td>{formatDA(p.price_cents as number)}</Td><Td>{p.stock as number}</Td><Td><Badge tone={(p.is_active as boolean) ? "green" : "gray"}>{(p.is_active as boolean) ? "Actif" : "Inactif"}</Badge></Td></tr>
-            ))}
-          </Table>
+        <Card className="p-5">
+          <div className="mb-4"><h3 className="font-bold">Produits ({props.products.length})</h3><p className="text-xs text-slate-500">Édition rapide depuis le Master : nom, prix, ancien prix, stock, catégorie, actif et vedette.</p></div>
+          <ProductQuickEditor storeId={s.id as string} products={props.products} categories={props.categories} />
         </Card>
       )}
 
       {tab === "categories" && (
-        <Card>
-          <div className="border-b border-slate-100 px-5 py-3"><h3 className="font-bold">Catégories ({props.categories.length})</h3></div>
-          <Table head={<><Th>Nom</Th><Th>Slug</Th><Th>Visible</Th><Th>Position</Th></>}>
-            {props.categories.map((c) => (
-              <tr key={c.id as string} className="hover:bg-slate-50"><Td>{c.name as string}</Td><Td className="font-mono text-xs">{c.slug as string}</Td><Td><Badge tone={(c.is_visible as boolean) ? "green" : "gray"}>{(c.is_visible as boolean) ? "Oui" : "Non"}</Badge></Td><Td>{c.position as number}</Td></tr>
-            ))}
-          </Table>
+        <Card className="p-5">
+          <div className="mb-4"><h3 className="font-bold">Catégories ({props.categories.length})</h3><p className="text-xs text-slate-500">Édition directe du nom, slug, ordre et visibilité.</p></div>
+          <CategoryQuickEditor storeId={s.id as string} categories={props.categories} />
         </Card>
       )}
 
@@ -220,9 +206,9 @@ export function SiteControlCenter(props: Props) {
 
       {tab === "appearance" && (
         <Card className="p-5">
-          <h3 className="font-bold">Apparence — Thème & template</h3>
-          <p className="mt-2 text-sm text-slate-500">Remplace le JSON brut par des formulaires : logo, favicon, couleurs primaire/secondaire/accent, typo, forme boutons, annonce. Template : {s.template_key as string} — distinct visual components (EleganceHero/GlowHero etc.)</p>
-          {props.themes && <div className="mt-3 grid gap-2 text-sm"><div>Primaire: {(props.themes as { primary_color: string }).primary_color}</div><div>Secondaire: {(props.themes as { secondary_color: string }).secondary_color}</div><div>Typo: {(props.themes as { typography: string }).typography}</div><div>Boutons: {(props.themes as { button_shape: string }).button_shape}</div></div>}
+          <h3 className="font-bold">Apparence — Thème & branding</h3>
+          <p className="mt-2 text-sm text-slate-500">Le template garde son identité visuelle, mais vous pouvez ajuster branding, couleurs, typographie, boutons et annonce.</p>
+          <div className="mt-4"><ThemeEditor storeId={s.id as string} theme={props.themes} /></div>
         </Card>
       )}
 
@@ -238,18 +224,11 @@ export function SiteControlCenter(props: Props) {
       )}
 
       {tab === "integrations" && (
-        <div className="space-y-4">
-          <Card className="p-5">
-            <h3 className="font-bold">Intégrations — Checklist</h3>
-            <div className="mt-3 grid gap-3 md:grid-cols-2 text-sm">
-              <div className="rounded-lg border p-3"><strong>Shipping</strong> : {props.shipping.length ? props.shipping.map((sh) => `${sh.provider_key} — ${sh.status}`).join(", ") : "Non configuré"}</div>
-              <div className="rounded-lg border p-3"><strong>Marketing Pixels</strong> : {props.marketing.map((m) => `${m.provider_key}${(m.is_active as boolean) ? "✓" : ""}`).join(", ") || "Non configuré"}</div>
-              <div className="rounded-lg border p-3"><strong>Google Sheets</strong> : {props.sheets ? `${(props.sheets as { is_active: boolean }).is_active ? "✅ Actif" : "⚪ Inactif"} — ${(props.sheets as { last_status: string | null }).last_status ?? "—"}` : "Non configuré"}</div>
-              <div className="rounded-lg border p-3"><strong>Telegram</strong> : {props.telegram ? `${(props.telegram as { is_active: boolean }).is_active ? "✅ Actif" : "⚪ Inactif"} — ${(props.telegram as { status: string }).status} — Chat ${(props.telegram as { chat_id: string }).chat_id}` : "Non configuré — bot token chiffré fxenc1.*"}</div>
-            </div>
-            <p className="mt-3 text-xs text-slate-500">Chaque intégration : Non configuré / Configuré / Connecté / Erreur + Configurer / Tester / Désactiver / Modifier. Credentials chiffrés côté serveur, jamais exposés.</p>
-          </Card>
-        </div>
+        <Card className="p-5">
+          <h3 className="font-bold">Intégrations — configuration directe</h3>
+          <p className="mt-2 text-sm text-slate-500">Shipping, pixels, Google Sheets et Telegram sont modifiables ici sans passer par le dashboard marchand.</p>
+          <div className="mt-4"><IntegrationsEditor storeId={s.id as string} shipping={props.shipping} marketing={props.marketing} sheets={props.sheets} telegram={props.telegram} /></div>
+        </Card>
       )}
 
       {tab === "domain" && (
@@ -268,12 +247,13 @@ export function SiteControlCenter(props: Props) {
       {tab === "account" && (
         <Card className="p-5">
           <h3 className="font-bold">Compte client</h3>
-          <p className="mt-2 text-sm text-slate-500">Créer / inviter le propriétaire marchand, langue dashboard FR/AR/EN indépendante de la langue boutique.</p>
+          <p className="mt-2 text-sm text-slate-500">Le site peut exister sans compte client. Créez/invitez le propriétaire uniquement quand vous êtes prête à lui livrer l'accès.</p>
           <ul className="mt-3 space-y-2 text-sm">
             {props.members.map((m, i) => (
               <li key={i} className="flex justify-between"><span>{props.profileMap.get(m.user_id as string) ?? (m.user_id as string).slice(0, 8)} · {m.role as string}</span><Badge tone={(m.status as string) === "active" ? "green" : "gray"}>{m.status as string}</Badge></li>
             ))}
           </ul>
+          <div className="mt-5 border-t pt-5"><OwnerEditor storeId={s.id as string} /></div>
         </Card>
       )}
 
