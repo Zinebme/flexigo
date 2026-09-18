@@ -333,6 +333,16 @@ async function main() {
   // count is of rows anon CAN see among unpublished — must be 0
   check("Unpublished pages invisible to anon", legal.rows[0].n === 0);
 
+  // RLS filters rows, not columns: anon must not be able to request draft content.
+  await expectError(
+    "Anon cannot read the draft content column",
+    "anon",
+    null,
+    `select content from pages where store_id = $1 and key = 'home'`,
+    "permission denied",
+    [NOVA],
+  );
+
   // publish (v1 → v2)
   const pub = await runAs("service_role", null, `select public.fn_publish_page($1, 'home', 1, $2) res`, [NOVA, KARIM]);
   check("Publish bumps version to 2", pub.rows[0].res.version === 2, `got ${JSON.stringify(pub.rows[0])}`);
@@ -375,6 +385,12 @@ async function main() {
 
   const withSession = await runAs("service_role", null, `select public.fn_can_access_store($1, $2) ok`, [ADMIN, NOVA]);
   check("Open support session → admin can access store", withSession.rows[0].ok === true);
+
+  // Database expiry is authoritative even if a stale cookie/session id remains.
+  await runAs("service_role", null, `update support_sessions set expires_at = now() - interval '1 second' where id = $1`, [sessionId]);
+  const expiredSession = await runAs("service_role", null, `select public.fn_can_access_store($1, $2) ok`, [ADMIN, NOVA]);
+  check("Expired support session revokes access", expiredSession.rows[0].ok === false);
+  await runAs("service_role", null, `update support_sessions set expires_at = now() + interval '8 hours' where id = $1`, [sessionId]);
 
   // admin (as authenticated role) can now see NovaShop store + orders via RLS
   const adminSeesStore = await runAs("authenticated", ADMIN, `select count(*)::int n from stores where id = $1`, [NOVA]);
@@ -436,10 +452,28 @@ async function main() {
   const copyShipCfg = await runAs("service_role", null, `select count(*)::int n from shipping_integrations where store_id = $1`, [copyId]);
   check("Copied store has NO shipping credentials", copyShipCfg.rows[0].n === 0);
 
+  // Privileged internal functions are not directly callable by public roles.
+  await expectError(
+    "Anon cannot call internal order-number function",
+    "anon",
+    null,
+    `select public.fn_next_order_number($1)`,
+    "permission denied",
+    [NOVA],
+  );
+  await expectError(
+    "Merchant cannot call store lifecycle function directly",
+    "authenticated",
+    KARIM,
+    `select public.fn_copy_store($1, 'forbidden-copy', 'Forbidden', $2)`,
+    "permission denied",
+    [NOVA, KARIM],
+  );
+
   // ==========================================================================
   section("7. Phone normalization (Algeria)");
 
-  const ph = await runAs("anon", null, `select
+  const ph = await runAs("service_role", null, `select
     public.fn_normalize_phone('0550 12 34 56') a,
     public.fn_normalize_phone('+213 661 98 76 54') b,
     public.fn_normalize_phone('00213770112233') c,
