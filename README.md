@@ -73,7 +73,7 @@ Client → Type → Template → Identité (nom, slug, logo, couleurs, langue) �
 ### Domaines
 
 - `proxy.ts` default-exported `proxy` (Node runtime), toujours `await` params/searchParams/cookies()/headers(), layouts ne reçoivent jamais searchParams, eslint via `eslint .` avec subpath flat exports, Turbopack default, `output: "standalone"`
-- Résolution hostname → store, provider-neutral verification, super-admin UI (add, instructions, status, set primary), preview subdomain
+- Résolution hostname → store, vérification réelle par DNS TXT, super-admin UI (add, instructions, status, set primary), preview subdomain
 
 ## Seed (fake)
 
@@ -96,8 +96,8 @@ npm run dev # http://localhost:3000
 ### Supabase setup
 
 1. Créer projet Supabase
-2. Appliquer migrations: `supabase/migrations/*.sql` dans l'ordre (0001..0013) via SQL editor ou `psql`
-3. Créer bucket Storage `product-images` public (pour images produits)
+2. Appliquer migrations: `supabase/migrations/*.sql` dans l'ordre (0001..0014) via SQL editor ou `psql`
+3. Le bucket Storage public `store-assets` est créé par les migrations. Les objets suivent `stores/{store_id}/{purpose}/{filename}`.
 4. Créer premier super admin:
    ```sql
    -- 1. Créer compte via /register
@@ -148,10 +148,10 @@ Voir `.env.example` — jamais commiter `.env.local`, service_role, Google ou sh
 
 ## Sécurité — contrôles
 
-- RLS sur toutes tables tenant, membership-based, recursion-safe
+- RLS sur toutes tables tenant, membership-based, recursion-safe; les brouillons `pages.content` sont interdits au rôle anon par privilèges de colonnes
 - IDOR prévention
 - service_role jamais client-side/NEXT_PUBLIC_/committé
-- Opérations privilégiées server-side only
+- Opérations privilégiées server-side only; EXECUTE SQL deny-by-default pour anon/authenticated avec grants explicites
 - Zod, recalcul server-side prix/totaux, auth ≠ authorization, audit logs, rate limits, anti-spam checkout, upload validation, XSS/CSRF/SQLi, CSP + security headers, jamais log secrets, chiffrage credentials externes, soft deletion, confirmations, re-auth ops critiques super-admin, MFA-capable, sanitize rich text, system logs, backup/restore docs
 
 ## CI
