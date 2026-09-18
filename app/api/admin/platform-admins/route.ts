@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     const { error } = await admin.from("platform_admins").insert({ user_id: (profile as { id: string }).id, role: "SUPER_ADMIN" } as never);
     if (error) throw error;
 
-    void logAudit({
+    await logAudit({
       actorId: ctx.user.id,
       action: "platform_admin.added",
       entity: "platform_admin",
