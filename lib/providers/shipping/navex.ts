@@ -135,7 +135,7 @@ export const navexProvider: ShippingProvider = {
       status?: string;
       message?: string;
     };
-    return { ok: true, status: data.status ?? null, message: data.message ?? null };
+    return { ok: true, status: data.status ?? null, message: data.message ?? "" };
   },
 
   async listOffices(config, wilayaCode) {

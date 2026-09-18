@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+:root {
+  --fx-primary: #1d4ed8;
+  --fx-secondary: #f59e0b;
+  --fx-bg: #ffffff;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    "Noto Sans",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Arabic (RTL) storefront typography */
+[dir="rtl"] body {
+  font-family: "Noto Naskh Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+}
+
+/* Thin scrollbars for dashboard tables */
+.fx-scroll::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.fx-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}

@@ -183,7 +183,10 @@ export function defaultPages(templateKey: string, websiteType: WebsiteType, busi
   return pages;
 }
 
-export function defaultSettings(contact: Record<string, string | null>, business: Record<string, boolean | number>): StoreSettings {
+export function defaultSettings(
+  contact: Record<string, string | null>,
+  business: { cod_enabled?: boolean; reviews_enabled?: boolean; faq_enabled?: boolean; allow_negative_stock?: boolean; max_items_per_order?: number },
+): StoreSettings {
   return {
     contact: {
       email: contact.email ?? null,

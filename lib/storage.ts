@@ -46,7 +46,7 @@ export function parseImageDimensions(buf: Buffer): Dimensions | null {
         off++;
         continue;
       }
-      const marker = buf[off + 1];
+      const marker = buf[off + 1]!;
       const len = buf.readUInt16BE(off + 2);
       if (marker >= 0xc0 && marker <= 0xc3) {
         return { height: buf.readUInt16BE(off + 5), width: buf.readUInt16BE(off + 7), format: "jpeg" };
@@ -64,7 +64,7 @@ export function parseImageDimensions(buf: Buffer): Dimensions | null {
       return { width: w, height: h, format: "webp" };
     }
     if (chunk === "VP8L" && buf.length >= 25) {
-      const b0 = buf[21], b1 = buf[22], b2 = buf[23], b3 = buf[24];
+      const b0 = buf[21]!, b1 = buf[22]!, b2 = buf[23]!, b3 = buf[24]!;
       const w = 1 + ((b1 & 0x3f) << 8 | b0);
       const h = 1 + ((b3 & 0x0f) << 10 | (b2 & 0xf) << 8 | (b1 >> 2));
       return { width: w, height: h, format: "webp" };

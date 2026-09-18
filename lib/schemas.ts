@@ -65,7 +65,7 @@ export type CheckoutInput = z.infer<typeof checkoutSchema>;
 
 export const variantSchema = z.object({
   name: z.string().trim().min(1).max(80),
-  options: z.record(z.string().max(40), z.string().max(40)).max(3, "3 options maximum").optional().default({}),
+  options: z.record(z.string().max(40), z.string().max(40)).refine((o) => Object.keys(o).length <= 3, "3 options maximum").optional().default({}),
   price_cents: z.number().int().positive().max(1_000_000_000).optional().nullable(),
   sku: z.string().max(60).optional().or(z.literal("")).nullable(),
   stock: z.number().int().min(0).max(1_000_000).optional().default(0),

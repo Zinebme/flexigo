@@ -18,7 +18,7 @@ import type {
 export interface PricedLine {
   unitPriceCents: number;
   lineTotalCents: number;
-  offer: QuantityOfferRow | null;
+  offer: Pick<QuantityOfferRow, "id" | "store_id" | "product_id" | "min_quantity" | "total_price_cents" | "label" | "is_active"> | null;
   offerLabel: string | null;
 }
 

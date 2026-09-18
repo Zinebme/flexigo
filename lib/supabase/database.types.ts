@@ -72,7 +72,7 @@ export interface StoreMemberRow {
   store_id: string;
   user_id: string;
   role: "OWNER" | "MANAGER" | "ORDER_MANAGER" | "CONTENT_EDITOR" | "VIEWER";
-  status: "invited" | "active";
+  status: "invited" | "active" | "revoked";
   invited_by: string | null;
   created_at: string;
 }
@@ -457,8 +457,12 @@ export interface SupportSessionRow {
 
 type LooseInsert = { [col: string]: unknown };
 
+// Row is intersected with Record<string, unknown> because postgrest-js
+// constrains GenericTable.Row to Record<string, unknown>; interfaces (our
+// row definitions) carry no implicit index signature, so the intersection
+// satisfies the constraint while keeping every concrete field typed.
 type T<R> = {
-  Row: R;
+  Row: R & Record<string, unknown>;
   Insert: LooseInsert;
   Update: LooseInsert;
   Relationships: [];
