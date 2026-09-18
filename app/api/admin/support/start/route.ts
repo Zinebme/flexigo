@@ -46,12 +46,17 @@ export async function POST(req: Request) {
 
     const { data: session, error: sessError } = await admin
       .from("support_sessions")
-      .insert({ admin_user_id: ctx.user.id, store_id: input.store_id, ip })
+      .insert({
+        admin_user_id: ctx.user.id,
+        store_id: input.store_id,
+        ip,
+        expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+      })
       .select("id")
       .single();
     if (sessError) throw sessError;
 
-    void logAudit({
+    await logAudit({
       actorId: ctx.user.id,
       storeId: input.store_id,
       action: "support.session_started",
