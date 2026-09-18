@@ -451,6 +451,7 @@ export interface SupportSessionRow {
   store_id: string;
   started_at: string;
   ended_at: string | null;
+  expires_at: string;
   ip: string | null;
   created_at: string;
 }
