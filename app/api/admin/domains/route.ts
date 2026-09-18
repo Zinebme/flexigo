@@ -5,6 +5,7 @@ import { toErrorResponse, err } from "@/lib/errors";
 import { domainSchema, parseBody } from "@/lib/schemas";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
+import { generateToken } from "@/lib/crypto/encrypt";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
     const { data: clash } = await admin.from("domains").select("id").eq("hostname", input.hostname).maybeSingle();
     if (clash) throw err("CONFLICT", `Domaine ${input.hostname} déjà utilisé.`);
 
-    const token = Math.random().toString(36).slice(2, 10);
+    const token = generateToken(24);
 
     const { data, error } = await admin
       .from("domains")
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
       await admin.from("domains").update({ is_primary: true } as never).eq("id", (data as { id: string }).id);
     }
 
-    void logAudit({
+    await logAudit({
       actorId: ctx.user.id,
       storeId: input.store_id,
       action: "domain.created",
