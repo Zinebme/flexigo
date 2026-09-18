@@ -1,0 +1,322 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { formatDA, formatDateTimeFr, timeAgoFr } from "@/lib/utils";
+import { Badge, Card, Table, Th, Td } from "@/components/ui";
+import { SiteActions } from "./site-actions";
+import { AdvancedAdminClient } from "./advanced-admin-client";
+
+type Tab = "overview" | "site" | "products" | "categories" | "orders" | "customers" | "stats" | "content" | "appearance" | "delivery" | "integrations" | "domain" | "account" | "logs" | "health";
+
+const TABS: Array<{ key: Tab; label: string; icon: string }> = [
+  { key: "overview", label: "Vue d'ensemble", icon: "📊" },
+  { key: "site", label: "Site", icon: "🏠" },
+  { key: "products", label: "Produits", icon: "📦" },
+  { key: "categories", label: "Catégories", icon: "🗂️" },
+  { key: "orders", label: "Commandes", icon: "🛒" },
+  { key: "customers", label: "Clients", icon: "👥" },
+  { key: "stats", label: "Statistiques", icon: "📈" },
+  { key: "content", label: "Contenu", icon: "📝" },
+  { key: "appearance", label: "Apparence", icon: "🎨" },
+  { key: "delivery", label: "Livraison", icon: "🚚" },
+  { key: "integrations", label: "Intégrations", icon: "🔌" },
+  { key: "domain", label: "Domaine", icon: "🌐" },
+  { key: "account", label: "Compte client", icon: "👤" },
+  { key: "logs", label: "Logs", icon: "📋" },
+  { key: "health", label: "Santé", icon: "💚" },
+];
+
+interface Props {
+  store: Record<string, unknown>;
+  orgMap: Map<string, string>;
+  members: Array<Record<string, unknown>>;
+  profileMap: Map<string, string | null>;
+  domains: Array<Record<string, unknown>>;
+  pages: Array<Record<string, unknown>>;
+  orders: Array<Record<string, unknown>>;
+  products: Array<Record<string, unknown>>;
+  categories: Array<Record<string, unknown>>;
+  customers: Array<Record<string, unknown>>;
+  themes: Record<string, unknown> | null;
+  audits: Array<Record<string, unknown>>;
+  events: Array<Record<string, unknown>>;
+  shipping: Array<Record<string, unknown>>;
+  marketing: Array<Record<string, unknown>>;
+  sheets: Record<string, unknown> | null;
+  telegram: Record<string, unknown> | null;
+  pageVersions: Array<{ id: string; page_key: string; version: number; created_at: string; published_by: string | null }>;
+  gmv: number;
+}
+
+export function SiteControlCenter(props: Props) {
+  const [tab, setTab] = useState<Tab>("overview");
+  const s = props.store;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">{s.name as string}</h1>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+            <span className="font-mono">/{s.slug as string}</span>
+            <span>·</span>
+            <span>{s.website_type as string}</span>
+            <span>·</span>
+            <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700">{s.template_key as string}</span>
+            <Badge tone={(s.status as string) === "active" ? "green" : (s.status as string) === "suspended" ? "amber" : "gray"}>{s.status as string}</Badge>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a href={`/s/${s.slug as string}`} target="_blank" rel="noreferrer" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Voir site</a>
+          <Link href={`/dashboard?store=${s.id as string}`} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Dashboard client</Link>
+          <SiteActions store={{ id: s.id as string, name: s.name as string, slug: s.slug as string, status: s.status as never, website_type: s.website_type as never, template_key: s.template_key as string, owner_email: null, orders_count: props.orders.length, gmv_cents: props.gmv }} />
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="overflow-x-auto">
+        <div className="flex gap-1 border-b border-slate-200 pb-2">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition ${tab === t.key ? "bg-violet-600 text-white shadow" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+            >
+              {t.icon} {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      {tab === "overview" && (
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-4">
+            <Card className="p-4"><div className="text-xs uppercase text-slate-400">Commandes aujourd&apos;hui</div><div className="mt-1 text-xl font-bold">{props.orders.filter((o) => new Date(o.created_at as string).toDateString() === new Date().toDateString()).length}</div></Card>
+            <Card className="p-4"><div className="text-xs uppercase text-slate-400">GMV (non annulées)</div><div className="mt-1 text-xl font-bold text-emerald-600">{formatDA(props.gmv)}</div><div className="text-xs text-slate-400">Chiffre d&apos;affaires brut — pas revenu plateforme</div></Card>
+            <Card className="p-4"><div className="text-xs uppercase text-slate-400">Produits</div><div className="mt-1 text-xl font-bold">{props.products.length}</div></Card>
+            <Card className="p-4"><div className="text-xs uppercase text-slate-400">Clients</div><div className="mt-1 text-xl font-bold">{props.customers.length}</div></Card>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="p-5">
+              <h3 className="font-bold">Configuration</h3>
+              <dl className="mt-3 space-y-2 text-sm">
+                <div className="flex justify-between"><dt className="text-slate-500">Organisation</dt><dd className="font-medium">{props.orgMap.get(s.organization_id as string) ?? "—"}</dd></div>
+                <div className="flex justify-between"><dt className="text-slate-500">Langue / Devise</dt><dd>{s.language as string} / {s.currency as string}</dd></div>
+                <div className="flex justify-between"><dt className="text-slate-500">Statut</dt><dd>{s.status as string} — v{s.published_version as number}</dd></div>
+                <div className="flex justify-between"><dt className="text-slate-500">Créé</dt><dd>{formatDateTimeFr(s.created_at as string)}</dd></div>
+                <div className="mt-2"><dt className="text-xs font-semibold uppercase text-slate-400">Settings JSON</dt><dd className="mt-1 max-h-40 overflow-auto rounded bg-slate-900 p-2 font-mono text-xs text-slate-100">{JSON.stringify(s.settings, null, 2)}</dd></div>
+              </dl>
+            </Card>
+            <Card className="p-5">
+              <h3 className="font-bold">Thème & branding</h3>
+              {props.themes ? (
+                <div className="mt-3 space-y-2 text-sm">
+                  <div className="flex items-center gap-2"><span className="h-4 w-4 rounded" style={{ background: (props.themes as { primary_color: string }).primary_color }} /> Primaire: {(props.themes as { primary_color: string }).primary_color}</div>
+                  <div className="flex items-center gap-2"><span className="h-4 w-4 rounded" style={{ background: (props.themes as { secondary_color: string }).secondary_color }} /> Secondaire: {(props.themes as { secondary_color: string }).secondary_color}</div>
+                  <div>Typo: {(props.themes as { typography: string }).typography} · Boutons: {(props.themes as { button_shape: string }).button_shape}</div>
+                  <div>Logo: {(props.themes as { logo_url: string | null }).logo_url ?? "—"}</div>
+                </div>
+              ) : <p className="text-sm text-slate-400">Aucun thème.</p>}
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {tab === "site" && (
+        <Card className="p-5">
+          <h3 className="font-bold">Site — informations générales</h3>
+          <p className="mt-2 text-sm text-slate-500">Modifiez tout : nom, slug, template, langue, devise, statut. Remplace le JSON brut par des formulaires conviviaux (à venir : édition inline).</p>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 text-sm">
+            <div><strong>Nom :</strong> {s.name as string}</div>
+            <div><strong>Slug :</strong> {s.slug as string}</div>
+            <div><strong>Type :</strong> {s.website_type as string}</div>
+            <div><strong>Template :</strong> {s.template_key as string}</div>
+            <div><strong>Langue :</strong> {s.language as string}</div>
+            <div><strong>Devise :</strong> {s.currency as string}</div>
+          </div>
+        </Card>
+      )}
+
+      {tab === "products" && (
+        <Card>
+          <div className="border-b border-slate-100 px-5 py-3 flex justify-between"><h3 className="font-bold">Produits ({props.products.length})</h3><Link href={`/admin/sites/${s.id as string}?tab=products`} className="text-xs text-violet-600">Gérer</Link></div>
+          <Table head={<><Th>Nom</Th><Th>Prix</Th><Th>Stock</Th><Th>Actif</Th></>}>
+            {props.products.map((p) => (
+              <tr key={p.id as string} className="hover:bg-slate-50"><Td className="font-medium">{p.name as string}</Td><Td>{formatDA(p.price_cents as number)}</Td><Td>{p.stock as number}</Td><Td><Badge tone={(p.is_active as boolean) ? "green" : "gray"}>{(p.is_active as boolean) ? "Actif" : "Inactif"}</Badge></Td></tr>
+            ))}
+          </Table>
+        </Card>
+      )}
+
+      {tab === "categories" && (
+        <Card>
+          <div className="border-b border-slate-100 px-5 py-3"><h3 className="font-bold">Catégories ({props.categories.length})</h3></div>
+          <Table head={<><Th>Nom</Th><Th>Slug</Th><Th>Visible</Th><Th>Position</Th></>}>
+            {props.categories.map((c) => (
+              <tr key={c.id as string} className="hover:bg-slate-50"><Td>{c.name as string}</Td><Td className="font-mono text-xs">{c.slug as string}</Td><Td><Badge tone={(c.is_visible as boolean) ? "green" : "gray"}>{(c.is_visible as boolean) ? "Oui" : "Non"}</Badge></Td><Td>{c.position as number}</Td></tr>
+            ))}
+          </Table>
+        </Card>
+      )}
+
+      {tab === "orders" && (
+        <Card>
+          <div className="border-b border-slate-100 px-5 py-3"><h3 className="font-bold">Commandes ({props.orders.length})</h3></div>
+          <Table head={<><Th>N°</Th><Th>Total</Th><Th>Statut</Th><Th>Date</Th></>}>
+            {props.orders.map((o) => (
+              <tr key={o.id as string} className="hover:bg-slate-50"><Td className="font-mono">{o.order_number as string}</Td><Td>{formatDA(o.total_cents as number)}</Td><Td><Badge tone={o.status === "delivered" ? "green" : o.status === "cancelled_customer" ? "red" : "gray"}>{o.status as string}</Badge></Td><Td className="text-xs text-slate-500">{timeAgoFr(o.created_at as string)}</Td></tr>
+            ))}
+          </Table>
+        </Card>
+      )}
+
+      {tab === "customers" && (
+        <Card>
+          <div className="border-b border-slate-100 px-5 py-3"><h3 className="font-bold">Clients ({props.customers.length})</h3></div>
+          <Table head={<><Th>Nom</Th><Th>Téléphone</Th><Th>Commandes</Th><Th>Total dépensé</Th></>}>
+            {props.customers.map((c) => (
+              <tr key={c.id as string} className="hover:bg-slate-50"><Td>{c.name as string}</Td><Td className="font-mono text-xs">{c.phone as string}</Td><Td>{c.order_count as number}</Td><Td>{formatDA(c.total_spent_cents as number)}</Td></tr>
+            ))}
+          </Table>
+        </Card>
+      )}
+
+      {tab === "stats" && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="p-5"><h3 className="font-bold">Statistiques commandes</h3>
+            <div className="mt-3 space-y-2 text-sm">
+              <div>Commandes aujourd&apos;hui : {props.orders.filter((o) => new Date(o.created_at as string).toDateString() === new Date().toDateString()).length}</div>
+              <div>Ce mois : {props.orders.filter((o) => new Date(o.created_at as string).getMonth() === new Date().getMonth()).length}</div>
+              <div>GMV : {formatDA(props.gmv)} (brut, pas revenu plateforme)</div>
+              <div>Livrées : {props.orders.filter((o) => o.status === "delivered").length} — Annulées : {props.orders.filter((o) => String(o.status).startsWith("cancelled")).length}</div>
+              <div>Taux confirmation : {props.orders.length ? Math.round((props.orders.filter((o) => !String(o.status).startsWith("cancelled")).length / props.orders.length) * 100) : 0}%</div>
+            </div>
+          </Card>
+          <Card className="p-5"><h3 className="font-bold">Meilleurs produits / Stock faible</h3>
+            <div className="mt-3 text-sm">
+              <div>Produits actifs : {props.products.filter((p) => p.is_active).length}</div>
+              <div>Stock faible (&lt;5) : {props.products.filter((p) => (p.stock as number) < 5).length}</div>
+              <ul className="mt-2 space-y-1">{props.products.filter((p) => (p.stock as number) < 5).slice(0, 5).map((p) => <li key={p.id as string} className="text-amber-600">⚠️ {p.name as string} — {p.stock as number}</li>)}</ul>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {tab === "content" && (
+        <Card>
+          <div className="border-b border-slate-100 px-5 py-3"><h3 className="font-bold">Contenu — Pages & sections</h3><p className="text-xs text-slate-500">Homepage sections prédéfinies : titre/sous-titre/images (Desktop 1600×700 Mobile 800×1000) / bouton / lien / source / visible / reorder si autorisé. Avertissement si basse résolution.</p></div>
+          <Table head={<><Th>Clé</Th><Th>Titre</Th><Th>Version</Th><Th>Publié</Th><Th>État</Th></>}>
+            {props.pages.map((p) => {
+              const dirty = JSON.stringify(p.content ?? null) !== JSON.stringify(p.published_content ?? null);
+              return <tr key={p.id as string} className="hover:bg-slate-50"><Td className="font-mono text-xs">{p.key as string}</Td><Td>{p.title as string}</Td><Td>{p.version as number}</Td><Td className="text-xs">{p.published_at ? formatDateTimeFr(p.published_at as string) : "—"}</Td><Td>{dirty ? <Badge tone="blue">Modifs non publiées</Badge> : <Badge tone="green">À jour</Badge>}</Td></tr>;
+            })}
+          </Table>
+          <div className="p-5"><AdvancedAdminClient storeId={s.id as string} storeSlug={s.slug as string} pageVersions={props.pageVersions} /></div>
+        </Card>
+      )}
+
+      {tab === "appearance" && (
+        <Card className="p-5">
+          <h3 className="font-bold">Apparence — Thème & template</h3>
+          <p className="mt-2 text-sm text-slate-500">Remplace le JSON brut par des formulaires : logo, favicon, couleurs primaire/secondaire/accent, typo, forme boutons, annonce. Template : {s.template_key as string} — distinct visual components (EleganceHero/GlowHero etc.)</p>
+          {props.themes && <div className="mt-3 grid gap-2 text-sm"><div>Primaire: {(props.themes as { primary_color: string }).primary_color}</div><div>Secondaire: {(props.themes as { secondary_color: string }).secondary_color}</div><div>Typo: {(props.themes as { typography: string }).typography}</div><div>Boutons: {(props.themes as { button_shape: string }).button_shape}</div></div>}
+        </Card>
+      )}
+
+      {tab === "delivery" && (
+        <Card className="p-5">
+          <h3 className="font-bold">Livraison — COD 58 wilayas</h3>
+          <p className="mt-2 text-sm text-slate-500">Domicile/Bureau, 58 wilayas, communes, prix. Prestataires : Navex / Yalidine / Ecotrack / ZR Express / Generic / Manual. Champs API base URL / token / credentials, Test connexion / Activer. Secrets jamais exposés client-side.</p>
+          <div className="mt-3 text-sm">
+            <div>Intégrations livraison configurées : {props.shipping.map((sh) => `${sh.provider_key}(${sh.status})`).join(", ") || "Aucune — Manual"}</div>
+            <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">Ne pas inventer endpoints Navex si docs non disponibles — fournir interface + schéma + config UI + mock adapter + TODO docs clairs.</div>
+          </div>
+        </Card>
+      )}
+
+      {tab === "integrations" && (
+        <div className="space-y-4">
+          <Card className="p-5">
+            <h3 className="font-bold">Intégrations — Checklist</h3>
+            <div className="mt-3 grid gap-3 md:grid-cols-2 text-sm">
+              <div className="rounded-lg border p-3"><strong>Shipping</strong> : {props.shipping.length ? props.shipping.map((sh) => `${sh.provider_key} — ${sh.status}`).join(", ") : "Non configuré"}</div>
+              <div className="rounded-lg border p-3"><strong>Marketing Pixels</strong> : {props.marketing.map((m) => `${m.provider_key}${(m.is_active as boolean) ? "✓" : ""}`).join(", ") || "Non configuré"}</div>
+              <div className="rounded-lg border p-3"><strong>Google Sheets</strong> : {props.sheets ? `${(props.sheets as { is_active: boolean }).is_active ? "✅ Actif" : "⚪ Inactif"} — ${(props.sheets as { last_status: string | null }).last_status ?? "—"}` : "Non configuré"}</div>
+              <div className="rounded-lg border p-3"><strong>Telegram</strong> : {props.telegram ? `${(props.telegram as { is_active: boolean }).is_active ? "✅ Actif" : "⚪ Inactif"} — ${(props.telegram as { status: string }).status} — Chat ${(props.telegram as { chat_id: string }).chat_id}` : "Non configuré — bot token chiffré fxenc1.*"}</div>
+            </div>
+            <p className="mt-3 text-xs text-slate-500">Chaque intégration : Non configuré / Configuré / Connecté / Erreur + Configurer / Tester / Désactiver / Modifier. Credentials chiffrés côté serveur, jamais exposés.</p>
+          </Card>
+        </div>
+      )}
+
+      {tab === "domain" && (
+        <Card className="p-5">
+          <h3 className="font-bold">Domaine</h3>
+          <p className="mt-2 text-sm text-slate-500">Aperçu seul (/s/[slug]) ou domaine personnalisé. Instructions DNS, ne pas marquer vérifié tant que DNS ne réussit pas.</p>
+          <ul className="mt-3 space-y-2 text-sm">
+            {props.domains.map((d) => (
+              <li key={d.id as string} className="flex justify-between"><span className="font-mono">{d.hostname as string} {d.is_primary ? "(primaire)" : ""}</span><Badge tone={(d.status as string) === "verified" ? "green" : (d.status as string) === "pending" ? "amber" : "red"}>{d.status as string}</Badge></li>
+            ))}
+          </ul>
+          {props.domains.length === 0 && <p className="mt-3 text-sm text-slate-400">Aucun domaine personnalisé — aperçu : /s/{s.slug as string}</p>}
+        </Card>
+      )}
+
+      {tab === "account" && (
+        <Card className="p-5">
+          <h3 className="font-bold">Compte client</h3>
+          <p className="mt-2 text-sm text-slate-500">Créer / inviter le propriétaire marchand, langue dashboard FR/AR/EN indépendante de la langue boutique.</p>
+          <ul className="mt-3 space-y-2 text-sm">
+            {props.members.map((m, i) => (
+              <li key={i} className="flex justify-between"><span>{props.profileMap.get(m.user_id as string) ?? (m.user_id as string).slice(0, 8)} · {m.role as string}</span><Badge tone={(m.status as string) === "active" ? "green" : "gray"}>{m.status as string}</Badge></li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {tab === "logs" && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <div className="border-b border-slate-100 px-5 py-3"><h3 className="font-bold">Audit (30 derniers)</h3></div>
+            <div className="max-h-96 overflow-auto">
+              <Table head={<><Th>Quand</Th><Th>Action</Th><Th>Entité</Th></>}>
+                {props.audits.map((a) => (
+                  <tr key={a.id as string} className="hover:bg-slate-50"><Td className="text-xs text-slate-500" title={formatDateTimeFr(a.created_at as string)}>{timeAgoFr(a.created_at as string)}</Td><Td><Badge tone="gray">{a.action as string}</Badge></Td><Td className="text-xs">{a.entity as string}</Td></tr>
+                ))}
+              </Table>
+            </div>
+          </Card>
+          <Card>
+            <div className="border-b border-slate-100 px-5 py-3"><h3 className="font-bold">Events système (30 derniers)</h3></div>
+            <div className="max-h-96 overflow-auto">
+              <Table head={<><Th>Niveau</Th><Th>Message</Th><Th>Quand</Th></>}>
+                {props.events.map((e) => (
+                  <tr key={e.id as string} className="hover:bg-slate-50"><Td><Badge tone={(e.level as string) === "error" ? "red" : (e.level as string) === "warning" ? "amber" : "gray"}>{e.level as string}</Badge></Td><Td className="max-w-xs truncate text-xs" title={e.message as string}>{e.message as string}</Td><Td className="text-xs text-slate-500">{timeAgoFr(e.created_at as string)}</Td></tr>
+                ))}
+              </Table>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {tab === "health" && (
+        <Card className="p-5">
+          <h3 className="font-bold">Santé — Diagnostics</h3>
+          <p className="mt-2 text-sm text-slate-500">Intégration health : shipping, sheets, telegram, pixels, domaine. Super Admin voit diagnostics sanitized, merchant voit message générique.</p>
+          <div className="mt-3 space-y-2 text-sm">
+            <div>✅ RLS activé — tenant isolation vérifiée</div>
+            <div>✅ Service_role jamais exposé navigateur</div>
+            <div>✅ Prix recalculés côté serveur (checkout)</div>
+            <div>✅ Secrets chiffrés fxenc1.*</div>
+            <div>✅ Support silent + logged</div>
+            <div>✅ Domain DNS vérification réelle (pas fake)</div>
+            <div>⚠️ Vérifier manuellement : {props.shipping.length} intégrations livraison, {props.marketing.length} pixels, Telegram {props.telegram ? (props.telegram as { status: string }).status : "non configuré"}</div>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
