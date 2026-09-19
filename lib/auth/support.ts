@@ -93,6 +93,7 @@ export async function getOpenSupportSession(
     .eq("id", sessionId)
     .eq("admin_user_id", adminUserId)
     .is("ended_at", null)
+    .gt("expires_at", new Date().toISOString())
     .maybeSingle();
   return data;
 }

@@ -6,79 +6,142 @@ import { wizardSchema, parseBody } from "@/lib/schemas";
 import { slugify, isValidSlug } from "@/lib/slug";
 import { getTemplate, defaultPages, defaultSettings, defaultShippingZones } from "@/lib/templates/defaults";
 import { logAudit } from "@/lib/audit";
+import { encryptSecret, generateToken } from "@/lib/crypto/encrypt";
+import { parseServiceAccount } from "@/lib/integrations/sheets";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+const DEFAULT_SHEET_FIELDS = [
+  "numero",
+  "nom",
+  "telephone",
+  "wilaya",
+  "commune",
+  "livraison",
+  "sous_total",
+  "frais",
+  "total",
+  "statut",
+  "creee",
+];
+
+function applyHomepageOverrides(
+  pages: ReturnType<typeof defaultPages>,
+  overrides: Array<{ id: string; type: string; title: string; enabled: boolean }>,
+) {
+  if (overrides.length === 0) return pages;
+  return pages.map((page) => {
+    if (page.key !== "home") return page;
+    const byId = new Map(overrides.map((o) => [o.id, o]));
+    const sections = page.content.sections.map((section) => {
+      const override = byId.get(section.id);
+      if (!override) return section;
+      return {
+        ...section,
+        enabled: override.enabled,
+        ...(override.title ? { title: override.title } : {}),
+      };
+    });
+    return { ...page, content: { sections } };
+  });
+}
+
+async function resolveOrInviteOwner(args: {
+  admin: ReturnType<typeof getAdminSupabase>;
+  email: string | null | undefined;
+  fullName: string | null | undefined;
+  accountMode: "create_now" | "invite_later";
+}) {
+  const email = args.email?.trim().toLowerCase();
+  if (!email || args.accountMode === "invite_later") return null;
+
+  const { data: existing } = await args.admin
+    .from("profiles")
+    .select("id, email")
+    .ilike("email", email)
+    .maybeSingle();
+  if (existing) return (existing as { id: string }).id;
+
+  const { data, error } = await args.admin.auth.admin.inviteUserByEmail(email, {
+    data: { full_name: args.fullName?.trim() || "" },
+  });
+  if (error || !data.user) {
+    throw err("VALIDATION", `Impossible de créer/inviter le compte client : ${error?.message ?? "erreur Auth"}`);
+  }
+
+  await args.admin.from("profiles").upsert({
+    id: data.user.id,
+    full_name: args.fullName?.trim() || null,
+    email,
+  } as never);
+
+  return data.user.id;
+}
+
 /**
- * POST /api/admin/stores — wizard de création de site (SUPER_ADMIN only).
+ * POST /api/admin/stores
  *
- * Flux:
- * 1. Valide le payload avec wizardSchema (8 étapes côté client).
- * 2. Résout le propriétaire: owner_email DOIT correspondre à un profil existant.
- *    Message français clair si absent: "le client doit d'abord créer son compte".
- * 3. Organisation: utilise organization_id si fourni, sinon crée une nouvelle org
- *    si create_new_client=true (nom = client_name).
- * 4. Génère le slug (business_name → slugify) + vérifie unicité.
- * 5. Appelle fn_create_store (service_role) — crée store, theme, membership OWNER,
- *    pages (v0), shipping_zones, store_counters.
- * 6. Insère catégories / produits initiaux si fournis (prix DA → cents).
- * 7. Configure les pixels marketing si fournis (marketing_integrations).
- * 8. Audit + retour {ok, store_id, slug, preview_url}.
+ * Complete 11-step internal production flow. "Finish" persists the catalog,
+ * shipping, pixels, Google Sheets, Telegram, domain and merchant preferences.
+ * The client account may intentionally be attached later.
  */
 export async function POST(req: Request) {
   try {
     const ctx = await getAdminContext();
-    const raw = await req.json().catch(() => null);
-    const input = parseBody(wizardSchema, raw);
-
+    const input = parseBody(wizardSchema, await req.json().catch(() => null));
     const admin = getAdminSupabase();
 
-    // --- template validation ---
     const tpl = getTemplate(input.template_key);
     if (!tpl) throw err("VALIDATION", "Modèle invalide.");
     if (!tpl.websiteTypes.includes(input.website_type as never)) {
       throw err("VALIDATION", `Le modèle ${tpl.name} n'est pas compatible avec le type ${input.website_type}.`);
     }
 
-    // --- owner lookup ---
-    let ownerUserId: string | null = null;
-    if (input.owner_email) {
-      const { data: prof } = await admin.from("profiles").select("id, email").ilike("email", input.owner_email.trim()).maybeSingle();
-      if (!prof) {
-        throw err("NOT_FOUND", "Le client doit d'abord créer son compte (email introuvable). Demandez-lui de s'inscrire puis réessayez.");
-      }
-      ownerUserId = (prof as { id: string }).id;
-    } else {
-      throw err("VALIDATION", "Email du propriétaire requis — le client doit d'abord créer son compte.");
-    }
+    const ownerUserId = await resolveOrInviteOwner({
+      admin,
+      email: input.owner_email,
+      fullName: input.owner_name,
+      accountMode: input.account_mode,
+    });
 
-    // --- organization ---
-    let organizationId: string | null = (input.organization_id as string | null) ?? null;
+    let organizationId: string | null = input.organization_id ?? null;
     if (!organizationId && input.create_new_client) {
       const { data: org, error: orgErr } = await admin
         .from("organizations")
-        .insert({ name: input.client_name })
+        .insert({
+          name: input.client_name,
+          owner_user_id: ownerUserId,
+          created_by: ctx.user.id,
+        } as never)
         .select("id")
         .single();
       if (orgErr) throw orgErr;
       organizationId = (org as { id: string }).id;
     }
     if (!organizationId) {
-      // Fallback: try to find org by name (idempotent) or require one
-      const { data: existingOrg } = await admin.from("organizations").select("id").ilike("name", input.client_name).maybeSingle();
+      const { data: existingOrg } = await admin
+        .from("organizations")
+        .select("id")
+        .ilike("name", input.client_name)
+        .maybeSingle();
       if (existingOrg) organizationId = (existingOrg as { id: string }).id;
       else throw err("VALIDATION", "Organisation requise — créez un nouveau client ou sélectionnez une organisation existante.");
     }
 
-    // --- slug ---
     const rawSlug = (input.slug?.trim() || slugify(input.business_name) || "").toLowerCase();
     const finalSlug = rawSlug.slice(0, 80);
-    if (!isValidSlug(finalSlug)) throw err("VALIDATION", "Slug invalide — utilisez uniquement lettres minuscules, chiffres et tirets (ex: maison-almasa).");
-    const { data: clash } = await admin.from("stores").select("id").eq("slug", finalSlug).is("deleted_at", null).maybeSingle();
+    if (!isValidSlug(finalSlug)) {
+      throw err("VALIDATION", "Slug invalide — utilisez uniquement lettres minuscules, chiffres et tirets.");
+    }
+    const { data: clash } = await admin
+      .from("stores")
+      .select("id")
+      .eq("slug", finalSlug)
+      .is("deleted_at", null)
+      .maybeSingle();
     if (clash) throw err("CONFLICT", `Slug « ${finalSlug} » déjà utilisé.`);
 
-    // --- identity / settings / pages / zones ---
     const identity = {
       logo_url: input.logo_url || null,
       favicon_url: input.favicon_url || null,
@@ -92,7 +155,7 @@ export async function POST(req: Request) {
     const contact = {
       email: input.contact_email || input.owner_email || null,
       phone: input.contact_phone || input.owner_phone || null,
-      whatsapp: input.whatsapp || null,
+      whatsapp: input.whatsapp || input.owner_whatsapp || null,
       instagram: input.instagram || null,
       facebook: input.facebook || null,
       tiktok: input.tiktok || null,
@@ -105,42 +168,42 @@ export async function POST(req: Request) {
       faq_enabled: input.faq_enabled ?? true,
       allow_negative_stock: false,
       max_items_per_order: 10,
+      office_delivery_enabled: input.office_delivery_enabled,
+      accent_color: input.accent_color || null,
     };
 
     const settings = defaultSettings(contact as Record<string, string | null>, business);
-    const pages = defaultPages(input.template_key, input.website_type as never, input.business_name).map((p) => ({
+    const basePages = defaultPages(input.template_key, input.website_type as never, input.business_name);
+    const pages = applyHomepageOverrides(basePages, input.homepage_sections).map((p) => ({
       key: p.key,
       title: p.title,
       content: p.content,
     }));
 
-    const homeFee = typeof input.default_home_fee === "number" ? input.default_home_fee : 400;
-    const officeFee = typeof input.default_office_fee === "number" ? input.default_office_fee : 600;
-    const zones = defaultShippingZones(homeFee, officeFee);
+    const zones = defaultShippingZones(input.default_home_fee, input.default_office_fee);
 
-    // --- fn_create_store (service_role RPC) ---
-    const { data: storeId, error: rpcErr } = await (admin.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>)(
-      "fn_create_store",
-      {
-        p_organization_id: organizationId,
-        p_name: input.business_name,
-        p_slug: finalSlug,
-        p_website_type: input.website_type,
-        p_template_key: input.template_key,
-        p_language: input.language || "fr",
-        p_currency: input.currency || "DZD",
-        p_identity: identity,
-        p_settings: settings,
-        p_pages: pages,
-        p_zones: zones,
-        p_owner_user_id: ownerUserId,
-        p_creator_id: ctx.user.id,
-      },
-    );
+    const { data: storeId, error: rpcErr } = await (admin.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: unknown }>)("fn_create_store", {
+      p_organization_id: organizationId,
+      p_name: input.business_name,
+      p_slug: finalSlug,
+      p_website_type: input.website_type,
+      p_template_key: input.template_key,
+      p_language: input.language || "fr",
+      p_currency: input.currency || "DZD",
+      p_identity: identity,
+      p_settings: settings,
+      p_pages: pages,
+      p_zones: zones,
+      p_owner_user_id: ownerUserId,
+      p_creator_id: ctx.user.id,
+    });
+
     if (rpcErr) {
       const msg = (rpcErr as { message?: string }).message ?? "";
       if (msg.includes("SLUG_TAKEN")) throw err("CONFLICT", `Slug « ${finalSlug} » déjà utilisé.`);
-      if (msg.includes("OWNER_NOT_FOUND")) throw err("NOT_FOUND", "Le client doit d'abord créer son compte.");
       if (msg.includes("TEMPLATE_NOT_FOUND")) throw err("NOT_FOUND", "Modèle introuvable.");
       if (msg.includes("INVALID_SLUG")) throw err("VALIDATION", "Slug invalide.");
       throw rpcErr;
@@ -148,80 +211,224 @@ export async function POST(req: Request) {
 
     const newStoreId = storeId as string;
 
-    // --- initial categories ---
-    if (input.initial_categories?.length) {
-      const cats = input.initial_categories.slice(0, 10).map((c, idx) => ({
-        store_id: newStoreId,
-        name: c.name,
-        slug: slugify(c.name),
-        position: idx,
-      }));
-      // insert ignoring duplicates
-      for (const cat of cats) {
-        await admin.from("categories").insert(cat).select().maybeSingle().then(() => {});
-      }
+    if (ownerUserId) {
+      await admin
+        .from("profiles")
+        .update({ dashboard_language: input.dashboard_language } as never)
+        .eq("id", ownerUserId);
+      await admin
+        .from("organizations")
+        .update({ owner_user_id: ownerUserId } as never)
+        .eq("id", organizationId);
     }
 
-    // --- initial products ---
-    if (input.initial_products?.length) {
-      // Resolve category slugs to ids
-      const { data: allCats } = await admin.from("categories").select("id, name").eq("store_id", newStoreId);
-      const catMap = new Map<string, string>();
-      for (const c of (allCats ?? []) as Array<{ id: string; name: string }>) catMap.set(c.name.toLowerCase(), c.id);
+    // Categories
+    for (const [idx, cat] of input.initial_categories.entries()) {
+      const slug = slugify(cat.slug || cat.name) || `categorie-${idx + 1}`;
+      const { error } = await admin.from("categories").insert({
+        store_id: newStoreId,
+        name: cat.name,
+        slug,
+        image_url: cat.image_url || null,
+        position: cat.position ?? idx,
+        is_visible: cat.is_visible,
+      } as never);
+      if (error) throw error;
+    }
 
-      for (const p of input.initial_products.slice(0, 20)) {
-        const priceCents = Math.round((p.price as number) * 100);
-        let categoryId: string | null = null;
-        if (p.category) categoryId = catMap.get(p.category.toLowerCase()) ?? null;
-        const prodInsert = {
+    const { data: allCats } = await admin
+      .from("categories")
+      .select("id, name")
+      .eq("store_id", newStoreId);
+    const catMap = new Map<string, string>();
+    for (const cat of (allCats ?? []) as Array<{ id: string; name: string }>) {
+      catMap.set(cat.name.toLowerCase(), cat.id);
+    }
+
+    // Products
+    for (const [idx, product] of input.initial_products.entries()) {
+      const baseSlug = slugify(product.name) || `produit-${idx + 1}`;
+      const slug = `${baseSlug}-${idx + 1}`;
+      const { data: prodRow, error: prodErr } = await admin
+        .from("products")
+        .insert({
           store_id: newStoreId,
-          category_id: categoryId,
-          name: p.name,
-          slug: `${slugify(p.name)}-${Math.random().toString(36).slice(2, 6)}`,
-          description: p.description || null,
-          price_cents: priceCents,
-          stock: typeof p.stock === "number" ? p.stock : 0,
-          is_active: false,
-          is_featured: false,
-        };
-        const { data: prodRow, error: prodErr } = await admin.from("products").insert(prodInsert).select("id").single();
-        if (prodErr) continue;
-        const prodId = (prodRow as { id: string }).id;
-        if (p.image_url) {
-          await admin.from("product_images").insert({
-            product_id: prodId,
-            store_id: newStoreId,
-            url: p.image_url,
-            position: 0,
-          });
-        }
+          category_id: product.category ? catMap.get(product.category.toLowerCase()) ?? null : null,
+          name: product.name,
+          slug,
+          description: product.description || null,
+          price_cents: Math.round(product.price * 100),
+          compare_at_price_cents: product.compare_price != null ? Math.round(product.compare_price * 100) : null,
+          sku: product.sku || null,
+          stock: product.stock,
+          is_active: input.publish_mode !== "draft",
+          is_featured: product.featured,
+          position: idx,
+        } as never)
+        .select("id")
+        .single();
+      if (prodErr) throw prodErr;
+
+      const productId = (prodRow as { id: string }).id;
+      if (product.image_url) {
+        const { error: imgErr } = await admin.from("product_images").insert({
+          product_id: productId,
+          store_id: newStoreId,
+          url: product.image_url,
+          position: 0,
+        } as never);
+        if (imgErr) throw imgErr;
+      }
+      if (product.stock > 0) {
+        await admin.from("inventory_movements").insert({
+          store_id: newStoreId,
+          product_id: productId,
+          change: product.stock,
+          reason: "Stock initial (studio)",
+          actor_user_id: ctx.user.id,
+        } as never);
       }
     }
 
-    // --- marketing integrations (config only, no code) ---
-    const marketing: Array<{ provider_key: string; config: Record<string, string>; is_active: boolean }> = [];
-    if (input.meta_pixel_id) marketing.push({ provider_key: "meta_pixel", config: { pixel_id: input.meta_pixel_id }, is_active: true });
-    if (input.tiktok_pixel_id) marketing.push({ provider_key: "tiktok_pixel", config: { pixel_id: input.tiktok_pixel_id }, is_active: true });
-    if (input.ga4_measurement_id) marketing.push({ provider_key: "ga4", config: { measurement_id: input.ga4_measurement_id }, is_active: true });
-    if (input.gtm_container_id) marketing.push({ provider_key: "gtm", config: { container_id: input.gtm_container_id }, is_active: true });
-    if (input.google_ads_customer_id) marketing.push({ provider_key: "google_ads", config: { customer_id: input.google_ads_customer_id }, is_active: true });
+    // Shipping provider config — secrets encrypted at rest.
+    const shippingConfig: Record<string, string> = {};
+    if (input.shipping_api_base) shippingConfig.api_base_url = input.shipping_api_base;
+    if (input.shipping_api_token) shippingConfig.api_token = encryptSecret(input.shipping_api_token);
+    if (input.shipping_account) shippingConfig.account = input.shipping_account;
 
-    for (const m of marketing) {
-      await admin.from("marketing_integrations").upsert({
+    await admin.from("shipping_integrations").upsert({
+      store_id: newStoreId,
+      provider_key: input.shipping_provider,
+      is_active: true,
+      config: shippingConfig,
+      status: input.shipping_provider === "manual"
+        ? "configured"
+        : Object.keys(shippingConfig).length > 0
+          ? "configured"
+          : "unconfigured",
+      updated_at: new Date().toISOString(),
+    } as never, { onConflict: "store_id,provider_key" });
+
+    // Marketing integrations
+    const marketing: Array<{ provider_key: string; config: Record<string, string> }> = [];
+    if (input.meta_pixel_id) marketing.push({ provider_key: "meta_pixel", config: { pixel_id: input.meta_pixel_id } });
+    if (input.tiktok_pixel_id) marketing.push({ provider_key: "tiktok_pixel", config: { pixel_id: input.tiktok_pixel_id } });
+    if (input.snapchat_pixel_id) marketing.push({ provider_key: "snapchat_pixel", config: { pixel_id: input.snapchat_pixel_id } });
+    if (input.pinterest_tag_id) marketing.push({ provider_key: "pinterest_tag", config: { pixel_id: input.pinterest_tag_id } });
+    if (input.ga4_measurement_id) marketing.push({ provider_key: "ga4", config: { measurement_id: input.ga4_measurement_id } });
+    if (input.gtm_container_id) marketing.push({ provider_key: "gtm", config: { container_id: input.gtm_container_id } });
+    if (input.google_ads_customer_id) marketing.push({ provider_key: "google_ads", config: { customer_id: input.google_ads_customer_id } });
+
+    for (const item of marketing) {
+      const { error } = await admin.from("marketing_integrations").upsert({
         store_id: newStoreId,
-        provider_key: m.provider_key,
-        is_active: m.is_active,
-        config: m.config,
+        provider_key: item.provider_key,
+        is_active: true,
+        config: item.config,
+        events_enabled: ["PageView", "ViewContent", "AddToCart", "InitiateCheckout", "Purchase"],
       } as never, { onConflict: "store_id,provider_key" });
+      if (error) throw error;
     }
 
-    void logAudit({
+    // Google Sheets — canonical singular table.
+    if (input.google_sheets_id || input.google_sheets_json) {
+      let credentialEncrypted: string | null = null;
+      if (input.google_sheets_json) {
+        parseServiceAccount(input.google_sheets_json);
+        credentialEncrypted = encryptSecret(input.google_sheets_json);
+      }
+      const { error } = await admin.from("google_sheet_integrations").upsert({
+        store_id: newStoreId,
+        spreadsheet_id: input.google_sheets_id || null,
+        credential_encrypted: credentialEncrypted,
+        fields: DEFAULT_SHEET_FIELDS,
+        is_active: Boolean(input.google_sheets_id && credentialEncrypted),
+        last_status: null,
+        last_error: null,
+        updated_at: new Date().toISOString(),
+      } as never, { onConflict: "store_id" });
+      if (error) throw error;
+    }
+
+    // Telegram
+    if (input.telegram_bot_token || input.telegram_chat_id) {
+      if (!input.telegram_bot_token || !input.telegram_chat_id) {
+        throw err("VALIDATION", "Telegram : le bot token et le chat ID doivent être renseignés ensemble.");
+      }
+      const { error } = await admin.from("telegram_integrations").upsert({
+        store_id: newStoreId,
+        bot_token_encrypted: encryptSecret(input.telegram_bot_token),
+        chat_id: input.telegram_chat_id,
+        enabled_events: ["new_order", "cancelled", "delivered", "low_stock", "delivery_error"],
+        is_active: true,
+        status: "pending",
+        updated_at: new Date().toISOString(),
+      } as never, { onConflict: "store_id" });
+      if (error) throw error;
+    }
+
+    // Custom domain: pending until DNS TXT verification succeeds.
+    if (input.custom_domain) {
+      const hostname = input.custom_domain.replace(/^https?:\/\//, "").replace(/\/$/, "").toLowerCase();
+      if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/.test(hostname)) {
+        throw err("VALIDATION", "Nom de domaine personnalisé invalide.");
+      }
+      const { error } = await admin.from("domains").insert({
+        store_id: newStoreId,
+        hostname,
+        is_primary: false,
+        status: "pending",
+        verification_token: generateToken(24),
+      } as never);
+      if (error) throw error;
+    }
+
+    // Publish every page snapshot if requested, then activate the store.
+    if (input.publish_mode !== "draft") {
+      const { data: createdPages, error: pageErr } = await admin
+        .from("pages")
+        .select("key, version")
+        .eq("store_id", newStoreId);
+      if (pageErr) throw pageErr;
+
+      for (const page of (createdPages ?? []) as Array<{ key: string; version: number }>) {
+        const { error: publishErr } = await (admin.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: unknown; error: { message?: string } | null }>)("fn_publish_page", {
+          p_store_id: newStoreId,
+          p_page_key: page.key,
+          p_expected_version: page.version,
+          p_actor_id: ctx.user.id,
+        });
+        if (publishErr) throw publishErr;
+      }
+
+      const { error: statusErr } = await admin
+        .from("stores")
+        .update({ status: "active", updated_at: new Date().toISOString() } as never)
+        .eq("id", newStoreId);
+      if (statusErr) throw statusErr;
+    }
+
+    await logAudit({
       actorId: ctx.user.id,
       storeId: newStoreId,
       action: "store.created",
       entity: "store",
       entityId: newStoreId,
-      metadata: { name: input.business_name, slug: finalSlug, template: input.template_key, type: input.website_type },
+      metadata: {
+        name: input.business_name,
+        slug: finalSlug,
+        template: input.template_key,
+        type: input.website_type,
+        publish_mode: input.publish_mode,
+        owner_attached: Boolean(ownerUserId),
+        shipping_provider: input.shipping_provider,
+        domain_requested: Boolean(input.custom_domain),
+        sheets_configured: Boolean(input.google_sheets_id),
+        telegram_configured: Boolean(input.telegram_bot_token),
+      },
     });
 
     return NextResponse.json({
@@ -229,6 +436,8 @@ export async function POST(req: Request) {
       store_id: newStoreId,
       slug: finalSlug,
       preview_url: `/s/${finalSlug}`,
+      status: input.publish_mode === "draft" ? "draft" : "active",
+      merchant_account: ownerUserId ? "attached" : "pending",
     });
   } catch (e) {
     return toErrorResponse(e);

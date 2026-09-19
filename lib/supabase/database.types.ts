@@ -48,6 +48,10 @@ export interface StoreSettings {
     faq_enabled: boolean;
     allow_negative_stock: boolean;
     max_items_per_order: number;
+    office_delivery_enabled?: boolean;
+  };
+  appearance?: {
+    accent_color?: string | null;
   };
 }
 
@@ -416,21 +420,6 @@ export interface TelegramIntegrationRow {
   updated_at: string;
 }
 
-export interface GoogleSheetsIntegrationRow {
-  id: string;
-  store_id: string;
-  spreadsheet_id: string;
-  credentials_encrypted: string;
-  selected_columns: string[];
-  sync_enabled: boolean;
-  sync_events: string[];
-  last_sync_at: string | null;
-  last_error: string | null;
-  status: "pending" | "connected" | "error" | "disabled";
-  created_at: string;
-  updated_at: string;
-}
-
 export interface WhatsAppIntegrationRow {
   id: string;
   store_id: string;
@@ -482,6 +471,7 @@ export interface SupportSessionRow {
   store_id: string;
   started_at: string;
   ended_at: string | null;
+  expires_at: string;
   ip: string | null;
   created_at: string;
 }
@@ -531,7 +521,6 @@ export interface Database {
       shipments: T<ShipmentRow>;
       marketing_integrations: T<MarketingIntegrationRow>;
       google_sheet_integrations: T<GoogleSheetIntegrationRow>;
-      google_sheets_integrations: T<GoogleSheetsIntegrationRow>;
       telegram_integrations: T<TelegramIntegrationRow>;
       whatsapp_integrations: T<WhatsAppIntegrationRow>;
       audit_logs: T<AuditLogRow>;

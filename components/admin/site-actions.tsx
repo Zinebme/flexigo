@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui";
 import { Btn, Confirm } from "@/components/admin/ui";
@@ -113,13 +112,12 @@ export function SiteActions({ store, onChanged }: { store: AdminStoreRow; onChan
                 <a href={`/s/${store.slug}`} target="_blank" rel="noreferrer" className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
                   🌐 Ouvrir la boutique
                 </a>
-                <Link
-                  href={`/dashboard?store=${store.id}`}
-                  className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                  onClick={() => setMenu(false)}
+                <button
+                  className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() => run("Dashboard client", async () => { await post("/api/admin/support/start", { store_id: store.id }); router.push("/dashboard"); })}
                 >
-                  🖥️ Tableau de bord client
-                </Link>
+                  🖥️ Tableau de bord client (assistance)
+                </button>
                 <button
                   className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-violet-700 hover:bg-violet-50"
                   onClick={() => run("Accès assistance", async () => { await post("/api/admin/support/start", { store_id: store.id }); router.push("/dashboard"); })}

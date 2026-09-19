@@ -103,9 +103,19 @@ interface Props {
   initialContent: { sections: Section[] };
   websiteType: WebsiteType;
   categories: Array<{ id: string; name: string }>;
+  apiBase?: string;
+  uploadUrl?: string;
 }
 
-export function SectionEditor({ pageKey, pageTitle, initialContent, websiteType, categories }: Props) {
+export function SectionEditor({
+  pageKey,
+  pageTitle,
+  initialContent,
+  websiteType,
+  categories,
+  apiBase = "/api/dashboard/pages",
+  uploadUrl = "/api/dashboard/upload",
+}: Props) {
   const router = useRouter();
   const [sections, setSections] = useState<Section[]>(initialContent.sections ?? []);
   const [busy, setBusy] = useState(false);
@@ -155,7 +165,7 @@ export function SectionEditor({ pageKey, pageTitle, initialContent, websiteType,
     const fd = new FormData();
     fd.append("file", file);
     fd.append("purpose", "banner");
-    const res = await fetch("/api/dashboard/upload", { method: "POST", body: fd });
+    const res = await fetch(uploadUrl, { method: "POST", body: fd });
     const data = (await res.json().catch(() => ({}))) as { ok?: boolean; url?: string; warnings?: string[]; error?: { message?: string } | string };
     if (!res.ok || !data.ok || !data.url) {
       setError(typeof data.error === "string" ? data.error : (data.error?.message ?? "Téléversement impossible"));
@@ -170,7 +180,7 @@ export function SectionEditor({ pageKey, pageTitle, initialContent, websiteType,
     setBusy(true);
     setError(null);
     setOkMsg(null);
-    const res = await fetch(`/api/dashboard/pages/${pageKey}`, {
+    const res = await fetch(`${apiBase}/${pageKey}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: pageTitle, content: { sections } }),
@@ -191,7 +201,7 @@ export function SectionEditor({ pageKey, pageTitle, initialContent, websiteType,
     setError(null);
     setOkMsg(null);
     // Save draft first, then publish that draft.
-    const saveRes = await fetch(`/api/dashboard/pages/${pageKey}`, {
+    const saveRes = await fetch(`${apiBase}/${pageKey}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: { sections } }),
@@ -202,7 +212,7 @@ export function SectionEditor({ pageKey, pageTitle, initialContent, websiteType,
       setError(typeof saveData.error === "string" ? saveData.error : (saveData.error?.message ?? "Enregistrement du brouillon impossible"));
       return;
     }
-    const pubRes = await fetch(`/api/dashboard/pages/${pageKey}/publish`, { method: "POST" });
+    const pubRes = await fetch(`${apiBase}/${pageKey}/publish`, { method: "POST" });
     const pubData = (await pubRes.json().catch(() => ({}))) as { ok?: boolean; version?: number; error?: { message?: string } | string };
     setPublishing(false);
     if (!pubRes.ok || !pubData.ok) {

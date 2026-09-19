@@ -194,6 +194,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
 
   async function submit(mode: "draft" | "publish" | "deliver" = "draft") {
     setBusy(true);
+    update("publish_mode", mode);
     setError(null);
     try {
       const payload: Record<string, unknown> = {
@@ -201,8 +202,10 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
         organization_id: form.organization_id || null,
         client_name: form.client_name || form.business_name || "Client",
         owner_name: form.owner_name || null,
-        owner_email: form.owner_email,
+        owner_email: form.owner_email || null,
         owner_phone: form.owner_phone || null,
+        owner_whatsapp: form.owner_whatsapp || null,
+        account_mode: form.account_mode,
         website_type: form.template_key === "convert" ? "single_product" : "ecommerce",
         template_key: form.template_key,
         business_name: form.business_name,
@@ -211,6 +214,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
         favicon_url: form.favicon_url || null,
         primary_color: form.primary_color || null,
         secondary_color: form.secondary_color || null,
+        accent_color: form.accent_color || null,
         language: form.language,
         currency: form.currency || "DZD",
         contact_email: form.contact_email || form.owner_email || null,
@@ -220,29 +224,50 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
         facebook: form.facebook || null,
         tiktok: form.tiktok || null,
         address: form.address || null,
+        homepage_sections: form.homepage_sections,
         cod_enabled: form.cod_enabled,
         reviews_enabled: form.reviews_enabled,
         faq_enabled: form.faq_enabled,
         default_home_fee: form.default_home_fee ? Number(form.default_home_fee) : 400,
         default_office_fee: form.default_office_fee ? Number(form.default_office_fee) : 600,
         office_delivery_enabled: form.office_delivery_enabled,
-        initial_categories: form.initial_categories.filter((c) => c.name.trim()).map((c) => ({ name: c.name.trim() })),
+        initial_categories: form.initial_categories
+          .filter((c) => c.name.trim())
+          .map((c, index) => ({
+            name: c.name.trim(),
+            image_url: c.image_url || null,
+            slug: c.slug || null,
+            position: index,
+            is_visible: true,
+          })),
         initial_products: form.initial_products
           .filter((p) => p.name.trim())
           .map((p) => ({
             name: p.name.trim(),
             price: p.price ? Number(p.price) : 0,
+            compare_price: p.compare_price ? Number(p.compare_price) : null,
             description: p.description || null,
             image_url: p.image_url || null,
             category: p.category || null,
             stock: p.stock ? Number(p.stock) : 0,
+            sku: p.sku || null,
+            featured: p.featured,
           })),
+        shipping_provider: form.shipping_provider,
+        shipping_api_base: form.shipping_api_base || null,
+        shipping_api_token: form.shipping_api_token || null,
+        shipping_account: form.shipping_account || null,
         meta_pixel_id: form.meta_pixel_id || null,
         tiktok_pixel_id: form.tiktok_pixel_id || null,
+        snapchat_pixel_id: form.snapchat_pixel_id || null,
+        pinterest_tag_id: form.pinterest_tag_id || null,
         ga4_measurement_id: form.ga4_measurement_id || null,
         gtm_container_id: form.gtm_container_id || null,
         google_ads_customer_id: form.google_ads_customer_id || null,
-        // Extended
+        google_sheets_id: form.google_sheets_id || null,
+        google_sheets_json: form.google_sheets_json || null,
+        telegram_bot_token: form.telegram_bot_token || null,
+        telegram_chat_id: form.telegram_chat_id || null,
         dashboard_language: form.dashboard_language,
         custom_domain: form.domain_mode === "custom" ? form.custom_domain : null,
         publish_mode: mode,
@@ -255,15 +280,13 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
       });
       const data = (await res.json().catch(() => ({}))) as { error?: { message?: string } | string; store_id?: string; slug?: string; preview_url?: string };
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : (data.error as { message?: string })?.message ?? "Erreur création");
-      setResult(data as { store_id: string; slug: string; preview_url: string });
+      const created = data as { store_id: string; slug: string; preview_url: string };
+      setResult(created);
 
-      // If publish mode requested, call status update
-      if (mode !== "draft" && (data as { store_id?: string }).store_id) {
-        await fetch(`/api/admin/stores/${(data as { store_id: string }).store_id}/status`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: mode === "publish" ? "active" : "active" }),
-        });
+      // "Terminer et livrer" goes straight to the complete site control center.
+      if (mode === "deliver" && created.store_id) {
+        router.push(`/admin/sites/${created.store_id}`);
+        router.refresh();
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur inattendue");
@@ -382,9 +405,8 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
                   className={`group relative overflow-hidden rounded-2xl border-2 text-left transition ${form.template_key === tpl.key ? "border-violet-600 bg-violet-50 ring-4 ring-violet-100" : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-lg"}`}
                 >
                   <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
-                    <div className="absolute inset-0 flex items-center justify-center text-5xl">
-                      {tpl.key === "elegance" ? "👗" : tpl.key === "glow" ? "💄" : tpl.key === "tech" ? "🎧" : tpl.key === "casa" ? "🏠" : tpl.key === "little" ? "🧸" : tpl.key === "active" ? "💪" : tpl.key === "market" ? "🛒" : tpl.key === "convert" ? "🔥" : "📦"}
-                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={tpl.screenshotUrl} alt={`Aperçu ${tpl.name}`} className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
                     <div className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-1 text-[10px] font-bold text-white">{tpl.category}</div>
                     {form.template_key === tpl.key && <div className="absolute right-2 top-2 rounded-full bg-violet-600 px-2 py-1 text-xs font-bold text-white">✓ Sélectionné</div>}
                   </div>

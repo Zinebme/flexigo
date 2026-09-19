@@ -10,7 +10,7 @@ insert into public.templates (key, name, description, website_types, is_system, 
     'Luxe éditorial pour mode, hijab, abaya — beige/taupe/noir/ivoire, imagerie fashion large, typographie raffinée, cartes collection premium. Sections: Hero/New arrivals/Collections/Best sellers/Lifestyle banner/Products/Delivery benefits/Reviews/FAQ/Social/Footer',
     array['ecommerce'],
     true,
-    '/images/templates/elegance.png'
+    '/images/templates/elegance.svg'
   ),
   (
     'glow',
@@ -18,7 +18,7 @@ insert into public.templates (key, name, description, website_types, is_system, 
     'Clean, doux, nude/pastel/blanc, cartes arrondies, éditorial beauté, sections avant/après, focus bénéfices. Sections: Hero/Bestsellers/Benefits/Categories/Before-after/Routine/Products/Reviews/FAQ/COD CTA',
     array['ecommerce'],
     true,
-    '/images/templates/glow.png'
+    '/images/templates/glow.svg'
   ),
   (
     'tech',
@@ -26,7 +26,7 @@ insert into public.templates (key, name, description, website_types, is_system, 
     'Dark, graphite, bleu électrique, cartes techniques, badges spécifications. Sections: Hero/Categories/Trending products/Features-specs/Promotion banner/Comparison/Reviews/COD benefits/FAQ',
     array['ecommerce'],
     true,
-    '/images/templates/tech.png'
+    '/images/templates/tech.svg'
   ),
   (
     'casa',
@@ -34,7 +34,7 @@ insert into public.templates (key, name, description, website_types, is_system, 
     'Chaleureux, crème, olive, terracotta, imagerie lifestyle. Sections: Hero/Categories/Best sellers/Usage-lifestyle/Promotion banner/Products/Benefits/Reviews/FAQ',
     array['ecommerce'],
     true,
-    '/images/templates/casa.png'
+    '/images/templates/casa.svg'
   ),
   (
     'little',
@@ -42,7 +42,7 @@ insert into public.templates (key, name, description, website_types, is_system, 
     'Pastel doux, arrondi, amical, confiance/sécurité. Sections: Hero/Age-category/New arrivals/Popular products/Promo banner/Quality-safety/Parent reviews/FAQ',
     array['ecommerce'],
     true,
-    '/images/templates/little.png'
+    '/images/templates/little.svg'
   ),
   (
     'active',
@@ -50,7 +50,7 @@ insert into public.templates (key, name, description, website_types, is_system, 
     'Dynamique, noir/blanc, accent vif, typographie forte, mouvement. Sections: Hero/Categories/Best sellers/Goals-use cases/Products/Stats/Reviews/Promo/FAQ',
     array['ecommerce'],
     true,
-    '/images/templates/active.png'
+    '/images/templates/active.svg'
   ),
   (
     'market',
@@ -58,7 +58,7 @@ insert into public.templates (key, name, description, website_types, is_system, 
     'Template ultra-polyvalent pour magasin général algérien COD — commercial, clean, rapide, badges offres visibles, orienté conversion mobile. Sections: Promo bar/Hero/Categories/Trending/Flash offers/New arrivals/Products/Reviews/FAQ',
     array['ecommerce'],
     true,
-    '/images/templates/market.png'
+    '/images/templates/market.svg'
   ),
   (
     'convert',
@@ -66,7 +66,7 @@ insert into public.templates (key, name, description, website_types, is_system, 
     'Landing page COD ultra-optimisée pour trafic payant Meta/TikTok — galerie produit/vidéo, problème/solution, bénéfices, comment ça marche, avant/après, preuve sociale, offres quantité, avis, FAQ, formulaire COD, sticky CTA. Spécialement conversion mobile.',
     array['single_product'],
     true,
-    '/images/templates/convert.png'
+    '/images/templates/convert.svg'
   )
 on conflict (key) do update set
   name = excluded.name,

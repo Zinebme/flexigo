@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<rect width="1600" height="900" fill="#fff7ed"/>
+<rect x="70" y="52" width="1460" height="72" rx="20" fill="#7c2d12" opacity="0.96"/>
+<text x="115" y="99" font-family="Arial,Helvetica,sans-serif" font-size="28" font-weight="700" fill="#fff7ed">LITTLE</text>
+<text x="1450" y="98" text-anchor="end" font-family="Arial" font-size="17" fill="#fff7ed" opacity=".75">SHOP  •  COLLECTIONS  •  CART</text>
+<rect x="70" y="155" width="1460" height="365" rx="20" fill="#7c2d12"/>
+<rect x="820" y="190" width="655" height="295" rx="20" fill="#f472b6" opacity=".88"/>
+<circle cx="1145" cy="338" r="108" fill="#fff7ed" opacity=".24"/>
+<rect x="120" y="220" width="520" height="18" rx="9" fill="#f472b6"/>
+<text x="120" y="310" font-family="Arial,Helvetica,sans-serif" font-size="54" font-weight="800" fill="#fff7ed">LITTLE</text>
+<text x="120" y="357" font-family="Arial" font-size="24" fill="#fff7ed" opacity=".76">BABY & KIDS</text>
+<rect x="120" y="405" width="220" height="58" rx="20" fill="#f472b6"/>
+<text x="230" y="442" text-anchor="middle" font-family="Arial" font-size="20" font-weight="700" fill="#4a1530">SHOP NOW</text>
+<text x="70" y="592" font-family="Arial" font-size="25" font-weight="800" fill="#7c2d12">FEATURED</text>
+<rect x="70" y="630" width="325" height="210" rx="20" fill="#7c2d12" opacity="0.08"/>
+<rect x="92" y="652" width="281" height="108" rx="20" fill="#f472b6" opacity="0.22"/>
+<rect x="92" y="781" width="170" height="12" rx="6" fill="#7c2d12" opacity="0.65"/>
+<rect x="92" y="810" width="92" height="11" rx="5" fill="#f472b6"/><rect x="435" y="630" width="325" height="210" rx="20" fill="#7c2d12" opacity="0.08"/>
+<rect x="457" y="652" width="281" height="108" rx="20" fill="#f472b6" opacity="0.22"/>
+<rect x="457" y="781" width="158" height="12" rx="6" fill="#7c2d12" opacity="0.65"/>
+<rect x="457" y="810" width="104" height="11" rx="5" fill="#f472b6"/><rect x="800" y="630" width="325" height="210" rx="20" fill="#7c2d12" opacity="0.08"/>
+<rect x="822" y="652" width="281" height="108" rx="20" fill="#f472b6" opacity="0.22"/>
+<rect x="822" y="781" width="146" height="12" rx="6" fill="#7c2d12" opacity="0.65"/>
+<rect x="822" y="810" width="116" height="11" rx="5" fill="#f472b6"/><rect x="1165" y="630" width="325" height="210" rx="20" fill="#7c2d12" opacity="0.08"/>
+<rect x="1187" y="652" width="281" height="108" rx="20" fill="#f472b6" opacity="0.22"/>
+<rect x="1187" y="781" width="134" height="12" rx="6" fill="#7c2d12" opacity="0.65"/>
+<rect x="1187" y="810" width="128" height="11" rx="5" fill="#f472b6"/>
+</svg>

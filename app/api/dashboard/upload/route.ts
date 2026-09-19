@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const STORAGE_BUCKET = "fx-storefront";
+const STORAGE_BUCKET = "store-assets";
 
 const PURPOSE_CAPABILITY: Record<UploadPurpose, Capability> = {
   product: "products.manage",
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       });
     if (error) {
       console.error("[flexigo:upload] storage error:", error.message);
-      throw err("INTEGRATION_ERROR", "Stockage non disponible. Vérifiez que le bucket « fx-storefront » existe.");
+      throw err("INTEGRATION_ERROR", "Stockage non disponible. Vérifiez que le bucket « store-assets » existe.");
     }
 
     const { data: pub } = admin.storage.from(STORAGE_BUCKET).getPublicUrl(path);
