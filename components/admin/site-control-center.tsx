@@ -5,7 +5,7 @@ import { formatDA, formatDateTimeFr, timeAgoFr } from "@/lib/utils";
 import { Badge, Card, Table, Th, Td } from "@/components/ui";
 import { SiteActions } from "./site-actions";
 import { AdvancedAdminClient } from "./advanced-admin-client";
-import { StoreSettingsEditor, ThemeEditor, ProductQuickEditor, CategoryQuickEditor, IntegrationsEditor, OwnerEditor } from "./site-control-forms";
+import { StoreSettingsEditor, ThemeEditor, ProductQuickEditor, CategoryQuickEditor, IntegrationsEditor, OwnerEditor, ContentAdminEditor } from "./site-control-forms";
 
 type Tab = "overview" | "site" | "products" | "categories" | "orders" | "customers" | "stats" | "content" | "appearance" | "delivery" | "integrations" | "domain" | "account" | "logs" | "health";
 
@@ -190,16 +190,21 @@ export function SiteControlCenter(props: Props) {
       )}
 
       {tab === "content" && (
-        <Card>
-          <div className="border-b border-slate-100 px-5 py-3"><h3 className="font-bold">Contenu — Pages & sections</h3><p className="text-xs text-slate-500">Homepage sections prédéfinies : titre/sous-titre/images (Desktop 1600×700 Mobile 800×1000) / bouton / lien / source / visible / reorder si autorisé. Avertissement si basse résolution.</p></div>
-          <Table head={<><Th>Clé</Th><Th>Titre</Th><Th>Version</Th><Th>Publié</Th><Th>État</Th></>}>
-            {props.pages.map((p) => {
-              const dirty = JSON.stringify(p.content ?? null) !== JSON.stringify(p.published_content ?? null);
-              return <tr key={p.id as string} className="hover:bg-slate-50"><Td className="font-mono text-xs">{p.key as string}</Td><Td>{p.title as string}</Td><Td>{p.version as number}</Td><Td className="text-xs">{p.published_at ? formatDateTimeFr(p.published_at as string) : "—"}</Td><Td>{dirty ? <Badge tone="blue">Modifs non publiées</Badge> : <Badge tone="green">À jour</Badge>}</Td></tr>;
-            })}
-          </Table>
-          <div className="p-5"><AdvancedAdminClient storeId={s.id as string} storeSlug={s.slug as string} pageVersions={props.pageVersions} /></div>
-        </Card>
+        <div className="space-y-4">
+          <Card className="p-5">
+            <h3 className="font-bold">Contenu — éditeur structuré</h3>
+            <p className="mt-2 text-sm text-slate-500">Modifiez directement les sections autorisées : titres, images, boutons, ordre et visibilité. Aucun HTML/CSS/JS libre.</p>
+            <div className="mt-4">
+              <ContentAdminEditor
+                storeId={s.id as string}
+                websiteType={s.website_type as "ecommerce" | "single_product" | "portfolio"}
+                pages={props.pages}
+                categories={props.categories}
+              />
+            </div>
+          </Card>
+          <AdvancedAdminClient storeId={s.id as string} storeSlug={s.slug as string} pageVersions={props.pageVersions} />
+        </div>
       )}
 
       {tab === "appearance" && (
