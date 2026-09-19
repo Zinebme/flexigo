@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { SectionEditor } from "@/components/dashboard/section-editor";
+import type { Section } from "@/lib/sections/definitions";
+import type { WebsiteType } from "@/lib/types";
 import { useRouter } from "next/navigation";
 
 const input = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm";
@@ -145,4 +148,44 @@ export function OwnerEditor({ storeId }: {storeId:string}) {
     <label className="text-sm font-medium">Langue dashboard<select className={input} value={form.dashboard_language} onChange={(e)=>setForm({...form,dashboard_language:e.target.value})}><option value="fr">Français</option><option value="ar">العربية</option><option value="en">English</option></select></label>
     <div className="flex items-end"><button className={button}>Créer / inviter et attacher</button></div>{message&&<p className="md:col-span-2 text-sm text-slate-500">{message}</p>}
   </form>;
+}
+
+
+export function ContentAdminEditor({
+  storeId,
+  websiteType,
+  pages,
+  categories,
+}: {
+  storeId: string;
+  websiteType: WebsiteType;
+  pages: Array<Record<string, unknown>>;
+  categories: Array<Record<string, unknown>>;
+}) {
+  const editable = pages.filter((p) => p.content && typeof p.content === "object");
+  const [pageKey, setPageKey] = useState(String(editable.find((p) => p.key === "home")?.key ?? editable[0]?.key ?? "home"));
+  const page = editable.find((p) => String(p.key) === pageKey);
+  if (!page) return <p className="text-sm text-slate-400">Aucune page structurée à modifier.</p>;
+
+  const content = (page.content as { sections?: Section[] } | null) ?? { sections: [] };
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold text-slate-700">Page :</span>
+        <select className={input} value={pageKey} onChange={(e) => setPageKey(e.target.value)}>
+          {editable.map((p) => <option key={String(p.id)} value={String(p.key)}>{String(p.title ?? p.key)}</option>)}
+        </select>
+      </div>
+      <SectionEditor
+        key={String(page.id)}
+        pageKey={String(page.key)}
+        pageTitle={String(page.title ?? page.key)}
+        initialContent={{ sections: content.sections ?? [] }}
+        websiteType={websiteType}
+        categories={categories.map((cat) => ({ id: String(cat.id), name: String(cat.name) }))}
+        apiBase={`/api/admin/stores/${storeId}/pages`}
+        uploadUrl={`/api/admin/stores/${storeId}/upload`}
+      />
+    </div>
+  );
 }
