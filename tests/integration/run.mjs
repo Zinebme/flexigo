@@ -426,6 +426,18 @@ async function main() {
   const newOwnerSees = await runAs("authenticated", "a0000000-0000-4000-8000-000000009002", `select count(*)::int n from stores where id = $1`, [nsId]);
   check("New owner sees own draft store", newOwnerSees.rows[0].n === 1);
 
+  // site creation may intentionally defer the merchant account
+  const noOwnerStore = await runAs("service_role", null, `select public.fn_create_store(
+      null, 'Sans propriétaire', 'sans-proprietaire', 'ecommerce', 'market', 'fr', 'DZD',
+      '{"primary_color": "#111111", "typography": "modern", "button_shape": "rounded"}'::jsonb,
+      null,
+      '[{"key": "home", "title": "Accueil", "content": {"sections": []}}]'::jsonb,
+      '[{"wilaya_code": 0, "home_fee_cents": 50000, "office_fee_cents": 30000}]'::jsonb,
+      null, 'a0000000-0000-4000-8000-000000000001') res`);
+  const noOwnerId = noOwnerStore.rows[0].res;
+  const noOwnerMembers = await runAs("service_role", null, `select count(*)::int n from store_members where store_id = $1`, [noOwnerId]);
+  check("Store can be created before client account exists", noOwnerMembers.rows[0].n === 0);
+
   // copy store
   const copy = await runAs("service_role", null, `select public.fn_copy_store($1, 'novashop-copie', 'NovaShop (copie)', $2) res`, [NOVA, ADMIN]);
   const copyId = copy.rows[0].res;
@@ -439,7 +451,7 @@ async function main() {
   // ==========================================================================
   section("7. Phone normalization (Algeria)");
 
-  const ph = await runAs("anon", null, `select
+  const ph = await runAs("service_role", null, `select
     public.fn_normalize_phone('0550 12 34 56') a,
     public.fn_normalize_phone('+213 661 98 76 54') b,
     public.fn_normalize_phone('00213770112233') c,
