@@ -5,7 +5,7 @@ import { formatDA, formatDateTimeFr, timeAgoFr } from "@/lib/utils";
 import { Badge, Card, Table, Th, Td } from "@/components/ui";
 import { SiteActions } from "./site-actions";
 import { AdvancedAdminClient } from "./advanced-admin-client";
-import { StoreSettingsEditor, ThemeEditor, ProductQuickEditor, CategoryQuickEditor, IntegrationsEditor, OwnerEditor, ContentAdminEditor } from "./site-control-forms";
+import { StoreSettingsEditor, ThemeEditor, ProductQuickEditor, CategoryQuickEditor, IntegrationsEditor, OwnerEditor, ContentAdminEditor, DomainControl } from "./site-control-forms";
 
 type Tab = "overview" | "site" | "products" | "categories" | "orders" | "customers" | "stats" | "content" | "appearance" | "delivery" | "integrations" | "domain" | "account" | "logs" | "health";
 
@@ -237,13 +237,8 @@ export function SiteControlCenter(props: Props) {
       {tab === "domain" && (
         <Card className="p-5">
           <h3 className="font-bold">Domaine</h3>
-          <p className="mt-2 text-sm text-slate-500">Aperçu seul (/s/[slug]) ou domaine personnalisé. Instructions DNS, ne pas marquer vérifié tant que DNS ne réussit pas.</p>
-          <ul className="mt-3 space-y-2 text-sm">
-            {props.domains.map((d) => (
-              <li key={d.id as string} className="flex justify-between"><span className="font-mono">{d.hostname as string} {d.is_primary ? "(primaire)" : ""}</span><Badge tone={(d.status as string) === "verified" ? "green" : (d.status as string) === "pending" ? "amber" : "red"}>{d.status as string}</Badge></li>
-            ))}
-          </ul>
-          {props.domains.length === 0 && <p className="mt-3 text-sm text-slate-400">Aucun domaine personnalisé — aperçu : /s/{s.slug as string}</p>}
+          <p className="mt-2 text-sm text-slate-500">Ajout, vérification DNS réelle, domaine principal et suppression directement depuis ce site.</p>
+          <div className="mt-4"><DomainControl storeId={s.id as string} domains={props.domains} /></div>
         </Card>
       )}
 
