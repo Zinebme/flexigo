@@ -189,3 +189,51 @@ export function ContentAdminEditor({
     </div>
   );
 }
+
+
+export function DomainControl({ storeId, domains }: { storeId: string; domains: Array<Record<string, unknown>> }) {
+  const router = useRouter();
+  const [hostname, setHostname] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function request(url: string, method: string, body?: Record<string, unknown>) {
+    setBusy(true); setMessage("");
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; detail?: string; error?: { message?: string } | string };
+      if (!res.ok || data.ok === false) {
+        const m = typeof data.error === "string" ? data.error : data.error?.message;
+        throw new Error(m || data.detail || "Opération impossible");
+      }
+      setMessage(data.detail || "Opération réussie.");
+      router.refresh();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Erreur");
+    } finally { setBusy(false); }
+  }
+
+  return <div className="space-y-4">
+    <form className="flex flex-wrap gap-2" onSubmit={async(e)=>{e.preventDefault();await request("/api/admin/domains","POST",{store_id:storeId,hostname:hostname.trim().toLowerCase(),is_primary:false});setHostname("");}}>
+      <input className={input+" min-w-64 flex-1"} placeholder="www.client.dz" value={hostname} onChange={(e)=>setHostname(e.target.value)} required />
+      <button className={button} disabled={busy||!hostname}>Ajouter le domaine</button>
+    </form>
+    {message&&<p className="rounded-lg bg-slate-100 p-3 text-sm text-slate-600">{message}</p>}
+    <div className="space-y-2">
+      {domains.length===0&&<p className="text-sm text-slate-400">Aucun domaine personnalisé.</p>}
+      {domains.map((d)=><div key={String(d.id)} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3">
+        <div><div className="font-mono text-sm">{String(d.hostname)}</div><div className="text-xs text-slate-500">Statut: {String(d.status)}{d.is_primary?" · principal":""}</div></div>
+        <div className="flex flex-wrap gap-2">
+          <button className="rounded border px-3 py-1.5 text-xs font-semibold" disabled={busy} onClick={()=>request(`/api/admin/domains/${String(d.id)}/verify`,"POST")}>Vérifier DNS</button>
+          {d.status==="verified"&&!d.is_primary&&<button className="rounded border px-3 py-1.5 text-xs font-semibold" disabled={busy} onClick={()=>request(`/api/admin/domains/${String(d.id)}`,"PATCH",{is_primary:true})}>Définir principal</button>}
+          <button className="rounded border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600" disabled={busy} onClick={()=>{if(window.confirm("Supprimer ce domaine ?")) void request(`/api/admin/domains/${String(d.id)}`,"DELETE");}}>Supprimer</button>
+        </div>
+      </div>)}
+    </div>
+    <p className="text-xs text-slate-500">La vérification exige le TXT DNS FlexiGo réel. Un domaine non vérifié ne peut pas devenir principal.</p>
+  </div>;
+}
