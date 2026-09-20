@@ -164,7 +164,20 @@ export interface ProductRow {
   name: string;
   slug: string;
   description: string | null;
+  short_description: string | null;
   price_cents: number;
+  cost_cents: number | null;
+  is_digital: boolean;
+  gallery_mode: "slideshow" | "stacked";
+  landing_images: string[];
+  min_order_quantity: number;
+  shipping_label: string | null;
+  stock_tracking_mode: "none" | "global" | "variants";
+  related_product_ids: string[];
+  cross_sell_product_ids: string[];
+  page_element_order: string[];
+  option_groups: unknown;
+
   compare_at_price_cents: number | null;
   sku: string | null;
   stock: number;
