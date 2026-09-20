@@ -11,6 +11,7 @@ import type { StoreSettings } from "../supabase/database.types";
 import { SOUQ_TEMPLATE_ALIASES, SOUQ_TEMPLATE_KEY, isSouqTemplate, souqContentPages, souqHomeSections } from "./souq";
 import { LAMSA_TEMPLATE_KEY, isLamsaTemplate, lamsaContentPages, lamsaHomeSections } from "./lamsa";
 import { NOOR_TEMPLATE_KEY, isNoorTemplate, noorContentPages, noorHomeSections } from "./noor";
+import { VOLT_TEMPLATE_KEY, isVoltTemplate, voltContentPages, voltHomeSections } from "./volt";
 
 export interface TemplateMeta {
   key: string;
@@ -131,6 +132,34 @@ export const TEMPLATES: TemplateMeta[] = [
     screenshotUrl: "/images/templates/convert.svg",
     theme: { primaryColor: "#dc2626", secondaryColor: "#111827", backgroundColor: "#ffffff", typography: "bold", buttonShape: "pill" },
     sections: ["Hero", "Product gallery/video", "Problem", "Solution", "Benefits", "How it works", "Before/after", "Social proof", "Quantity offers", "Reviews", "FAQ", "COD order form", "Sticky CTA"],
+  },
+  // --- VOLT (Arabic electronics / gadgets storefront) ---
+  {
+    key: VOLT_TEMPLATE_KEY,
+    name: "VOLT",
+    category: "Tech",
+    categoryKey: "tech",
+    language: "ar",
+    direction: "rtl",
+    description:
+      "VOLT — قالب عربي داكن وعصري للإلكترونيات والأجهزة والإكسسوارات. هوية تقنية جريئة، بطاقات مواصفات، صفحة منتج بخيارات ديناميكية وعروض كمية ونموذج COD مدمج، وتجربة موبايل سريعة.",
+    websiteTypes: ["ecommerce"],
+    screenshotUrl: "/images/templates/volt-v1.svg",
+    previewMobileUrl: "/images/templates/volt-v1-mobile.svg",
+    badges: ["Arabic-first", "RTL", "Tech", "COD", "Mobile-first"],
+    highlights: { dynamicVariants: true, multiSelectOptions: true, quantityOffers: true, codForm: true, rtl: true },
+    theme: {
+      primaryColor: "#05070B",
+      secondaryColor: "#22D3EE",
+      backgroundColor: "#05070B",
+      typography: "bold",
+      buttonShape: "rounded",
+    },
+    sections: [
+      "Announcement bar", "Tech hero", "Categories", "Best sellers", "Specs/features",
+      "Campaign banner", "New arrivals", "Reviews", "FAQ", "Footer",
+      "Product gallery", "Dynamic variants", "Quantity offers", "Inline COD form",
+    ],
   },
   // --- NOOR (premium Arabic beauty / skincare storefront) ---
   {
@@ -300,6 +329,9 @@ function s(type: Section["type"], data: Record<string, unknown>): Section {
 }
 
 export function defaultHomeSections(templateKey: string, websiteType: WebsiteType, businessName: string): Section[] {
+  if (isVoltTemplate(templateKey)) {
+    return voltHomeSections(businessName);
+  }
   if (isNoorTemplate(templateKey)) {
     return noorHomeSections(businessName);
   }
@@ -460,6 +492,16 @@ export function defaultHomeSections(templateKey: string, websiteType: WebsiteTyp
 }
 
 export function defaultPages(templateKey: string, websiteType: WebsiteType, businessName: string): Array<{ key: string; title: string; content: { sections: Section[] } }> {
+  if (isVoltTemplate(templateKey)) {
+    const pages: Array<{ key: string; title: string; content: { sections: Section[] } }> = [
+      { key: "home", title: "الرئيسية", content: { sections: defaultHomeSections(templateKey, websiteType, businessName) } },
+      ...voltContentPages(businessName),
+      { key: "legal-terms", title: "الشروط العامة", content: { sections: [] } },
+      { key: "legal-privacy", title: "سياسة الخصوصية", content: { sections: [] } },
+    ];
+    if (websiteType === "ecommerce") pages.push({ key: "shop", title: "المتجر", content: { sections: [] } });
+    return pages;
+  }
   if (isNoorTemplate(templateKey)) {
     const pages: Array<{ key: string; title: string; content: { sections: Section[] } }> = [
       { key: "home", title: "الرئيسية", content: { sections: defaultHomeSections(templateKey, websiteType, businessName) } },

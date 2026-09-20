@@ -7,9 +7,11 @@ import { UnavailableScreen } from "@/components/storefront/unavailable";
 import { SouqShell } from "@/components/storefront/templates-v2/souq/souq-shell";
 import { LamsaShell } from "@/components/storefront/templates-v2/lamsa/lamsa-shell";
 import { NoorShell } from "@/components/storefront/templates-v2/noor/noor-shell";
+import { VoltShell } from "@/components/storefront/templates-v2/volt/volt-shell";
 import { isSouqTemplate } from "@/lib/templates/souq";
 import { isLamsaTemplate } from "@/lib/templates/lamsa";
 import { isNoorTemplate } from "@/lib/templates/noor";
+import { isVoltTemplate } from "@/lib/templates/volt";
 
 /**
  * Storefront layout — the single entry point for every tenant site.
@@ -37,6 +39,9 @@ export default async function StorefrontLayout({
   if (!data) notFound();
 
   // V2 storefronts are explicit: no existing tenant is migrated implicitly.
+  if (isVoltTemplate(store.template_key) || isVoltTemplate(data.template_key)) {
+    return <VoltShell data={data}>{children}</VoltShell>;
+  }
   if (isNoorTemplate(store.template_key) || isNoorTemplate(data.template_key)) {
     return <NoorShell data={data}>{children}</NoorShell>;
   }
