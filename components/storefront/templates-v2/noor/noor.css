@@ -1,5 +1,12 @@
 /* NOOR — isolated Arabic beauty design system (scoped under .noor-root). */
 .noor-root {
+  --souq-primary: var(--noor-plum, #4b3538);
+  --souq-primary-soft: var(--noor-blush, #f6e8e6);
+  --souq-accent: var(--noor-rose, #c78f8b);
+  --souq-accent-soft: var(--noor-nude, #e9d6cf);
+  --souq-accent-text: #362a2e;
+  --souq-border: var(--noor-border, #eadbd8);
+  --souq-danger: var(--noor-danger, #9f3e46);
   background: var(--noor-bg, #fffdfc);
   color: var(--noor-ink, #362a2e);
   font-family: var(--font-noor-body), Tajawal, sans-serif;
@@ -18,7 +25,7 @@
 .noor-heading { font-size: clamp(1.5rem, 4.2vw, 2.3rem); font-weight: 600; line-height: 1.6; color: var(--noor-plum); }
 .noor-subtitle { max-width: 620px; margin-top: 6px; font-size: .9rem; line-height: 1.9; color: var(--noor-muted); }
 .noor-eyebrow { color: var(--noor-rose-deep); font-size: .68rem; font-weight: 700; letter-spacing: .14em; }
-.noor-price { direction: rtl; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.noor-price { direction: ltr; unicode-bidi: isolate; display: inline-block; font-variant-numeric: tabular-nums; letter-spacing: 0; }
 .noor-logo { font-weight: 600; line-height: 1.4; }
 
 .noor-icon-button { display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 50%; color: var(--noor-ink); transition: color var(--noor-motion-fast) ease, background var(--noor-motion-fast) ease; }
@@ -66,7 +73,7 @@
 .noor-root .souq-card { border: 1px solid var(--noor-border); border-radius: var(--noor-radius-card); background: var(--noor-white); box-shadow: var(--noor-shadow-soft); }
 .noor-root .souq-press { transition: background var(--noor-motion-fast) ease, border-color var(--noor-motion-fast) ease, color var(--noor-motion-fast) ease, transform var(--noor-motion-fast) ease; }
 .noor-root .souq-press:active { transform: scale(.985); }
-.noor-root .souq-price { font-variant-numeric: tabular-nums; }
+.noor-root .souq-price { direction: ltr; unicode-bidi: isolate; display: inline-block; font-variant-numeric: tabular-nums; }
 
 .noor-order-form > section.souq-card { overflow: hidden; border-radius: var(--noor-radius-card); }
 .noor-order-form > section.souq-card > header { background: linear-gradient(135deg, var(--noor-blush), var(--noor-nude)); color: var(--noor-plum); padding: 22px; border-bottom: 1px solid var(--noor-border); }
