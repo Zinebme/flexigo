@@ -113,6 +113,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ store_id: string; slug: string; preview_url: string } | null>(null);
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
+  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
 
   const [form, setForm] = useState<FormState>({
     create_new_client: true,
@@ -173,6 +174,26 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
   });
 
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
+
+  async function uploadAdminFile(file: File, purpose: "product" | "category" | "logo" | "favicon", key: string): Promise<string | null> {
+    setUploadingKey(key);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("purpose", purpose);
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; url?: string; error?: { message?: string } | string; warnings?: string[] };
+      if (!res.ok || !data.ok || !data.url) {
+        setError(typeof data.error === "string" ? data.error : (data.error?.message ?? "Téléversement impossible"));
+        return null;
+      }
+      if (data.warnings?.length) setError(`⚠️ ${data.warnings[0]}`);
+      return data.url;
+    } finally {
+      setUploadingKey(null);
+    }
+  }
 
   // Derived template list
   const filteredTemplates = useMemo(() => {
@@ -477,8 +498,19 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
               <h3 className="text-sm font-bold">🏷️ IDENTITÉ DE MARQUE — Branding complet</h3>
               <p className="text-xs text-slate-500">Logo, favicon, couleurs, langues, contact. Aperçu en temps réel.</p>
             </div>
-            <Field label="Logo URL" hint="Carré recommandé, 512×512"><input value={form.logo_url} onChange={(e) => update("logo_url", e.target.value)} className={inputCls} placeholder="https://…" /></Field>
-            <Field label="Favicon URL"><input value={form.favicon_url} onChange={(e) => update("favicon_url", e.target.value)} className={inputCls} placeholder="https://…" /></Field>
+            <Field label="Logo" hint="Téléversez directement un JPG/PNG/WebP/SVG. URL manuelle disponible si nécessaire.">
+              <div className="space-y-2">
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" className="block w-full text-sm" disabled={uploadingKey === "logo"} onChange={async (e) => { const file=e.target.files?.[0]; if(!file) return; const url=await uploadAdminFile(file,"logo","logo"); if(url) update("logo_url",url); }} />
+                <input value={form.logo_url} onChange={(e) => update("logo_url", e.target.value)} className={inputCls} placeholder="Ou coller une URL…" />
+                {form.logo_url ? <img src={form.logo_url} alt="Aperçu logo" className="h-16 w-16 rounded-xl border border-slate-200 object-contain bg-white" /> : null}
+              </div>
+            </Field>
+            <Field label="Favicon">
+              <div className="space-y-2">
+                <input type="file" accept="image/png,image/svg+xml" className="block w-full text-sm" disabled={uploadingKey === "favicon"} onChange={async (e) => { const file=e.target.files?.[0]; if(!file) return; const url=await uploadAdminFile(file,"favicon","favicon"); if(url) update("favicon_url",url); }} />
+                <input value={form.favicon_url} onChange={(e) => update("favicon_url", e.target.value)} className={inputCls} placeholder="Ou coller une URL…" />
+              </div>
+            </Field>
             <Field label="Couleur principale"><div className="flex gap-2"><input type="color" value={form.primary_color} onChange={(e) => update("primary_color", e.target.value)} className="h-10 w-12 rounded border" /><input value={form.primary_color} onChange={(e) => update("primary_color", e.target.value)} className={inputCls} /></div></Field>
             <Field label="Couleur secondaire"><div className="flex gap-2"><input type="color" value={form.secondary_color} onChange={(e) => update("secondary_color", e.target.value)} className="h-10 w-12 rounded border" /><input value={form.secondary_color} onChange={(e) => update("secondary_color", e.target.value)} className={inputCls} /></div></Field>
             <Field label="Couleur accent"><div className="flex gap-2"><input type="color" value={form.accent_color} onChange={(e) => update("accent_color", e.target.value)} className="h-10 w-12 rounded border" /><input value={form.accent_color} onChange={(e) => update("accent_color", e.target.value)} className={inputCls} /></div></Field>
@@ -545,7 +577,16 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
                     <input value={p.category} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, category: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="Catégorie" />
                     <input value={p.stock} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, stock: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="Stock" />
                     <input value={p.sku} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, sku: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="SKU" />
-                    <input value={p.image_url} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, image_url: e.target.value }; update("initial_products", v); }} className={`${inputCls} md:col-span-3`} placeholder="Image URL https://… (800×1000 mobile recommandé)" />
+                    <div className="md:col-span-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
+                      <div className="flex flex-wrap items-center gap-3">
+                        {p.image_url ? <img src={p.image_url} alt="" className="h-20 w-20 rounded-xl border border-slate-200 object-cover bg-white" /> : <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-white text-2xl text-slate-300">＋</div>}
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <input type="file" accept="image/jpeg,image/png,image/webp" className="block w-full text-sm" disabled={uploadingKey === `product-${i}`} onChange={async (e) => { const file=e.target.files?.[0]; if(!file) return; const url=await uploadAdminFile(file,"product",`product-${i}`); if(!url) return; const v=[...form.initial_products]; v[i]={...p,image_url:url}; update("initial_products",v); }} />
+                          <input value={p.image_url} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, image_url: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="Ou coller une URL d'image…" />
+                          <p className="text-[11px] text-slate-400">800×800 px minimum recommandé. Le fichier est contrôlé avant stockage.</p>
+                        </div>
+                      </div>
+                    </div>
                     <textarea value={p.description} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, description: e.target.value }; update("initial_products", v); }} className={`${inputCls} md:col-span-3`} rows={2} placeholder="Description" />
                   </div>
                   <div className="mt-2 flex items-center gap-3">
@@ -575,7 +616,11 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
                 <div key={i} className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3 md:grid-cols-3">
                   <input value={c.name} onChange={(e) => { const v = [...form.initial_categories]; v[i] = { ...c, name: e.target.value, slug: slugify(e.target.value) }; update("initial_categories", v); }} className={inputCls} placeholder="Nom catégorie" />
                   <input value={c.slug} onChange={(e) => { const v = [...form.initial_categories]; v[i] = { ...c, slug: e.target.value }; update("initial_categories", v); }} className={inputCls} placeholder="Slug" />
-                  <input value={c.image_url} onChange={(e) => { const v = [...form.initial_categories]; v[i] = { ...c, image_url: e.target.value }; update("initial_categories", v); }} className={inputCls} placeholder="Image URL" />
+                  <div className="space-y-2">
+                    <input type="file" accept="image/jpeg,image/png,image/webp" className="block w-full text-sm" disabled={uploadingKey === `category-${i}`} onChange={async (e) => { const file=e.target.files?.[0]; if(!file) return; const url=await uploadAdminFile(file,"category",`category-${i}`); if(!url) return; const v=[...form.initial_categories]; v[i]={...c,image_url:url}; update("initial_categories",v); }} />
+                    <input value={c.image_url} onChange={(e) => { const v = [...form.initial_categories]; v[i] = { ...c, image_url: e.target.value }; update("initial_categories", v); }} className={inputCls} placeholder="Ou URL image" />
+                    {c.image_url ? <img src={c.image_url} alt="" className="h-14 w-20 rounded-lg border border-slate-200 object-cover" /> : null}
+                  </div>
                   <button onClick={() => update("initial_categories", form.initial_categories.filter((_, j) => j !== i))} className="text-xs text-red-600 md:col-span-3 text-left">Supprimer</button>
                 </div>
               ))}
