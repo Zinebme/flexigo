@@ -6,6 +6,7 @@ import { READY_TEMPLATES, type TemplateMeta, defaultHomeSections, templatePrevie
 import { slugify } from "@/lib/slug";
 import { inputCls, labelCls, btnPrimary, btnSecondary } from "@/components/ui";
 import { WILAYAS } from "@/lib/algeria/wilayas";
+import { StudioProductDraftEditor, EMPTY_STUDIO_PRODUCT, type StudioProductDraft } from "@/components/admin/studio-product-draft";
 
 interface Org { id: string; name: string }
 interface Profile { id: string; email: string | null }
@@ -46,7 +47,7 @@ interface FormState {
   homepage_sections: Array<{ id: string; type: string; title: string; enabled: boolean }>;
   // 5 PRODUCTS
   initial_categories: Array<{ name: string; image_url: string; slug: string }>;
-  initial_products: Array<{ name: string; price: string; compare_price: string; description: string; image_url: string; category: string; stock: string; sku: string; featured: boolean }>;
+  initial_products: StudioProductDraft[];
   // 6 CATEGORIES detailed
   // 7 COD DELIVERY
   default_home_fee: string;
@@ -278,14 +279,44 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
           .filter((p) => p.name.trim())
           .map((p) => ({
             name: p.name.trim(),
+            short_description: p.short_description || null,
             price: p.price ? Number(p.price) : 0,
             compare_price: p.compare_price ? Number(p.compare_price) : null,
+            cost: p.cost ? Number(p.cost) : null,
             description: p.description || null,
-            image_url: p.image_url || null,
+            images: p.images,
+            image_url: p.images[0] || null,
+            gallery_mode: p.gallery_mode,
+            is_digital: p.is_digital,
+            stock_tracking_mode: p.stock_tracking_mode,
+            min_order_quantity: Number(p.min_order_quantity || 1),
             category: p.category || null,
             stock: p.stock ? Number(p.stock) : 0,
             sku: p.sku || null,
             featured: p.featured,
+            option_groups: p.option_groups.filter((g) => g.key.trim() && g.label.trim()).map((g) => ({
+              key: g.key.trim(),
+              label: g.label.trim(),
+              selection_mode: g.selection_mode,
+              display_type: g.display_type,
+              required: true,
+              min_selections: g.selection_mode === "multiple" ? 0 : 1,
+              max_selections: g.selection_mode === "multiple" ? Math.max(1, g.values.split(",").filter(Boolean).length) : 1,
+              values: g.values.split(",").map((v) => v.trim()).filter(Boolean).map((v) => ({ value: v, label: v })),
+            })),
+            variants: p.variants.filter((v) => v.name.trim()).map((v) => {
+              const options: Record<string,string> = {};
+              for (const part of v.options_text.split(",")) {
+                const [k, ...rest] = part.split(":");
+                if (k?.trim() && rest.length) options[k.trim()] = rest.join(":").trim();
+              }
+              return { name: v.name.trim(), options, price_cents: v.price ? Math.round(Number(v.price) * 100) : null, sku: v.sku || null, stock: Number(v.stock || 0), is_active: true };
+            }),
+            offers: p.offers.filter((o) => o.min_quantity && o.total_price).map((o) => ({
+              min_quantity: Number(o.min_quantity), total_price_cents: Math.round(Number(o.total_price) * 100), label: o.label || null, is_active: true,
+            })),
+            related_names: p.related_names.split(",").map((v) => v.trim()).filter(Boolean),
+            cross_sell_names: p.cross_sell_names.split(",").map((v) => v.trim()).filter(Boolean),
           })),
         shipping_provider: form.shipping_provider,
         shipping_api_base: form.shipping_api_base || null,
@@ -577,43 +608,30 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
         {/* 5 PRODUCTS */}
         {step === 4 && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <h3 className="text-sm font-bold">📦 PRODUITS — Catalogue initial</h3>
-              <p className="text-xs text-slate-500">Nom, description, prix, compare-at, images, catégorie, stock, SKU, couleurs/tailles/variantes, offres quantité, actif/inactif, featured. Ajout manuel / duplicate / bulk / CSV (architecture prête).</p>
+            <div className="rounded-xl border border-violet-200 bg-violet-50 p-4">
+              <h3 className="text-sm font-bold text-violet-900">📦 PRODUITS — Fiches complètes dès la création</h3>
+              <p className="mt-1 text-xs leading-5 text-violet-700">Photos multiples et ordre, produit digital, prix/coût, stock global ou par variantes, options mono/multi-choix, variantes, offres quantité, produits connexes et cross-selling. Le même moteur sécurisé sera disponible ensuite dans le dashboard marchand.</p>
             </div>
             <div className="space-y-3">
-              {form.initial_products.map((p, i) => (
-                <div key={i} className="rounded-xl border border-slate-200 bg-white p-4">
-                  <div className="grid gap-2 md:grid-cols-3">
-                    <input value={p.name} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, name: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="Nom produit *" />
-                    <input value={p.price} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, price: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="Prix DA ex: 3900" />
-                    <input value={p.compare_price} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, compare_price: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="Prix barré (optionnel)" />
-                    <input value={p.category} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, category: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="Catégorie" />
-                    <input value={p.stock} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, stock: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="Stock" />
-                    <input value={p.sku} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, sku: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="SKU" />
-                    <div className="md:col-span-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
-                      <div className="flex flex-wrap items-center gap-3">
-                        {p.image_url ? <img src={p.image_url} alt="" className="h-20 w-20 rounded-xl border border-slate-200 object-cover bg-white" /> : <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-white text-2xl text-slate-300">＋</div>}
-                        <div className="min-w-0 flex-1 space-y-2">
-                          <input type="file" accept="image/jpeg,image/png,image/webp" className="block w-full text-sm" disabled={uploadingKey === `product-${i}`} onChange={async (e) => { const file=e.target.files?.[0]; if(!file) return; const url=await uploadAdminFile(file,"product",`product-${i}`); if(!url) return; const v=[...form.initial_products]; v[i]={...p,image_url:url}; update("initial_products",v); }} />
-                          <input value={p.image_url} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, image_url: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="Ou coller une URL d'image…" />
-                          <p className="text-[11px] text-slate-400">800×800 px minimum recommandé. Le fichier est contrôlé avant stockage.</p>
-                        </div>
-                      </div>
-                    </div>
-                    <textarea value={p.description} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, description: e.target.value }; update("initial_products", v); }} className={`${inputCls} md:col-span-3`} rows={2} placeholder="Description" />
-                  </div>
-                  <div className="mt-2 flex items-center gap-3">
-                    <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={p.featured} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, featured: e.target.checked }; update("initial_products", v); }} /> Featured</label>
-                    <button onClick={() => update("initial_products", form.initial_products.filter((_, j) => j !== i))} className="text-xs font-semibold text-red-600">Supprimer</button>
-                    <button onClick={() => { const v = [...form.initial_products]; v.splice(i + 1, 0, { ...p }); update("initial_products", v); }} className="text-xs font-semibold text-violet-600">Dupliquer</button>
-                  </div>
-                </div>
+              {form.initial_products.map((product, i) => (
+                <StudioProductDraftEditor
+                  key={i}
+                  index={i}
+                  value={product}
+                  onChange={(next) => {
+                    const list=[...form.initial_products];
+                    list[i]=next;
+                    update("initial_products",list);
+                  }}
+                  onRemove={() => update("initial_products", form.initial_products.filter((_,j)=>j!==i))}
+                  onDuplicate={() => {
+                    const list=[...form.initial_products];
+                    list.splice(i+1,0,{...product,images:[...product.images],variants:product.variants.map(v=>({...v})),offers:product.offers.map(o=>({...o})),option_groups:product.option_groups.map(g=>({...g}))});
+                    update("initial_products",list);
+                  }}
+                />
               ))}
-              <div className="flex gap-2">
-                <button onClick={() => update("initial_products", [...form.initial_products, { name: "", price: "", compare_price: "", description: "", image_url: "", category: "", stock: "10", sku: "", featured: false }])} className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white">+ Ajouter produit</button>
-                <span className="text-xs text-slate-400 self-center">Bulk / CSV : architecture prête — import via /admin/sites/[id] → Produits après création</span>
-              </div>
+              <button type="button" onClick={() => update("initial_products", [...form.initial_products, { ...EMPTY_STUDIO_PRODUCT, images:[], variants:[], offers:[], option_groups:[] }])} className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-violet-700">+ Ajouter un produit complet</button>
             </div>
           </div>
         )}
