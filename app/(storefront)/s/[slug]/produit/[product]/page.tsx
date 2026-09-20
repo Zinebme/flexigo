@@ -10,9 +10,11 @@ import { ProductCard } from "../../../../../../components/storefront/sections";
 import { SouqProductPage } from "../../../../../../components/storefront/templates-v2/souq/souq-product-page";
 import { LamsaProductPage } from "../../../../../../components/storefront/templates-v2/lamsa/lamsa-product-page";
 import { NoorProductPage } from "../../../../../../components/storefront/templates-v2/noor/noor-product-page";
+import { VoltProductPage } from "../../../../../../components/storefront/templates-v2/volt/volt-product-page";
 import { isSouqTemplate } from "../../../../../../lib/templates/souq";
 import { isLamsaTemplate } from "../../../../../../lib/templates/lamsa";
 import { isNoorTemplate } from "../../../../../../lib/templates/noor";
+import { isVoltTemplate } from "../../../../../../lib/templates/volt";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +39,7 @@ export async function generateMetadata({
   const desc = p.seo_description ?? p.description?.slice(0, 160) ?? undefined;
 
   // V2 templates add the product's own real OG image.
-  if (isSouqTemplate(data.template_key) || isLamsaTemplate(data.template_key) || isNoorTemplate(data.template_key)) {
+  if (isVoltTemplate(data.template_key) || isSouqTemplate(data.template_key) || isLamsaTemplate(data.template_key) || isNoorTemplate(data.template_key)) {
     const { data: productRow } = await anon
       .from("products")
       .select("id")
@@ -76,6 +78,9 @@ export default async function ProductPage({
   const data = await getStorefrontData(slug);
   if (!data) notFound();
 
+  if (isVoltTemplate(data.template_key)) {
+    return <VoltProductPage data={data} productSlug={product} />;
+  }
   if (isNoorTemplate(data.template_key)) {
     return <NoorProductPage data={data} productSlug={product} />;
   }
