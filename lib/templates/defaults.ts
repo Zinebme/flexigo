@@ -12,6 +12,7 @@ import { SOUQ_TEMPLATE_ALIASES, SOUQ_TEMPLATE_KEY, isSouqTemplate, souqContentPa
 import { LAMSA_TEMPLATE_KEY, isLamsaTemplate, lamsaContentPages, lamsaHomeSections } from "./lamsa";
 import { NOOR_TEMPLATE_KEY, isNoorTemplate, noorContentPages, noorHomeSections } from "./noor";
 import { VOLT_TEMPLATE_KEY, isVoltTemplate, voltContentPages, voltHomeSections } from "./volt";
+import { DAR_TEMPLATE_KEY, isDarTemplate, darContentPages, darHomeSections } from "./dar";
 
 export interface TemplateMeta {
   key: string;
@@ -132,6 +133,34 @@ export const TEMPLATES: TemplateMeta[] = [
     screenshotUrl: "/images/templates/convert.svg",
     theme: { primaryColor: "#dc2626", secondaryColor: "#111827", backgroundColor: "#ffffff", typography: "bold", buttonShape: "pill" },
     sections: ["Hero", "Product gallery/video", "Problem", "Solution", "Benefits", "How it works", "Before/after", "Social proof", "Quantity offers", "Reviews", "FAQ", "COD order form", "Sticky CTA"],
+  },
+  // --- DAR (Arabic home / kitchen / organization storefront) ---
+  {
+    key: DAR_TEMPLATE_KEY,
+    name: "DAR",
+    category: "Home",
+    categoryKey: "home",
+    language: "ar",
+    direction: "rtl",
+    description:
+      "DAR — قالب عربي دافئ للمنزل والمطبخ والتنظيم والديكور. هوية كريمية وزيتونية وتيراكوتا، بطاقات lifestyle، صفحة منتج بخيارات ديناميكية وعروض كمية ونموذج COD مدمج وتجربة موبايل بسيطة.",
+    websiteTypes: ["ecommerce"],
+    screenshotUrl: "/images/templates/dar-v1.svg",
+    previewMobileUrl: "/images/templates/dar-v1-mobile.svg",
+    badges: ["Arabic-first", "RTL", "Home", "COD", "Mobile-first"],
+    highlights: { dynamicVariants: true, multiSelectOptions: true, quantityOffers: true, codForm: true, rtl: true },
+    theme: {
+      primaryColor: "#4F563E",
+      secondaryColor: "#B86E4B",
+      backgroundColor: "#F6F1E8",
+      typography: "elegant",
+      buttonShape: "rounded",
+    },
+    sections: [
+      "Announcement bar", "Lifestyle hero", "Room categories", "Best sellers", "Lifestyle banner",
+      "Home benefits", "New arrivals", "Reviews", "FAQ", "Footer",
+      "Product gallery", "Dynamic variants", "Quantity offers", "Inline COD form",
+    ],
   },
   // --- VOLT (Arabic electronics / gadgets storefront) ---
   {
@@ -329,6 +358,9 @@ function s(type: Section["type"], data: Record<string, unknown>): Section {
 }
 
 export function defaultHomeSections(templateKey: string, websiteType: WebsiteType, businessName: string): Section[] {
+  if (isDarTemplate(templateKey)) {
+    return darHomeSections(businessName);
+  }
   if (isVoltTemplate(templateKey)) {
     return voltHomeSections(businessName);
   }
@@ -492,6 +524,16 @@ export function defaultHomeSections(templateKey: string, websiteType: WebsiteTyp
 }
 
 export function defaultPages(templateKey: string, websiteType: WebsiteType, businessName: string): Array<{ key: string; title: string; content: { sections: Section[] } }> {
+  if (isDarTemplate(templateKey)) {
+    const pages: Array<{ key: string; title: string; content: { sections: Section[] } }> = [
+      { key: "home", title: "الرئيسية", content: { sections: defaultHomeSections(templateKey, websiteType, businessName) } },
+      ...darContentPages(businessName),
+      { key: "legal-terms", title: "الشروط العامة", content: { sections: [] } },
+      { key: "legal-privacy", title: "سياسة الخصوصية", content: { sections: [] } },
+    ];
+    if (websiteType === "ecommerce") pages.push({ key: "shop", title: "المتجر", content: { sections: [] } });
+    return pages;
+  }
   if (isVoltTemplate(templateKey)) {
     const pages: Array<{ key: string; title: string; content: { sections: Section[] } }> = [
       { key: "home", title: "الرئيسية", content: { sections: defaultHomeSections(templateKey, websiteType, businessName) } },
