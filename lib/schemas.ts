@@ -325,14 +325,26 @@ export const wizardSchema = z.object({
 
   initial_products: z.array(z.object({
     name: z.string().trim().min(2).max(120),
+    short_description: z.string().max(500).optional().or(z.literal("")).nullable(),
     price: priceDA,
     compare_price: priceDA.optional().nullable(),
-    description: z.string().max(6000).optional().or(z.literal("")).nullable(),
+    cost: z.number().min(0).max(10_000_000).optional().nullable(),
+    description: z.string().max(12000).optional().or(z.literal("")).nullable(),
     image_url: imageUrl,
+    images: z.array(imageUrl).max(12).default([]),
+    gallery_mode: z.enum(["slideshow","stacked"]).default("slideshow"),
+    is_digital: z.boolean().default(false),
+    stock_tracking_mode: z.enum(["none","global","variants"]).default("global"),
+    min_order_quantity: z.number().int().min(1).max(50).default(1),
     category: z.string().trim().max(80).optional().or(z.literal("")).nullable(),
     stock: z.number().int().min(0).max(1_000_000).default(0),
     sku: z.string().max(60).optional().or(z.literal("")).nullable(),
     featured: z.boolean().optional().default(false),
+    option_groups: productSchema.shape.option_groups,
+    variants: z.array(variantSchema).max(50).default([]),
+    offers: z.array(quantityOfferSchema.omit({ product_id: true })).max(10).default([]),
+    related_names: z.array(z.string().trim().min(1).max(120)).max(20).default([]),
+    cross_sell_names: z.array(z.string().trim().min(1).max(120)).max(20).default([]),
   })).max(50).default([]),
 
   // Shipping provider
