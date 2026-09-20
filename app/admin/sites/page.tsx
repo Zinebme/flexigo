@@ -111,6 +111,12 @@ export default async function AdminSitesPage({
                           {timeAgoFr(s.last_activity_at)}
                         </span>
                       )}
+                      <Link
+                        href={`/admin/sites/${s.id}`}
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Modifier
+                      </Link>
                       <SiteActions store={s} />
                     </div>
                   </Td>

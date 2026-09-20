@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getMerchantContext } from "@/lib/auth/merchant-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { can } from "@/lib/types";
-import { PageHeader, Card, CardHeader, EmptyState } from "@/components/ui";
+import { PageHeader, Card, EmptyState } from "@/components/ui";
 import { ProductForm } from "@/components/dashboard/product-form";
 
 export const dynamic = "force-dynamic";
@@ -21,15 +21,13 @@ export default async function NewProductPage() {
 
   return (
     <>
-      <PageHeader title="Nouveau produit" subtitle="Le prix saisi en dinars est converti et revalidé côté serveur.">
+      <PageHeader title="Ajouter un produit" subtitle="Créez une fiche complète : photos, prix, stock, variantes, offres et visibilité.">
         <Link href="/dashboard/produits" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
           ← Retour
         </Link>
       </PageHeader>
 
-      <Card>
-        <CardHeader title="Informations produit" />
-        {canManage ? (
+      {canManage ? (
           <ProductForm
             mode="create"
             categories={(categories ?? []) as Array<{ id: string; name: string }>}
@@ -40,6 +38,7 @@ export default async function NewProductPage() {
               price: 0,
               compare_at_price: null,
               sku: "",
+              stock: 0,
               low_stock_threshold: 5,
               is_active: true,
               is_featured: false,
@@ -52,9 +51,8 @@ export default async function NewProductPage() {
             }}
           />
         ) : (
-          <EmptyState icon="🔒" title="Accès restreint" text="Votre rôle ne permet pas de gérer les produits." />
+          <Card><EmptyState icon="🔒" title="Accès restreint" text="Votre rôle ne permet pas de gérer les produits." /></Card>
         )}
-      </Card>
     </>
   );
 }

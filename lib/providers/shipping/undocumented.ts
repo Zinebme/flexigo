@@ -6,8 +6,9 @@ export function createUndocumentedProvider(key: string, label: string): Shipping
     key,
     label,
     configFields: [
-      { key: "api_base_url", label: "URL de base de l'API", secret: false, placeholder: "Fournie par le transporteur" },
-      { key: "api_token", label: "Jeton / clé API", secret: true, placeholder: "Fourni par le transporteur" },
+      { key: "api_key", label: "API Key", secret: true, placeholder: "Fournie par la société de livraison" },
+      { key: "api_token", label: "API Token", secret: true, placeholder: "Fourni par la société de livraison" },
+      { key: "api_base_url", label: "URL API", secret: false, placeholder: "URL officielle si nécessaire" },
       { key: "account", label: "Compte / référence client", secret: false, placeholder: "Optionnel" },
     ],
     statusNote:

@@ -175,6 +175,20 @@ export function SiteActions({ store, onChanged }: { store: AdminStoreRow; onChan
                 <a href={`/api/admin/export/store/${store.id}`} className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" onClick={() => setMenu(false)}>
                   📤 Exporter les données (CSV)
                 </a>
+
+                <div className="mt-1 border-t border-slate-100 px-3 py-2 text-xs font-bold uppercase tracking-wide text-red-400">Zone sensible</div>
+                <button
+                  className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50"
+                  onClick={() =>
+                    ask(
+                      "Supprimer le site",
+                      `Retirer « ${store.name} » de FlexiGo ? La boutique sera immédiatement inaccessible. Les données restent conservées en base pour récupération/audit.`,
+                      () => post(`/api/admin/stores/${store.id}/delete`, { confirm_name: store.name }),
+                    )
+                  }
+                >
+                  🗑️ Supprimer le site
+                </button>
               </div>
             </>
           ) : null}

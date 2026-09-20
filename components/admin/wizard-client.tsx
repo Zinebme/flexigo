@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { TEMPLATES, type TemplateMeta, defaultHomeSections } from "@/lib/templates/defaults";
+import { READY_TEMPLATES, type TemplateMeta, defaultHomeSections, templatePreviewPath } from "@/lib/templates/defaults";
 import { slugify } from "@/lib/slug";
 import { inputCls, labelCls, btnPrimary, btnSecondary } from "@/components/ui";
 
@@ -51,7 +51,9 @@ interface FormState {
   default_home_fee: string;
   default_office_fee: string;
   office_delivery_enabled: boolean;
-  shipping_provider: "manual" | "navex" | "yalidine" | "ecotrack" | "zr" | "generic";
+  shipping_provider:
+    | "manual" | "navex" | "yalidine" | "guepex" | "yalitec" | "ecotrack" | "zr"
+    | "ecom_delivery" | "abex" | "colireli" | "colireli_ecotrack" | "isr" | "leopard" | "generic";
   shipping_api_base: string;
   shipping_api_token: string;
   shipping_account: string;
@@ -82,7 +84,7 @@ interface FormState {
 
 const STEPS = [
   { key: "client", label: "CLIENT", desc: "Informations client & compte marchand" },
-  { key: "template", label: "TEMPLATE", desc: "Galerie visuelle — 8 designs distincts" },
+  { key: "template", label: "TEMPLATE", desc: "5 boutiques complètes prêtes à livrer" },
   { key: "brand", label: "IDENTITÉ", desc: "Branding, couleurs, contact" },
   { key: "homepage", label: "CONTENU", desc: "Sections homepage prédéfinies" },
   { key: "products", label: "PRODUITS", desc: "Produits initiaux" },
@@ -94,7 +96,7 @@ const STEPS = [
   { key: "review", label: "FINAL REVIEW", desc: "Checklist & publication" },
 ] as const;
 
-const TEMPLATE_FILTERS = ["all", "Fashion", "Beauty", "Tech", "Home", "Baby", "Sport", "General store", "Single product"] as const;
+const TEMPLATE_FILTERS = ["all", "Fashion", "Beauty", "Tech", "Home", "General store"] as const;
 
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
@@ -113,6 +115,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ store_id: string; slug: string; preview_url: string } | null>(null);
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
+  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
 
   const [form, setForm] = useState<FormState>({
     create_new_client: true,
@@ -124,7 +127,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
     owner_phone: "",
     owner_whatsapp: "",
     account_mode: "create_now",
-    template_key: "market",
+    template_key: "souq-v1",
     template_filter: "all",
     slug: "",
     logo_url: "",
@@ -174,9 +177,29 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
 
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  async function uploadAdminFile(file: File, purpose: "product" | "category" | "logo" | "favicon", key: string): Promise<string | null> {
+    setUploadingKey(key);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("purpose", purpose);
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; url?: string; error?: { message?: string } | string; warnings?: string[] };
+      if (!res.ok || !data.ok || !data.url) {
+        setError(typeof data.error === "string" ? data.error : (data.error?.message ?? "Téléversement impossible"));
+        return null;
+      }
+      if (data.warnings?.length) setError(`⚠️ ${data.warnings[0]}`);
+      return data.url;
+    } finally {
+      setUploadingKey(null);
+    }
+  }
+
   // Derived template list
   const filteredTemplates = useMemo(() => {
-    let list = TEMPLATES.filter((t) => t.category !== "Legacy");
+    let list = READY_TEMPLATES;
     if (form.template_filter !== "all") {
       list = list.filter((t) => t.category === form.template_filter);
     }
@@ -184,7 +207,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
     return list;
   }, [form.template_filter]);
 
-  const selectedTemplate = useMemo(() => TEMPLATES.find((t) => t.key === form.template_key), [form.template_key]);
+  const selectedTemplate = useMemo(() => READY_TEMPLATES.find((t) => t.key === form.template_key), [form.template_key]);
 
   // Initialize homepage sections when template changes
   const initHomepageSections = () => {
@@ -390,7 +413,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
           <div className="space-y-4">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <h3 className="text-sm font-bold text-slate-900">🎨 TEMPLATE — Galerie visuelle</h3>
-              <p className="mt-1 text-xs text-slate-500">Templates production avec composants visuels distincts (pas juste des couleurs). Filtrez par catégorie.</p>
+              <p className="mt-1 text-xs text-slate-500">Seulement les 5 templates qui ont un vrai site complet et une page produit fonctionnelle. Visualisez-les avant de sélectionner.</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {TEMPLATE_FILTERS.map((f) => (
                   <button key={f} onClick={() => update("template_filter", f)} className={`rounded-full px-3 py-1 text-xs font-semibold ${form.template_filter === f ? "bg-violet-600 text-white" : "bg-white text-slate-600 border border-slate-200"}`}>{f === "all" ? "Tous" : f}</button>
@@ -399,8 +422,15 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredTemplates.map((tpl: TemplateMeta) => (
-                <button
+                <div
                   key={tpl.key}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    update("template_key", tpl.key);
+                  }}
                   onClick={() => {
                     update("template_key", tpl.key);
                     // Arabic-first templates preselect RTL language and their
@@ -433,12 +463,22 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
                       {tpl.sections.slice(0, 4).map((s) => <span key={s} className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">{s}</span>)}
                       {tpl.sections.length > 4 && <span className="text-[10px] text-slate-400">+{tpl.sections.length - 4}</span>}
                     </div>
-                    <div className="mt-3 flex gap-2">
-                      <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-bold text-white">Utiliser ce template</span>
-                      <span className="rounded-full border border-slate-200 px-2 py-1 text-[10px] text-slate-500">Desktop 1600×700 · Mobile 800×1000</span>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-bold text-white">Utiliser ce template</span>
+                      {templatePreviewPath(tpl.key) ? (
+                        <a
+                          href={templatePreviewPath(tpl.key) ?? "#"}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(event) => event.stopPropagation()}
+                          className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-100"
+                        >
+                          Visualiser
+                        </a>
+                      ) : null}
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
             {selectedTemplate && (
@@ -460,8 +500,19 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
               <h3 className="text-sm font-bold">🏷️ IDENTITÉ DE MARQUE — Branding complet</h3>
               <p className="text-xs text-slate-500">Logo, favicon, couleurs, langues, contact. Aperçu en temps réel.</p>
             </div>
-            <Field label="Logo URL" hint="Carré recommandé, 512×512"><input value={form.logo_url} onChange={(e) => update("logo_url", e.target.value)} className={inputCls} placeholder="https://…" /></Field>
-            <Field label="Favicon URL"><input value={form.favicon_url} onChange={(e) => update("favicon_url", e.target.value)} className={inputCls} placeholder="https://…" /></Field>
+            <Field label="Logo" hint="Téléversez directement un JPG/PNG/WebP/SVG. URL manuelle disponible si nécessaire.">
+              <div className="space-y-2">
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" className="block w-full text-sm" disabled={uploadingKey === "logo"} onChange={async (e) => { const file=e.target.files?.[0]; if(!file) return; const url=await uploadAdminFile(file,"logo","logo"); if(url) update("logo_url",url); }} />
+                <input value={form.logo_url} onChange={(e) => update("logo_url", e.target.value)} className={inputCls} placeholder="Ou coller une URL…" />
+                {form.logo_url ? <img src={form.logo_url} alt="Aperçu logo" className="h-16 w-16 rounded-xl border border-slate-200 object-contain bg-white" /> : null}
+              </div>
+            </Field>
+            <Field label="Favicon">
+              <div className="space-y-2">
+                <input type="file" accept="image/png,image/svg+xml" className="block w-full text-sm" disabled={uploadingKey === "favicon"} onChange={async (e) => { const file=e.target.files?.[0]; if(!file) return; const url=await uploadAdminFile(file,"favicon","favicon"); if(url) update("favicon_url",url); }} />
+                <input value={form.favicon_url} onChange={(e) => update("favicon_url", e.target.value)} className={inputCls} placeholder="Ou coller une URL…" />
+              </div>
+            </Field>
             <Field label="Couleur principale"><div className="flex gap-2"><input type="color" value={form.primary_color} onChange={(e) => update("primary_color", e.target.value)} className="h-10 w-12 rounded border" /><input value={form.primary_color} onChange={(e) => update("primary_color", e.target.value)} className={inputCls} /></div></Field>
             <Field label="Couleur secondaire"><div className="flex gap-2"><input type="color" value={form.secondary_color} onChange={(e) => update("secondary_color", e.target.value)} className="h-10 w-12 rounded border" /><input value={form.secondary_color} onChange={(e) => update("secondary_color", e.target.value)} className={inputCls} /></div></Field>
             <Field label="Couleur accent"><div className="flex gap-2"><input type="color" value={form.accent_color} onChange={(e) => update("accent_color", e.target.value)} className="h-10 w-12 rounded border" /><input value={form.accent_color} onChange={(e) => update("accent_color", e.target.value)} className={inputCls} /></div></Field>
@@ -528,7 +579,16 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
                     <input value={p.category} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, category: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="Catégorie" />
                     <input value={p.stock} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, stock: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="Stock" />
                     <input value={p.sku} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, sku: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="SKU" />
-                    <input value={p.image_url} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, image_url: e.target.value }; update("initial_products", v); }} className={`${inputCls} md:col-span-3`} placeholder="Image URL https://… (800×1000 mobile recommandé)" />
+                    <div className="md:col-span-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
+                      <div className="flex flex-wrap items-center gap-3">
+                        {p.image_url ? <img src={p.image_url} alt="" className="h-20 w-20 rounded-xl border border-slate-200 object-cover bg-white" /> : <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-white text-2xl text-slate-300">＋</div>}
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <input type="file" accept="image/jpeg,image/png,image/webp" className="block w-full text-sm" disabled={uploadingKey === `product-${i}`} onChange={async (e) => { const file=e.target.files?.[0]; if(!file) return; const url=await uploadAdminFile(file,"product",`product-${i}`); if(!url) return; const v=[...form.initial_products]; v[i]={...p,image_url:url}; update("initial_products",v); }} />
+                          <input value={p.image_url} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, image_url: e.target.value }; update("initial_products", v); }} className={inputCls} placeholder="Ou coller une URL d'image…" />
+                          <p className="text-[11px] text-slate-400">800×800 px minimum recommandé. Le fichier est contrôlé avant stockage.</p>
+                        </div>
+                      </div>
+                    </div>
                     <textarea value={p.description} onChange={(e) => { const v = [...form.initial_products]; v[i] = { ...p, description: e.target.value }; update("initial_products", v); }} className={`${inputCls} md:col-span-3`} rows={2} placeholder="Description" />
                   </div>
                   <div className="mt-2 flex items-center gap-3">
@@ -558,7 +618,11 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
                 <div key={i} className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3 md:grid-cols-3">
                   <input value={c.name} onChange={(e) => { const v = [...form.initial_categories]; v[i] = { ...c, name: e.target.value, slug: slugify(e.target.value) }; update("initial_categories", v); }} className={inputCls} placeholder="Nom catégorie" />
                   <input value={c.slug} onChange={(e) => { const v = [...form.initial_categories]; v[i] = { ...c, slug: e.target.value }; update("initial_categories", v); }} className={inputCls} placeholder="Slug" />
-                  <input value={c.image_url} onChange={(e) => { const v = [...form.initial_categories]; v[i] = { ...c, image_url: e.target.value }; update("initial_categories", v); }} className={inputCls} placeholder="Image URL" />
+                  <div className="space-y-2">
+                    <input type="file" accept="image/jpeg,image/png,image/webp" className="block w-full text-sm" disabled={uploadingKey === `category-${i}`} onChange={async (e) => { const file=e.target.files?.[0]; if(!file) return; const url=await uploadAdminFile(file,"category",`category-${i}`); if(!url) return; const v=[...form.initial_categories]; v[i]={...c,image_url:url}; update("initial_categories",v); }} />
+                    <input value={c.image_url} onChange={(e) => { const v = [...form.initial_categories]; v[i] = { ...c, image_url: e.target.value }; update("initial_categories", v); }} className={inputCls} placeholder="Ou URL image" />
+                    {c.image_url ? <img src={c.image_url} alt="" className="h-14 w-20 rounded-lg border border-slate-200 object-cover" /> : null}
+                  </div>
                   <button onClick={() => update("initial_categories", form.initial_categories.filter((_, j) => j !== i))} className="text-xs text-red-600 md:col-span-3 text-left">Supprimer</button>
                 </div>
               ))}
@@ -582,16 +646,24 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
                 <option value="manual">Manual (par défaut)</option>
                 <option value="navex">Navex</option>
                 <option value="yalidine">Yalidine</option>
+                <option value="guepex">Guepex</option>
+                <option value="yalitec">Yalitec</option>
                 <option value="ecotrack">Ecotrack</option>
                 <option value="zr">ZR Express</option>
-                <option value="generic">Generic API</option>
+                <option value="ecom_delivery">E-com Delivery V2</option>
+                <option value="abex">Abex Express</option>
+                <option value="colireli">ColiReli</option>
+                <option value="colireli_ecotrack">ColiReli Ecotrack</option>
+                <option value="isr">ISR Services</option>
+                <option value="leopard">Leopard Express</option>
+                <option value="generic">Autre transporteur / API générique</option>
               </select>
             </Field>
             {form.shipping_provider !== "manual" && (
               <>
-                <Field label="API Base URL" hint="Ne pas inventer si docs manquantes — laisser vide si incertain"><input value={form.shipping_api_base} onChange={(e) => update("shipping_api_base", e.target.value)} className={inputCls} placeholder="https://api.prestataire.com" /></Field>
-                <Field label="API Token / Clé" hint="Chiffré côté serveur après création"><input value={form.shipping_api_token} onChange={(e) => update("shipping_api_token", e.target.value)} className={`${inputCls} font-mono text-xs`} placeholder="token…" /></Field>
+                <Field label="API Key / Token" hint="Chiffré côté serveur après création. Utilisez exactement les identifiants donnés par le transporteur."><input value={form.shipping_api_token} onChange={(e) => update("shipping_api_token", e.target.value)} className={`${inputCls} font-mono text-xs`} placeholder="API key / token…" /></Field>
                 <Field label="Compte / Identifiant"><input value={form.shipping_account} onChange={(e) => update("shipping_account", e.target.value)} className={inputCls} placeholder="account…" /></Field>
+                <Field label="URL API (si fournie)" hint="Ne pas inventer d'endpoint : renseignez uniquement l'URL officielle du transporteur."><input value={form.shipping_api_base} onChange={(e) => update("shipping_api_base", e.target.value)} className={inputCls} placeholder="https://api.prestataire.com" /></Field>
                 <div className="md:col-span-2 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
                   <strong>Test connexion :</strong> sera disponible après création dans /admin/sites/[id] → Livraison → Tester la connexion. Interface + schéma + config UI + mock adapter + TODO docs si specs manquantes.
                 </div>
