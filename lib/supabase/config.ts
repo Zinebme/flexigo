@@ -1,4 +1,5 @@
 import { err } from "../errors";
+import { supabaseOverrides } from "./preview-override";
 
 /**
  * Environment access for Supabase configuration.
@@ -6,6 +7,9 @@ import { err } from "../errors";
  * clear setup screen instead of an opaque 500.
  */
 export function supabaseConfig(): { url: string; anonKey: string } {
+  // Preview harness (development only): the in-memory client never performs a
+  // network call, so placeholder credentials are enough to satisfy callers.
+  if (supabaseOverrides()) return { url: "http://preview.local", anonKey: "preview-override" };
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey || anonKey.includes("placeholder")) {
@@ -19,6 +23,7 @@ export function supabaseConfig(): { url: string; anonKey: string } {
 
 /** Service role key — SERVER ONLY. Never expose, never prefix NEXT_PUBLIC_. */
 export function serviceRoleKey(): string {
+  if (supabaseOverrides()) return "preview-override";
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key || key.includes("placeholder")) {
     throw err(
@@ -31,6 +36,7 @@ export function serviceRoleKey(): string {
 
 /** Whether Supabase is configured at all (used to render setup screens). */
 export function isSupabaseConfigured(): boolean {
+  if (supabaseOverrides()) return true;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   return !!url && !!anonKey && !anonKey.includes("placeholder");

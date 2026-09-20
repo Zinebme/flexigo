@@ -193,14 +193,18 @@ update public.stores set template_key = 'souq-v1' where slug = 'my-store';
 |---|---|
 | `npx tsc --noEmit` | clean |
 | `npx eslint .` | 0 problems |
-| `npx vitest run tests/unit` | **53 passed / 0 failed** |
+| `npx vitest run tests/unit` | **64 passed / 0 failed** (3 files) |
 | `node tests/integration/run.mjs` | **87 passed / 0 failed** |
 
 - Unit — 37 logic tests (option groups, single/multiple selection, packs and
-  totals, zones, badges, Arabic copy, search, settings, palette) and 16
+  totals, zones, badges, Arabic copy, search, settings, palette), 16
   server-markup tests (card, offer labels `قطعة واحدة / قطعتان / 3 قطع`,
   real delivery radios, the 58 wilaya options, honeypot, unavailable state,
-  sticky CTA).
+  sticky CTA) and 11 jsdom interaction tests that drive the COD form: live
+  shipping recalculation home/office, zone fallback, wilaya-dependent communes,
+  address↔office swap, quantity packs, out-of-stock block, unsellable
+  combination refused, Arabic field validation, identifiers-only payload,
+  success screen, and masking of raw server errors.
 - Integration — section 8 adds 24 assertions on the real PostgreSQL schema:
   registry row, template isolation (another tenant sees nothing), Arabic
   content, zone pricing with the wilaya fallback, server-side totals,
@@ -227,10 +231,14 @@ generated, no warnings for the new code.
 ## 14. Notes & activation
 
 - Live preview requires Supabase credentials (`NEXT_PUBLIC_SUPABASE_URL`,
-  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`); the sandbox has
-  no `.env.local`, so the storefront can only be reviewed once the project is
-  connected — the pages were verified through the build, the server-markup tests
-  and the database integration suite.
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) in production.
+  For design review a development-only harness is included:
+  `npm run preview:souq` (`FLEXIGO_PREVIEW=1 next dev`) serves the real pages
+  from an in-memory, read-only double of the seed data — `/s/souq-plus`,
+  `/s/souq-plus/boutique`, `/s/souq-plus/produit/saat-dhakiyya`,
+  `/s/souq-plus/categorie/electronics`, `/s/souq-plus/commande?product=…`.
+  The harness is inert unless that variable is set at boot, never writes, and
+  leaves the real checkout/RPC path untouched (`lib/preview/souq-demo.ts`).
 - `settings.checkout` (fields, quantity, offers, delivery choice, variant
   display) is optional: when absent SOUQ uses the documented defaults, so no
   data migration is required for existing stores.

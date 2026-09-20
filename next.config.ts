@@ -11,7 +11,16 @@ import type { NextConfig } from "next";
  */
 const config: NextConfig = {
   output: "standalone",
+  // Development only: Next blocks /_next/* requests coming from an origin other
+  // than the dev server's own host. Hosted preview sandboxes serve the app
+  // through a proxied domain, so that host is allowed here. This has no effect
+  // on a production build.
+  allowedDevOrigins: ["*.e2b.app"],
   images: {
+    // Development preview only: the sandbox has no outbound network, so the
+    // image optimizer cannot fetch remote demo photos — serve them straight to
+    // the browser instead. Production keeps the optimizer (value false/absent).
+    unoptimized: process.env.FLEXIGO_PREVIEW === "1",
     // Product / banner images live in the Supabase public bucket; demo data
     // uses picsum.photos. Hostname patterns are allow-listed, never user input.
     remotePatterns: [

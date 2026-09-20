@@ -102,7 +102,32 @@ shipping zones, Arabic reviews and FAQ, and published Arabic pages.
 
 Demo owner: `yasmine.kaci@souqplus.demo` (password `Flexigo!2026demo`).
 
-## 6. Verification
+## 6. Previewing without credentials
+
+The storefront talks to Supabase through RLS, so a live preview normally needs
+credentials. For design review there is a development-only harness:
+
+```bash
+npm run preview:souq        # FLEXIGO_PREVIEW=1 next dev -H 0.0.0.0
+# then open /s/souq-plus  (home, /boutique, /produit/saat-dhakiyya, …)
+```
+
+With `FLEXIGO_PREVIEW=1`, `instrumentation.ts` registers an **in-memory
+read-only** Supabase double (`lib/preview/souq-demo.ts`) holding the same rows
+the SQL seed inserts for «سوق بلس», so the real pages, sections, product page
+and COD form render exactly as they will in production.
+
+Guardrails:
+
+- the harness only activates when that variable is set at boot — production
+  never registers it (`lib/supabase/preview-override.ts` stays inert);
+- reads only: orders can never be written through the preview, the real
+  `/api/checkout` + `fn_place_cod_order` path is untouched;
+- remote demo images bypass the image optimizer in preview mode only
+  (`unoptimized` under the same flag) because the sandbox has no outbound
+  network; the browser fetches them directly.
+
+## 7. Verification
 
 ```bash
 npm run typecheck        # tsc --noEmit

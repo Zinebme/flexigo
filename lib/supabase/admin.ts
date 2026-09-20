@@ -9,6 +9,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 import { serviceRoleKey, supabaseConfig } from "./config";
+import { supabaseOverrides } from "./preview-override";
 
 if (typeof window !== "undefined") {
   throw new Error("lib/supabase/admin.ts must never be imported into browser code.");
@@ -18,6 +19,12 @@ let client: SupabaseClient<Database> | null = null;
 
 export function getAdminSupabase(): SupabaseClient<Database> {
   if (client) return client;
+  // Preview harness (development only) — never registered in production.
+  const override = supabaseOverrides()?.admin ?? null;
+  if (override) {
+    client = override;
+    return client;
+  }
   const { url } = supabaseConfig();
   client = createClient<Database>(url, serviceRoleKey(), {
     auth: { autoRefreshToken: false, persistSession: false },
