@@ -1,5 +1,5 @@
 /* VOLT — Arabic-first electronics / gadgets storefront. */
-.volt-root{background:var(--volt-bg);color:var(--volt-ink);font-family:"Tajawal","Segoe UI",Tahoma,system-ui,sans-serif;overflow-x:clip}
+.volt-root{--souq-primary:var(--volt-cyan);--souq-primary-soft:rgba(34,211,238,.12);--souq-accent:var(--volt-blue);--souq-accent-soft:rgba(37,99,235,.14);--souq-accent-text:#fff;--souq-border:var(--volt-border);--souq-danger:var(--volt-danger);background:var(--volt-bg);color:var(--volt-ink);font-family:"Tajawal","Segoe UI",Tahoma,system-ui,sans-serif;overflow-x:clip}
 .volt-root *{box-sizing:border-box}.volt-root button,.volt-root input,.volt-root select,.volt-root textarea{font:inherit}
 .volt-container{width:100%;max-width:1240px;margin-inline:auto;padding-inline:16px}
 .volt-grid-bg{background-image:linear-gradient(rgba(34,211,238,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.045) 1px,transparent 1px);background-size:28px 28px}
@@ -20,7 +20,7 @@
 .volt-order-form button[type="submit"]{background:var(--volt-cyan)!important;color:#031014!important;font-weight:900!important}
 .volt-order-form .souq-error{color:#f87171!important}
 .volt-root .souq-card{border-color:var(--volt-border);background:var(--volt-surface);color:var(--volt-ink)}
-.volt-root .souq-price{color:var(--volt-cyan)}
+.volt-root .souq-price{direction:ltr;unicode-bidi:isolate;display:inline-block;color:var(--volt-cyan)}
 .volt-root .souq-label{color:#cbd5e1}.volt-root .souq-input{border-color:var(--volt-border);background:#070b11;color:#fff}
 @media(min-width:640px){.volt-container{padding-inline:24px}.volt-section{padding-block:72px}}
 @media(min-width:1024px){.volt-container{padding-inline:32px}.volt-section{padding-block:88px}}
