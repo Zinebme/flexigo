@@ -39,6 +39,11 @@ export async function DarSection({data,section}:{data:StorefrontData;section:Sec
   const items=(s.items as Array<{title?:string|null;text?:string|null}>|undefined)??[];
   return <section className="dar-section"><DarContainer><DarHeading eyebrow="WHY DAR" title={String(s.title||"المزايا")} subtitle={s.subtitle?String(s.subtitle):null}/><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{items.map((it,i)=><div key={i} className="dar-paper p-5"><span className="dar-chip">0{i+1}</span><h3 className="mt-4 text-sm font-black">{it.title}</h3><p className="mt-2 text-xs leading-6 text-[var(--dar-muted)]">{it.text}</p></div>)}</div></DarContainer></section>
  }
+ if(section.type==="gallery"){
+  const images=(s.images as string[]|undefined)??[];
+  if(!images.length) return null;
+  return <section className="dar-section bg-[var(--dar-paper)]"><DarContainer><DarHeading eyebrow="HOME INSPIRATION" title={String(s.title||"إلهام للبيت")} subtitle={s.subtitle?String(s.subtitle):null}/><div className="grid gap-3 sm:grid-cols-3">{images.slice(0,6).map((img,i)=><div key={img+i} className="dar-paper relative aspect-[4/3] overflow-hidden"><StorefrontImage src={img} alt={String(s.title||"إلهام للبيت")} fill sizes="(max-width:640px) 100vw,33vw" className="object-cover transition duration-500 hover:scale-105"/></div>)}</div></DarContainer></section>
+ }
  if(section.type==="reviews"){
   const reviews=await loadSouqReviews(data.id,null,6); if(!reviews.length) return null;
   return <section className="dar-section bg-[var(--dar-paper)]"><DarContainer><DarHeading eyebrow="REVIEWS" title={String(s.title||"آراء الزبائن")} subtitle={s.subtitle?String(s.subtitle):null}/><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{reviews.map(r=><figure key={r.id} className="dar-paper p-5"><div className="text-[var(--dar-terracotta)]">{"★".repeat(r.rating)}</div>{r.title?<div className="mt-3 text-sm font-black">{r.title}</div>:null}<blockquote className="mt-2 text-xs leading-7 text-[var(--dar-muted)]">{r.body}</blockquote><figcaption className="mt-4 text-[11px] font-bold text-stone-500">{r.customerName}</figcaption></figure>)}</div></DarContainer></section>
