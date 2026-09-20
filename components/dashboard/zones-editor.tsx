@@ -32,6 +32,8 @@ export function ZonesEditor({ initial, canManage }: { initial: Zone[]; canManage
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [okCode, setOkCode] = useState<number | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState<string | null>(null);
 
   async function save(code: number) {
     const d = drafts[code];
@@ -76,6 +78,48 @@ export function ZonesEditor({ initial, canManage }: { initial: Zone[]; canManage
     setBusy(null);
   }
 
+  async function saveAll() {
+    setBulkBusy(true);
+    setError(null);
+    setBulkMessage(null);
+    try {
+      const rowsToSave = [{ code: 0, name: "Par défaut" }, ...WILAYAS];
+      for (const row of rowsToSave) {
+        const d = drafts[row.code];
+        if (!d && row.code !== 0) continue;
+        const body = {
+          wilaya_code: row.code,
+          home_fee: Number.parseFloat(d?.home || "0"),
+          office_fee: Number.parseFloat(d?.office || "0"),
+          is_active: d?.active ?? true,
+        };
+        const res = await fetch("/api/dashboard/zones", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as { error?: { message?: string } | string };
+          throw new Error(typeof data.error === "string" ? data.error : (data.error?.message ?? `Échec wilaya ${row.code}`));
+        }
+      }
+      setBulkMessage("Tarifs enregistrés pour toutes les wilayas.");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Enregistrement global impossible");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  function applyDefaultToAll() {
+    const def = drafts[0] ?? { home: "", office: "", active: true };
+    const next = { ...drafts };
+    for (const w of WILAYAS) next[w.code] = { home: def.home, office: def.office, active: true };
+    setDrafts(next);
+    setBulkMessage("Tarif par défaut copié sur les 58 wilayas. Cliquez sur « Enregistrer les 58 ».");
+  }
+
   if (!canManage) return null;
 
   const input = "w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm shadow-sm";
@@ -83,9 +127,16 @@ export function ZonesEditor({ initial, canManage }: { initial: Zone[]; canManage
 
   return (
     <div>
-      <p className="mb-3 text-sm text-slate-500">
-        Définissez les frais de livraison par wilaya. Laissez vide pour appliquer la zone <span className="font-semibold">par défaut</span>.
-      </p>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">
+          Définissez les frais de livraison par wilaya. Vous pouvez enregistrer ligne par ligne ou les 58 d’un coup.
+        </p>
+        <div className="flex gap-2">
+          <button type="button" onClick={applyDefaultToAll} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Copier le tarif par défaut</button>
+          <button type="button" onClick={saveAll} disabled={bulkBusy} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-50">{bulkBusy ? "Enregistrement…" : "Enregistrer les 58"}</button>
+        </div>
+      </div>
+      {bulkMessage && <p className="mb-2 text-sm text-emerald-600">{bulkMessage}</p>}
       <div className="max-h-[520px] overflow-auto rounded-xl border border-slate-200">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-slate-50">
