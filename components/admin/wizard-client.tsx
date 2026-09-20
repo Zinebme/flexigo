@@ -51,7 +51,9 @@ interface FormState {
   default_home_fee: string;
   default_office_fee: string;
   office_delivery_enabled: boolean;
-  shipping_provider: "manual" | "navex" | "yalidine" | "ecotrack" | "zr" | "generic";
+  shipping_provider:
+    | "manual" | "navex" | "yalidine" | "guepex" | "yalitec" | "ecotrack" | "zr"
+    | "ecom_delivery" | "abex" | "colireli" | "colireli_ecotrack" | "isr" | "leopard" | "generic";
   shipping_api_base: string;
   shipping_api_token: string;
   shipping_account: string;
@@ -644,16 +646,24 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
                 <option value="manual">Manual (par défaut)</option>
                 <option value="navex">Navex</option>
                 <option value="yalidine">Yalidine</option>
+                <option value="guepex">Guepex</option>
+                <option value="yalitec">Yalitec</option>
                 <option value="ecotrack">Ecotrack</option>
                 <option value="zr">ZR Express</option>
-                <option value="generic">Generic API</option>
+                <option value="ecom_delivery">E-com Delivery V2</option>
+                <option value="abex">Abex Express</option>
+                <option value="colireli">ColiReli</option>
+                <option value="colireli_ecotrack">ColiReli Ecotrack</option>
+                <option value="isr">ISR Services</option>
+                <option value="leopard">Leopard Express</option>
+                <option value="generic">Autre transporteur / API générique</option>
               </select>
             </Field>
             {form.shipping_provider !== "manual" && (
               <>
-                <Field label="API Base URL" hint="Ne pas inventer si docs manquantes — laisser vide si incertain"><input value={form.shipping_api_base} onChange={(e) => update("shipping_api_base", e.target.value)} className={inputCls} placeholder="https://api.prestataire.com" /></Field>
-                <Field label="API Token / Clé" hint="Chiffré côté serveur après création"><input value={form.shipping_api_token} onChange={(e) => update("shipping_api_token", e.target.value)} className={`${inputCls} font-mono text-xs`} placeholder="token…" /></Field>
+                <Field label="API Key / Token" hint="Chiffré côté serveur après création. Utilisez exactement les identifiants donnés par le transporteur."><input value={form.shipping_api_token} onChange={(e) => update("shipping_api_token", e.target.value)} className={`${inputCls} font-mono text-xs`} placeholder="API key / token…" /></Field>
                 <Field label="Compte / Identifiant"><input value={form.shipping_account} onChange={(e) => update("shipping_account", e.target.value)} className={inputCls} placeholder="account…" /></Field>
+                <Field label="URL API (si fournie)" hint="Ne pas inventer d'endpoint : renseignez uniquement l'URL officielle du transporteur."><input value={form.shipping_api_base} onChange={(e) => update("shipping_api_base", e.target.value)} className={inputCls} placeholder="https://api.prestataire.com" /></Field>
                 <div className="md:col-span-2 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
                   <strong>Test connexion :</strong> sera disponible après création dans /admin/sites/[id] → Livraison → Tester la connexion. Interface + schéma + config UI + mock adapter + TODO docs si specs manquantes.
                 </div>
