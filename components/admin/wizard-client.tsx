@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { READY_TEMPLATES, type TemplateMeta, defaultHomeSections, templatePreviewPath } from "@/lib/templates/defaults";
 import { slugify } from "@/lib/slug";
 import { inputCls, labelCls, btnPrimary, btnSecondary } from "@/components/ui";
+import { WILAYAS } from "@/lib/algeria/wilayas";
 
 interface Org { id: string; name: string }
 interface Profile { id: string; email: string | null }
@@ -51,6 +52,7 @@ interface FormState {
   default_home_fee: string;
   default_office_fee: string;
   office_delivery_enabled: boolean;
+  manual_shipping_zones: Array<{ wilaya_code: number; home_fee: string; office_fee: string; is_active: boolean }>;
   shipping_provider:
     | "manual" | "navex" | "yalidine" | "guepex" | "yalitec" | "ecotrack" | "zr"
     | "ecom_delivery" | "abex" | "colireli" | "colireli_ecotrack" | "isr" | "leopard" | "generic";
@@ -150,6 +152,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
     default_home_fee: "400",
     default_office_fee: "600",
     office_delivery_enabled: true,
+    manual_shipping_zones: WILAYAS.map((w) => ({ wilaya_code: w.code, home_fee: "400", office_fee: "600", is_active: true })),
     shipping_provider: "manual",
     shipping_api_base: "",
     shipping_api_token: "",
@@ -254,6 +257,14 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
         default_home_fee: form.default_home_fee ? Number(form.default_home_fee) : 400,
         default_office_fee: form.default_office_fee ? Number(form.default_office_fee) : 600,
         office_delivery_enabled: form.office_delivery_enabled,
+        manual_shipping_zones: form.shipping_provider === "manual"
+          ? form.manual_shipping_zones.map((z) => ({
+              wilaya_code: z.wilaya_code,
+              home_fee: Number(z.home_fee || form.default_home_fee || 0),
+              office_fee: Number(z.office_fee || form.default_office_fee || 0),
+              is_active: z.is_active,
+            }))
+          : [],
         initial_categories: form.initial_categories
           .filter((c) => c.name.trim())
           .map((c, index) => ({
@@ -669,9 +680,41 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
                 </div>
               </>
             )}
-            <div className="md:col-span-2 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-500">
-              58 wilayas : zone par défaut créée automatiquement. Vous pourrez affiner par wilaya/commune dans le centre de contrôle après création.
-            </div>
+            {form.shipping_provider === "manual" ? (
+              <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">Tarifs manuels — 58 wilayas</h4>
+                    <p className="mt-1 text-xs text-slate-500">Renseignez domicile/bureau avant de livrer le site. Vous pouvez désactiver les wilayas non desservies.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" className="rounded-lg border px-3 py-1.5 text-xs font-semibold" onClick={() => update("manual_shipping_zones", form.manual_shipping_zones.map(z => ({ ...z, home_fee: form.default_home_fee, office_fee: form.default_office_fee })))}>Appliquer les tarifs par défaut</button>
+                    <button type="button" className="rounded-lg border px-3 py-1.5 text-xs font-semibold" onClick={() => update("manual_shipping_zones", form.manual_shipping_zones.map(z => ({ ...z, is_active: true })))}>Activer les 58</button>
+                  </div>
+                </div>
+                <div className="mt-4 max-h-[430px] overflow-auto rounded-xl border border-slate-200">
+                  <table className="w-full min-w-[620px] text-sm">
+                    <thead className="sticky top-0 bg-slate-50 text-left text-xs text-slate-500"><tr><th className="px-3 py-2">Wilaya</th><th className="px-3 py-2">Domicile DA</th><th className="px-3 py-2">Bureau DA</th><th className="px-3 py-2">Active</th></tr></thead>
+                    <tbody>
+                      {WILAYAS.map((w) => {
+                        const z = form.manual_shipping_zones.find(x => x.wilaya_code === w.code) ?? { wilaya_code:w.code, home_fee:form.default_home_fee, office_fee:form.default_office_fee, is_active:true };
+                        const change = (patch: Partial<typeof z>) => update("manual_shipping_zones", form.manual_shipping_zones.map(x => x.wilaya_code === w.code ? { ...x, ...patch } : x));
+                        return <tr key={w.code} className="border-t border-slate-100">
+                          <td className="px-3 py-2 font-semibold text-slate-700">{w.code} — {w.name}</td>
+                          <td className="px-3 py-2"><input type="number" min="0" className={inputCls} value={z.home_fee} onChange={e => change({ home_fee:e.target.value })}/></td>
+                          <td className="px-3 py-2"><input type="number" min="0" className={inputCls} value={z.office_fee} onChange={e => change({ office_fee:e.target.value })}/></td>
+                          <td className="px-3 py-2"><input type="checkbox" checked={z.is_active} onChange={e => change({ is_active:e.target.checked })}/></td>
+                        </tr>;
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="md:col-span-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
+                Mode API : connectez le transporteur avec ses identifiants officiels. Les tarifs automatiques ne sont importés que si l’adaptateur possède un contrat API vérifié ; aucun endpoint n’est inventé.
+              </div>
+            )}
           </div>
         )}
 
