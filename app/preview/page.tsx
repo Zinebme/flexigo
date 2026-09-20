@@ -42,9 +42,9 @@ const templates = [
     name: "VOLT",
     ar: "فولت",
     category: "Electronics / Gadgets",
-    description: "قالب تقني داكن للأجهزة والإلكترونيات والإكسسوارات.",
+    description: "قالب تقني مشرق ونظيف للأجهزة والإلكترونيات والإكسسوارات.",
     image: "/images/templates/volt-v1.svg",
-    accent: "#22D3EE",
+    accent: "#4C6FFF",
   },
   {
     key: "dar",
@@ -54,6 +54,24 @@ const templates = [
     description: "قالب دافئ للمنزل والمطبخ والترتيب والديكور.",
     image: "/images/templates/dar-v1.svg",
     accent: "#B86E4B",
+  },
+  {
+    key: "pulse",
+    name: "PULSE",
+    ar: "نبض",
+    category: "Sport / Fitness",
+    description: "قالب رياضي عربي حديث للجيم، الجري، كرة القدم والتمارين المنزلية.",
+    image: "/images/templates/pulse-v1.svg",
+    accent: "#0C7A54",
+  },
+  {
+    key: "little",
+    name: "LITTLE",
+    ar: "ليتل",
+    category: "Baby / Kids",
+    description: "قالب أطفال عربي pastel برسومات مرحة وحركات خفيفة وتجربة COD كاملة.",
+    image: "/images/templates/little-v1.svg",
+    accent: "#E86592",
   },
 ] as const;
 
