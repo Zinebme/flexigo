@@ -96,7 +96,7 @@ export async function notifyTelegramEvent(args: {
   storeId: string;
   event: TelegramEvent;
   payload: {
-    orderNumber?: number;
+    orderNumber?: string | number;
     customerName?: string;
     totalCents?: number;
     wilaya?: string;
