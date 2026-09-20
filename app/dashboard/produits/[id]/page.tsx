@@ -15,12 +15,13 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
   const ctx = await getMerchantContext();
   const admin = getAdminSupabase();
 
-  const [{ data: product }, { data: categories }, { data: variants }, { data: offers }, { data: images }] = await Promise.all([
+  const [{ data: product }, { data: categories }, { data: variants }, { data: offers }, { data: images }, { data: productChoices }] = await Promise.all([
     admin.from("products").select("*").eq("id", id).eq("store_id", ctx.store.id).maybeSingle(),
     admin.from("categories").select("id, name").eq("store_id", ctx.store.id).is("deleted_at", null).order("position", { ascending: true }),
     admin.from("product_variants").select("*").eq("product_id", id).order("position", { ascending: true }),
     admin.from("quantity_offers").select("*").eq("product_id", id).order("position", { ascending: true }),
     admin.from("product_images").select("*").eq("product_id", id).order("position", { ascending: true }),
+    admin.from("products").select("id, name").eq("store_id", ctx.store.id).is("deleted_at", null).neq("id", id).order("name"),
   ]);
 
   if (!product) notFound();
@@ -31,6 +32,11 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
     compare_at_price_cents: number | null; sku: string | null; low_stock_threshold: number;
     is_active: boolean; is_featured: boolean; category_id: string | null; stock: number;
     seo_title: string | null; seo_description: string | null;
+    short_description?: string | null; cost_cents?: number | null; is_digital?: boolean;
+    gallery_mode?: "slideshow" | "stacked"; landing_images?: string[]; min_order_quantity?: number;
+    shipping_label?: string | null; stock_tracking_mode?: "none" | "global" | "variants";
+    related_product_ids?: string[]; cross_sell_product_ids?: string[]; page_element_order?: string[];
+    option_groups?: unknown;
   };
 
   const initial = {
@@ -38,7 +44,19 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
     name: p.name,
     slug: p.slug,
     description: p.description ?? "",
+    short_description: p.short_description ?? "",
     price: p.price_cents / 100,
+    cost: p.cost_cents != null ? p.cost_cents / 100 : null,
+    is_digital: p.is_digital ?? false,
+    gallery_mode: p.gallery_mode ?? "slideshow",
+    landing_images: p.landing_images ?? [],
+    min_order_quantity: p.min_order_quantity ?? 1,
+    shipping_label: p.shipping_label ?? "",
+    stock_tracking_mode: p.stock_tracking_mode ?? "global",
+    related_product_ids: p.related_product_ids ?? [],
+    cross_sell_product_ids: p.cross_sell_product_ids ?? [],
+    page_element_order: p.page_element_order ?? ["gallery","title","price","variants","offers","description","order_form","landing","reviews","related"],
+    option_groups: Array.isArray(p.option_groups) ? p.option_groups : [],
     compare_at_price: p.compare_at_price_cents != null ? (p.compare_at_price_cents as number) / 100 : null,
     sku: p.sku ?? "",
     stock: p.stock,
@@ -54,6 +72,7 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
       name: v.name,
       options_text: v.options ? Object.entries(v.options).map(([k, val]) => `${k}: ${val}`).join(", ") : "",
       price: v.price_cents != null ? v.price_cents / 100 : null,
+      sku: (v as { sku?: string | null }).sku ?? "",
       stock: v.stock,
       is_active: v.is_active,
     })),
@@ -89,7 +108,7 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           {canManage ? (
-            <ProductForm mode="edit" initial={initial} categories={(categories ?? []) as Array<{ id: string; name: string }>} />
+            <ProductForm mode="edit" initial={initial} categories={(categories ?? []) as Array<{ id: string; name: string }>} productChoices={(productChoices ?? []) as Array<{ id: string; name: string }>} />
           ) : (
             <Card><EmptyState icon="🔒" title="Accès en lecture seule" text="Votre rôle permet de consulter mais pas de modifier les produits." /></Card>
           )}
