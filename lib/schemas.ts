@@ -302,7 +302,7 @@ export const wizardSchema = z.object({
   })).max(50).default([]),
 
   // Shipping provider
-  shipping_provider: z.enum(["manual","navex","yalidine","ecotrack","zr","generic"]).default("manual"),
+  shipping_provider: z.enum(SHIPPING_PROVIDER_KEYS).default("manual"),
   shipping_api_base: z.string().trim().url("URL API invalide").max(300).optional().or(z.literal("")).nullable(),
   shipping_api_token: z.string().trim().max(500).optional().or(z.literal("")).nullable(),
   shipping_account: z.string().trim().max(120).optional().or(z.literal("")).nullable(),
