@@ -264,7 +264,10 @@ export async function POST(req: Request) {
       catMap.set(cat.name.toLowerCase(), cat.id);
     }
 
-    // Products
+    // Products — create full merchandising data, then link related/cross-sell in a second pass.
+    const createdProducts = new Map<string, string>();
+    const pendingLinks: Array<{ id: string; related_names: string[]; cross_sell_names: string[] }> = [];
+
     for (const [idx, product] of input.initial_products.entries()) {
       const baseSlug = slugify(product.name) || `produit-${idx + 1}`;
       const slug = `${baseSlug}-${idx + 1}`;
@@ -275,13 +278,20 @@ export async function POST(req: Request) {
           category_id: product.category ? catMap.get(product.category.toLowerCase()) ?? null : null,
           name: product.name,
           slug,
+          short_description: product.short_description || null,
           description: product.description || null,
           price_cents: Math.round(product.price * 100),
           compare_at_price_cents: product.compare_price != null ? Math.round(product.compare_price * 100) : null,
+          cost_cents: product.cost != null ? Math.round(product.cost * 100) : null,
           sku: product.sku || null,
           stock: product.stock,
           is_active: input.publish_mode !== "draft",
           is_featured: product.featured,
+          is_digital: product.is_digital,
+          gallery_mode: product.gallery_mode,
+          stock_tracking_mode: product.stock_tracking_mode,
+          min_order_quantity: product.min_order_quantity,
+          option_groups: product.option_groups,
           position: idx,
         } as never)
         .select("id")
@@ -289,16 +299,49 @@ export async function POST(req: Request) {
       if (prodErr) throw prodErr;
 
       const productId = (prodRow as { id: string }).id;
-      if (product.image_url) {
-        const { error: imgErr } = await admin.from("product_images").insert({
-          product_id: productId,
-          store_id: newStoreId,
-          url: product.image_url,
-          position: 0,
-        } as never);
+      createdProducts.set(product.name.trim().toLowerCase(), productId);
+      pendingLinks.push({ id: productId, related_names: product.related_names, cross_sell_names: product.cross_sell_names });
+
+      const imageUrls = product.images.length > 0 ? product.images : (product.image_url ? [product.image_url] : []);
+      if (imageUrls.length > 0) {
+        const { error: imgErr } = await admin.from("product_images").insert(
+          imageUrls.map((url, position) => ({ product_id: productId, store_id: newStoreId, url, position })) as never,
+        );
         if (imgErr) throw imgErr;
       }
-      if (product.stock > 0) {
+
+      if (product.variants.length > 0) {
+        const { error: variantsErr } = await admin.from("product_variants").insert(
+          product.variants.map((variant, position) => ({
+            product_id: productId,
+            name: variant.name,
+            options: variant.options,
+            price_cents: variant.price_cents ?? null,
+            sku: variant.sku || null,
+            stock: variant.stock,
+            is_active: variant.is_active,
+            position,
+          })) as never,
+        );
+        if (variantsErr) throw variantsErr;
+      }
+
+      if (product.offers.length > 0) {
+        const { error: offersErr } = await admin.from("quantity_offers").insert(
+          product.offers.map((offer, position) => ({
+            store_id: newStoreId,
+            product_id: productId,
+            min_quantity: offer.min_quantity,
+            total_price_cents: offer.total_price_cents,
+            label: offer.label || `Offre ${offer.min_quantity}+`,
+            is_active: offer.is_active,
+            position,
+          })) as never,
+        );
+        if (offersErr) throw offersErr;
+      }
+
+      if (product.stock > 0 && product.stock_tracking_mode === "global") {
         await admin.from("inventory_movements").insert({
           store_id: newStoreId,
           product_id: productId,
@@ -306,6 +349,18 @@ export async function POST(req: Request) {
           reason: "Stock initial (studio)",
           actor_user_id: ctx.user.id,
         } as never);
+      }
+    }
+
+    for (const link of pendingLinks) {
+      const related = link.related_names.map((name) => createdProducts.get(name.toLowerCase())).filter((id): id is string => Boolean(id) && id !== link.id);
+      const crossSell = link.cross_sell_names.map((name) => createdProducts.get(name.toLowerCase())).filter((id): id is string => Boolean(id) && id !== link.id);
+      if (related.length || crossSell.length) {
+        const { error: linkErr } = await admin.from("products").update({
+          related_product_ids: related,
+          cross_sell_product_ids: crossSell,
+        } as never).eq("id", link.id);
+        if (linkErr) throw linkErr;
       }
     }
 
