@@ -61,11 +61,6 @@ export default function SouqPreviewPage() {
     primary_color: f.theme.primary_color,
     secondary_color: f.theme.secondary_color,
     background_color: f.theme.background_color,
-    typography: f.theme.typography,
-    button_shape: f.theme.button_shape,
-    logo_url: f.theme.logo_url,
-    favicon_url: null,
-    announcement: f.theme.announcement,
   });
   const nav = [
     { href: base, label: copy.nav.home, exact: true },
