@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F6F1E8"/><stop offset="1" stop-color="#E9DDCB"/></linearGradient></defs>
+<rect width="900" height="1200" fill="url(#g)"/>
+<circle cx="738" cy="216" r="198" fill="#A9AF93" opacity=".45"/>
+<rect x="513" y="276" width="252.00000000000003" height="576" rx="32" fill="#FFFDF8" stroke="#DED3C2" stroke-width="3"/>
+<rect x="549" y="348" width="180" height="144" rx="18" fill="#B86E4B" opacity=".85"/>
+<rect x="549" y="540" width="72" height="216" rx="14" fill="#6D7356"/>
+<rect x="648" y="540" width="81" height="216" rx="14" fill="#D9C9B2"/>
+<text x="72" y="456" fill="#2E2A25" font-family="Georgia,serif" font-weight="700" font-size="54">HOME STORY</text>
+<text x="72" y="552" fill="#7C746C" font-family="Arial" font-size="22">WARM DAILY ESSENTIALS</text>
+<rect x="72" y="648" width="190" height="62" rx="31" fill="#4F563E"/>
+<text x="167" y="688" text-anchor="middle" fill="#fff" font-family="Arial" font-weight="700" font-size="22">DAR</text>
+</svg>
