@@ -26,6 +26,7 @@ export type AuditAction =
   | "store.status_changed"
   | "store.created"
   | "store.duplicated"
+  | "store.soft_deleted"
   | "store.appearance_changed"
   | "store.repair_checked"
   | "store.regenerated"
