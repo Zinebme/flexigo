@@ -12,11 +12,15 @@ import { LamsaProductPage } from "../../../../../../components/storefront/templa
 import { NoorProductPage } from "../../../../../../components/storefront/templates-v2/noor/noor-product-page";
 import { VoltProductPage } from "../../../../../../components/storefront/templates-v2/volt/volt-product-page";
 import { DarProductPage } from "../../../../../../components/storefront/templates-v2/dar/dar-product-page";
+import { PulseProductPage } from "../../../../../../components/storefront/templates-v2/pulse/pulse-product-page";
+import { LittleProductPage } from "../../../../../../components/storefront/templates-v2/little/little-product-page";
 import { isSouqTemplate } from "../../../../../../lib/templates/souq";
 import { isLamsaTemplate } from "../../../../../../lib/templates/lamsa";
 import { isNoorTemplate } from "../../../../../../lib/templates/noor";
 import { isVoltTemplate } from "../../../../../../lib/templates/volt";
 import { isDarTemplate } from "../../../../../../lib/templates/dar";
+import { isPulseTemplate } from "../../../../../../lib/templates/pulse";
+import { isLittleTemplate } from "../../../../../../lib/templates/little";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +45,7 @@ export async function generateMetadata({
   const desc = p.seo_description ?? p.description?.slice(0, 160) ?? undefined;
 
   // V2 templates add the product's own real OG image.
-  if (isDarTemplate(data.template_key) || isVoltTemplate(data.template_key) || isSouqTemplate(data.template_key) || isLamsaTemplate(data.template_key) || isNoorTemplate(data.template_key)) {
+  if (isLittleTemplate(data.template_key) || isPulseTemplate(data.template_key) || isDarTemplate(data.template_key) || isVoltTemplate(data.template_key) || isSouqTemplate(data.template_key) || isLamsaTemplate(data.template_key) || isNoorTemplate(data.template_key)) {
     const { data: productRow } = await anon
       .from("products")
       .select("id")
@@ -80,6 +84,8 @@ export default async function ProductPage({
   const data = await getStorefrontData(slug);
   if (!data) notFound();
 
+  if (isLittleTemplate(data.template_key)) return <LittleProductPage data={data} productSlug={product} />;
+  if (isPulseTemplate(data.template_key)) return <PulseProductPage data={data} productSlug={product} />;
   if (isDarTemplate(data.template_key)) {
     return <DarProductPage data={data} productSlug={product} />;
   }
