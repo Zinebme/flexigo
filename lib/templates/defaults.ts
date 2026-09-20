@@ -13,6 +13,8 @@ import { LAMSA_TEMPLATE_KEY, isLamsaTemplate, lamsaContentPages, lamsaHomeSectio
 import { NOOR_TEMPLATE_KEY, isNoorTemplate, noorContentPages, noorHomeSections } from "./noor";
 import { VOLT_TEMPLATE_KEY, isVoltTemplate, voltContentPages, voltHomeSections } from "./volt";
 import { DAR_TEMPLATE_KEY, isDarTemplate, darContentPages, darHomeSections } from "./dar";
+import { PULSE_TEMPLATE_KEY, isPulseTemplate, pulseContentPages, pulseHomeSections } from "./pulse";
+import { LITTLE_TEMPLATE_KEY, isLittleTemplate, littleContentPages, littleHomeSections } from "./little";
 
 export interface TemplateMeta {
   key: string;
@@ -149,6 +151,40 @@ export const TEMPLATES: TemplateMeta[] = [
     screenshotUrl: "/images/templates/convert.svg",
     theme: { primaryColor: "#dc2626", secondaryColor: "#111827", backgroundColor: "#ffffff", typography: "bold", buttonShape: "pill" },
     sections: ["Hero", "Product gallery/video", "Problem", "Solution", "Benefits", "How it works", "Before/after", "Social proof", "Quantity offers", "Reviews", "FAQ", "COD order form", "Sticky CTA"],
+  },
+  // --- LITTLE (Arabic kids / baby storefront) ---
+  {
+    key: LITTLE_TEMPLATE_KEY,
+    name: "LITTLE",
+    category: "Kids",
+    categoryKey: "kids",
+    language: "ar",
+    direction: "rtl",
+    description: "LITTLE — قالب عربي مرح وناعم للأطفال والرضع، بألوان pastel ورسومات لطيفة وحركات خفيفة، مع صفحة منتج كاملة ونموذج COD مدمج.",
+    websiteTypes: ["ecommerce"],
+    screenshotUrl: "/images/templates/little-v1.svg",
+    previewMobileUrl: "/images/templates/little-v1-mobile.svg",
+    badges: ["Arabic-first", "RTL", "Kids", "Animated", "COD", "Mobile-first"],
+    highlights: { dynamicVariants: true, multiSelectOptions: true, quantityOffers: true, codForm: true, rtl: true },
+    theme: { primaryColor: "#E86592", secondaryColor: "#8ED8F8", backgroundColor: "#FFF9F5", typography: "modern", buttonShape: "pill" },
+    sections: ["Animated hero","Age categories","Favorites","Family benefits","Gift banner","New arrivals","Reviews","FAQ","Footer","Dynamic variants","Quantity offers","Inline COD form"],
+  },
+  // --- PULSE (Arabic sport / fitness storefront) ---
+  {
+    key: PULSE_TEMPLATE_KEY,
+    name: "PULSE",
+    category: "Sport",
+    categoryKey: "sport",
+    language: "ar",
+    direction: "rtl",
+    description: "PULSE — قالب عربي رياضي حديث للجيم، الجري، كرة القدم واللياقة. هوية مشرقة وحيوية، بطاقات قوية، صفحة منتج وخيارات ديناميكية ونموذج COD.",
+    websiteTypes: ["ecommerce"],
+    screenshotUrl: "/images/templates/pulse-v1.svg",
+    previewMobileUrl: "/images/templates/pulse-v1-mobile.svg",
+    badges: ["Arabic-first", "RTL", "Sport", "COD", "Mobile-first"],
+    highlights: { dynamicVariants: true, multiSelectOptions: true, quantityOffers: true, codForm: true, rtl: true },
+    theme: { primaryColor: "#0C7A54", secondaryColor: "#B8F34A", backgroundColor: "#F7FAF8", typography: "bold", buttonShape: "rounded" },
+    sections: ["Sport hero","Activity categories","Best sellers","Benefits","Training banner","New arrivals","Reviews","FAQ","Footer","Dynamic variants","Quantity offers","Inline COD form"],
   },
   // --- DAR (Arabic home / kitchen / organization storefront) ---
   {
@@ -376,6 +412,8 @@ function s(type: Section["type"], data: Record<string, unknown>): Section {
 }
 
 export function defaultHomeSections(templateKey: string, websiteType: WebsiteType, businessName: string): Section[] {
+  if (isLittleTemplate(templateKey)) return littleHomeSections(businessName);
+  if (isPulseTemplate(templateKey)) return pulseHomeSections(businessName);
   if (isDarTemplate(templateKey)) {
     return darHomeSections(businessName);
   }
@@ -542,6 +580,17 @@ export function defaultHomeSections(templateKey: string, websiteType: WebsiteTyp
 }
 
 export function defaultPages(templateKey: string, websiteType: WebsiteType, businessName: string): Array<{ key: string; title: string; content: { sections: Section[] } }> {
+  if (isLittleTemplate(templateKey) || isPulseTemplate(templateKey)) {
+    const contentPages = isLittleTemplate(templateKey) ? littleContentPages(businessName) : pulseContentPages(businessName);
+    const pages: Array<{ key: string; title: string; content: { sections: Section[] } }> = [
+      { key: "home", title: "الرئيسية", content: { sections: defaultHomeSections(templateKey, websiteType, businessName) } },
+      ...contentPages,
+      { key: "legal-terms", title: "الشروط العامة", content: { sections: [] } },
+      { key: "legal-privacy", title: "سياسة الخصوصية", content: { sections: [] } },
+    ];
+    if (websiteType === "ecommerce") pages.push({ key: "shop", title: "المتجر", content: { sections: [] } });
+    return pages;
+  }
   if (isDarTemplate(templateKey)) {
     const pages: Array<{ key: string; title: string; content: { sections: Section[] } }> = [
       { key: "home", title: "الرئيسية", content: { sections: defaultHomeSections(templateKey, websiteType, businessName) } },
