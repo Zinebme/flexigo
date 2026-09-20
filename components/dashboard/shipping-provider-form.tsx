@@ -85,79 +85,139 @@ export function ShippingProviderForm({ providers, canManage }: { providers: Prov
   if (!canManage) return null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {providers.map((p) => (
-          <button
-            key={p.key}
-            className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${
-              selected === p.key ? "border-blue-500 bg-blue-50 text-blue-700" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
-            }`}
-            onClick={() => {
-              setSelected(p.key);
-              setTestResult(null);
-              setOkMsg(null);
-              setError(null);
-            }}
-          >
-            {p.label}
-            {p.is_active && <span className="ml-1.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">ACTIF</span>}
-          </button>
-        ))}
+    <div className="space-y-5">
+      <div>
+        <h3 className="text-base font-bold text-slate-900">Sociétés de livraison</h3>
+        <p className="mt-1 text-sm text-slate-500">
+          Choisissez votre transporteur puis renseignez les identifiants fournis par la société. Les secrets sont chiffrés côté serveur.
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {providers.filter((p) => p.key !== "mock").map((p, index) => {
+          const selectedCard = selected === p.key;
+          const initials = p.label
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part[0]?.toUpperCase())
+            .join("");
+          const tileTone = [
+            "bg-rose-50 border-rose-100",
+            "bg-amber-50 border-amber-100",
+            "bg-sky-50 border-sky-100",
+            "bg-violet-50 border-violet-100",
+            "bg-emerald-50 border-emerald-100",
+            "bg-blue-50 border-blue-100",
+          ][index % 6];
+          return (
+            <button
+              type="button"
+              key={p.key}
+              onClick={() => {
+                setSelected(p.key);
+                setTestResult(null);
+                setOkMsg(null);
+                setError(null);
+              }}
+              className={`group rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${tileTone} ${selectedCard ? "ring-2 ring-blue-500 ring-offset-2" : ""}`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-sm font-black text-slate-700 shadow-sm">
+                  {initials || "API"}
+                </span>
+                {p.is_active ? (
+                  <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-black text-emerald-700">ACTIF</span>
+                ) : p.status === "error" ? (
+                  <span className="rounded-full bg-red-100 px-2 py-1 text-[10px] font-black text-red-700">ERREUR</span>
+                ) : null}
+              </div>
+              <div className="mt-4 text-sm font-bold text-slate-900">{p.label}</div>
+              <div className="mt-3 inline-flex rounded-xl bg-white px-3 py-2 text-xs font-bold text-blue-700 shadow-sm">
+                {selectedCard ? "Configuration ouverte" : "Lier maintenant"}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {current && (
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          {current.statusNote && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{current.statusNote}</p>}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Connexion transporteur</div>
+              <h4 className="mt-1 text-lg font-bold text-slate-900">{current.label}</h4>
+            </div>
+            {current.is_active ? <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Connecté</span> : null}
+          </div>
+
+          {current.statusNote && (
+            <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-800">
+              {current.statusNote}
+            </p>
+          )}
+
           {current.fields.length === 0 ? (
-            <p className="text-sm text-slate-500">Aucune configuration requise pour ce mode.</p>
+            <p className="mt-4 text-sm text-slate-500">Aucune clé API requise pour ce mode.</p>
           ) : (
-            <div className="grid gap-3 md:grid-cols-2">
-              {current.fields.map((f) => (
-                <div key={f.key} className={f.key === "api_base_url" ? "md:col-span-2" : ""}>
-                  <label className="mb-1 block text-sm font-semibold text-slate-700">{f.label}</label>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              {current.fields.map((field) => (
+                <div key={field.key} className={field.key === "api_base_url" ? "md:col-span-2" : ""}>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">{field.label}</label>
                   <input
-                    type={f.secret ? "password" : "text"}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm"
-                    placeholder={f.secret ? (f.value || "••••••••") : undefined}
-                    value={values[`${selected}:${f.key}`] ?? ""}
-                    onChange={(e) => setValues((v) => ({ ...v, [`${selected}:${f.key}`]: e.target.value }))}
+                    type={field.secret ? "password" : "text"}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    placeholder={field.placeholder ?? (field.secret ? "••••••••" : "")}
+                    value={values[`${selected}:${field.key}`] ?? ""}
+                    onChange={(event) => setValues((currentValues) => ({ ...currentValues, [`${selected}:${field.key}`]: event.target.value }))}
                   />
-                  {f.secret && <p className="mt-1 text-xs text-slate-400">Chiffré côté serveur. Laissez vide pour conserver la valeur actuelle.</p>}
+                  {field.secret ? <p className="mt-1 text-xs text-slate-400">Jamais réaffiché en clair après enregistrement.</p> : null}
                 </div>
               ))}
             </div>
           )}
 
-          {current.last_tested_at && (
-            <p className="mt-3 text-xs text-slate-400">
-              Dernier test : {new Date(current.last_tested_at).toLocaleString("fr-FR")} — {current.status === "configured" ? "✅ réussi" : current.status === "error" ? `❌ ${current.last_error}` : "—"}
+          {current.last_tested_at ? (
+            <p className="mt-4 text-xs text-slate-400">
+              Dernier test : {new Date(current.last_tested_at).toLocaleString("fr-FR")} — {current.status === "configured" ? "réussi" : current.status === "error" ? current.last_error ?? "erreur" : "non vérifié"}
             </p>
-          )}
+          ) : null}
 
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50" onClick={test} disabled={testing}>
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+              onClick={test}
+              disabled={testing || current.key === "manual"}
+            >
               {testing ? "Test en cours…" : "Tester la connexion"}
             </button>
-            <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50" onClick={() => save(false)} disabled={saving}>
+            <button
+              type="button"
+              className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+              onClick={() => save(false)}
+              disabled={saving}
+            >
               Enregistrer
             </button>
-            {!current.is_active && (
-              <button className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50" onClick={() => save(true)} disabled={saving}>
-                Enregistrer et activer
-              </button>
-            )}
+            <button
+              type="button"
+              className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+              onClick={() => save(true)}
+              disabled={saving}
+            >
+              {current.is_active ? "Mettre à jour la connexion" : "Enregistrer et activer"}
+            </button>
           </div>
-          {testResult && (
+
+          {testResult ? (
             <p className={`mt-3 text-sm ${testResult.ok ? "text-emerald-600" : "text-red-600"}`}>
-              {testResult.ok ? "✅ " : "❌ "}
-              {testResult.message}
+              {testResult.ok ? "Connexion joignable : " : "Échec : "}{testResult.message}
             </p>
-          )}
-          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-          {okMsg && <p className="mt-2 text-sm text-emerald-600">{okMsg}</p>}
+          ) : null}
+          {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
+          {okMsg ? <p className="mt-2 text-sm text-emerald-600">{okMsg}</p> : null}
         </div>
       )}
     </div>
-  );
-}
+  );}
