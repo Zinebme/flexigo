@@ -188,8 +188,10 @@ export function useSouqOrderState(
 
   const inStock = useMemo(() => {
     if (variant) return variant.stock >= quantity;
-    const activeVariants = data.variants.filter((v) => v.is_active !== false);
-    if (activeVariants.length > 0 && !variant) return false;
+    // Variants exist but no valid combination is chosen yet: that is a missing
+    // selection, not a stock problem — the pickers report it by name, so the
+    // CTA must never claim the product is unavailable.
+    if (data.variants.some((v) => v.is_active !== false)) return true;
     return data.product.stock >= quantity;
   }, [variant, data.variants, data.product.stock, quantity]);
 
@@ -299,6 +301,11 @@ export function useSouqOrderState(
       }
       if (!inStock) {
         errors.options = data.copy.errors.outOfStock;
+      } else if (data.variants.some((v) => v.is_active !== false) && !variant) {
+        // Every required group is answered, but that combination is not one of
+        // the sellable variants: block it rather than letting the API bill the
+        // base product with variant_id = null.
+        errors.options = data.copy.errors.variantUnavailable;
       }
 
       if (Object.keys(errors).length > 0) {
@@ -339,7 +346,7 @@ export function useSouqOrderState(
 
       void submitOrder(payload);
     },
-    [data, deliveryType, formRef, inStock, optionIssues, preview.lines, submitOrder, submitState.status, wilayaCode],
+    [data, deliveryType, formRef, inStock, optionIssues, preview.lines, submitOrder, submitState.status, variant, wilayaCode],
   );
 
   useEffect(() => {
