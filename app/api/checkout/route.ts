@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
           storeId: store.id,
           event: "new_order",
           payload: {
-            orderNumber: Number(out.order_number),
+            orderNumber: out.order_number,
             customerName: body.full_name,
             totalCents: out.total_cents,
             wilaya: String(body.wilaya_code),
