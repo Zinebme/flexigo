@@ -170,7 +170,7 @@ export const ORDER_ACTIVE_STATUSES: OrderStatus[] = [
 // Integrations
 // ---------------------------------------------------------------------------
 
-export const SHIPPING_PROVIDER_KEYS = ["manual", "navex", "yalidine", "ecotrack", "zr", "generic", "mock"] as const;
+export const SHIPPING_PROVIDER_KEYS = ["manual", "navex", "yalidine", "guepex", "yalitec", "ecotrack", "zr", "ecom_delivery", "abex", "colireli", "colireli_ecotrack", "isr", "leopard", "generic", "mock"] as const;
 export type ShippingProviderKey = (typeof SHIPPING_PROVIDER_KEYS)[number];
 
 export const MARKETING_PROVIDER_KEYS = [
