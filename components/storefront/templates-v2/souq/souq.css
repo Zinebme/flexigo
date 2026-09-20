@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&display=swap");
+
 /**
  * SOUQ — template-scoped styles.
  *
@@ -11,13 +13,42 @@
 .souq-root {
   background-color: var(--souq-surface, #f8fafc);
   color: var(--souq-ink, #1e293b);
-  font-family: "Noto Sans Arabic", "Noto Naskh Arabic", "Segoe UI", Tahoma, system-ui, -apple-system, sans-serif;
+  font-family: "Tajawal", "Noto Sans Arabic", "Segoe UI", Tahoma, system-ui, -apple-system, sans-serif;
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
   -webkit-tap-highlight-color: transparent;
   overflow-x: clip;
 }
 
 .souq-root * {
   scrollbar-width: thin;
+}
+
+.souq-root button,
+.souq-root input,
+.souq-root select,
+.souq-root textarea {
+  font: inherit;
+}
+
+.souq-root h1,
+.souq-root h2,
+.souq-root h3,
+.souq-root h4,
+.souq-root h5,
+.souq-root h6 {
+  font-family: "Tajawal", "Noto Sans Arabic", sans-serif;
+  letter-spacing: -0.015em;
+}
+
+.souq-root p,
+.souq-root li,
+.souq-root label,
+.souq-root input,
+.souq-root select,
+.souq-root textarea,
+.souq-root button {
+  line-height: 1.65;
 }
 
 /* Arabic numerals alignment inside prices */
