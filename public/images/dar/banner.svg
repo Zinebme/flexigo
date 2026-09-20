@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F6F1E8"/><stop offset="1" stop-color="#E9DDCB"/></linearGradient></defs>
+<rect width="1600" height="900" fill="url(#g)"/>
+<circle cx="1312" cy="162" r="198" fill="#A9AF93" opacity=".45"/>
+<rect x="911.9999999999999" y="207" width="448.00000000000006" height="432" rx="32" fill="#FFFDF8" stroke="#DED3C2" stroke-width="3"/>
+<rect x="976" y="261" width="320" height="108" rx="18" fill="#B86E4B" opacity=".85"/>
+<rect x="976" y="405" width="128" height="162" rx="14" fill="#6D7356"/>
+<rect x="1152" y="405" width="144" height="162" rx="14" fill="#D9C9B2"/>
+<text x="128" y="342" fill="#2E2A25" font-family="Georgia,serif" font-weight="700" font-size="76">HOME STORY</text>
+<text x="128" y="414" fill="#7C746C" font-family="Arial" font-size="30">ORGANIZE • LIVE • ENJOY</text>
+<rect x="128" y="486.00000000000006" width="250" height="62" rx="31" fill="#4F563E"/>
+<text x="253" y="526" text-anchor="middle" fill="#fff" font-family="Arial" font-weight="700" font-size="22">DAR</text>
+</svg>
