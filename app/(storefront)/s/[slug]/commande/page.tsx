@@ -8,8 +8,10 @@ import { formatDA } from "../../../../../lib/utils";
 import { CheckoutForm, type CheckoutLineInput } from "../../../../../components/storefront/checkout-form";
 import { SouqCheckoutPage } from "../../../../../components/storefront/templates-v2/souq/souq-checkout-page";
 import { LamsaCheckoutPage } from "../../../../../components/storefront/templates-v2/lamsa/lamsa-checkout-page";
+import { NoorCheckoutPage } from "../../../../../components/storefront/templates-v2/noor/noor-checkout-page";
 import { isSouqTemplate } from "../../../../../lib/templates/souq";
 import { isLamsaTemplate } from "../../../../../lib/templates/lamsa";
+import { isNoorTemplate } from "../../../../../lib/templates/noor";
 
 export const dynamic = "force-dynamic";
 
@@ -29,9 +31,10 @@ export default async function CommandePage({
   const qs = await searchParams;
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-  if (isLamsaTemplate(data.template_key) || isSouqTemplate(data.template_key)) {
+  if (isNoorTemplate(data.template_key) || isLamsaTemplate(data.template_key) || isSouqTemplate(data.template_key)) {
     const qty = Math.min(50, Math.max(1, parseInt(first(qs.qty) ?? "1", 10) || 1));
     const props = { data, productId: first(qs.product) ?? null, variantId: first(qs.variant) ?? null, quantity: qty };
+    if (isNoorTemplate(data.template_key)) return <NoorCheckoutPage {...props} />;
     return isLamsaTemplate(data.template_key) ? <LamsaCheckoutPage {...props} /> : <SouqCheckoutPage {...props} />;
   }
 

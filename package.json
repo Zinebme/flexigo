@@ -20,7 +20,8 @@
     "db:local:migrate": "bash scripts/local-db.sh migrate",
     "db:local:seed": "bash scripts/local-db.sh seed",
     "preview:souq": "FLEXIGO_PREVIEW=1 next dev -H 0.0.0.0",
-    "preview:lamsa": "next dev -H 0.0.0.0"
+    "preview:lamsa": "FLEXIGO_PREVIEW=1 next dev -H 0.0.0.0",
+    "preview:noor": "FLEXIGO_PREVIEW=1 next dev -H 0.0.0.0"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

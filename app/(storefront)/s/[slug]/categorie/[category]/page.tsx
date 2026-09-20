@@ -6,8 +6,10 @@ import { loadCatalog } from "../../../../../../lib/storefront/catalog";
 import { ShopBrowser } from "../../../../../../components/storefront/shop-browser";
 import { SouqCategoryPage } from "../../../../../../components/storefront/templates-v2/souq/souq-shop-page";
 import { LamsaCategoryPage } from "../../../../../../components/storefront/templates-v2/lamsa/lamsa-shop-page";
+import { NoorCategoryPage } from "../../../../../../components/storefront/templates-v2/noor/noor-shop-page";
 import { isSouqTemplate } from "../../../../../../lib/templates/souq";
 import { isLamsaTemplate } from "../../../../../../lib/templates/lamsa";
+import { isNoorTemplate } from "../../../../../../lib/templates/noor";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +51,9 @@ export default async function CategoryPage({
     .maybeSingle();
   if (!cat) notFound();
 
+  if (isNoorTemplate(data.template_key)) {
+    return <NoorCategoryPage data={data} category={{ id: cat.id, name: cat.name, slug: cat.slug ?? category, description: cat.description ?? null }} />;
+  }
   if (isLamsaTemplate(data.template_key)) {
     return <LamsaCategoryPage data={data} category={{ id: cat.id, name: cat.name, slug: cat.slug ?? category, description: cat.description ?? null }} />;
   }

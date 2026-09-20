@@ -10,6 +10,7 @@ import { shortId } from "../utils";
 import type { StoreSettings } from "../supabase/database.types";
 import { SOUQ_TEMPLATE_ALIASES, SOUQ_TEMPLATE_KEY, isSouqTemplate, souqContentPages, souqHomeSections } from "./souq";
 import { LAMSA_TEMPLATE_KEY, isLamsaTemplate, lamsaContentPages, lamsaHomeSections } from "./lamsa";
+import { NOOR_TEMPLATE_KEY, isNoorTemplate, noorContentPages, noorHomeSections } from "./noor";
 
 export interface TemplateMeta {
   key: string;
@@ -130,6 +131,36 @@ export const TEMPLATES: TemplateMeta[] = [
     screenshotUrl: "/images/templates/convert.svg",
     theme: { primaryColor: "#dc2626", secondaryColor: "#111827", backgroundColor: "#ffffff", typography: "bold", buttonShape: "pill" },
     sections: ["Hero", "Product gallery/video", "Problem", "Solution", "Benefits", "How it works", "Before/after", "Social proof", "Quantity offers", "Reviews", "FAQ", "COD order form", "Sticky CTA"],
+  },
+  // --- NOOR (premium Arabic beauty / skincare storefront) ---
+  {
+    key: NOOR_TEMPLATE_KEY,
+    name: "NOOR",
+    category: "Beauty",
+    categoryKey: "beauty",
+    language: "ar",
+    direction: "rtl",
+    description:
+      "NOOR — قالب عربي فاخر للعناية والتجميل (بشرة، مكياج، عطور، شعر، عناية شخصية). هوية نظيفة وناعمة RTL، صفحة منتج بمعرض ديناميكي وخيارات متعددة وعروض كمية ونموذج دفع عند الاستلام مدمج، أقسام فوائد وروتين وقبل/بعد وتقييمات ومعرض اجتماعي.",
+    websiteTypes: ["ecommerce"],
+    screenshotUrl: "/images/templates/noor-v1.svg",
+    previewMobileUrl: "/images/templates/noor-v1-mobile.svg",
+    badges: ["Arabic-first", "RTL", "Beauty", "COD", "Mobile-first"],
+    highlights: { dynamicVariants: true, multiSelectOptions: true, quantityOffers: true, codForm: true, rtl: true },
+    theme: {
+      primaryColor: "#4B3538",
+      secondaryColor: "#C5A26B",
+      backgroundColor: "#FFFDFC",
+      typography: "elegant",
+      buttonShape: "rounded",
+    },
+    sections: [
+      "Announcement bar", "Beauty hero", "Shop by category", "Best sellers", "Benefits",
+      "Featured routine", "Before/after", "Promotion banner", "New arrivals", "Results/stats",
+      "Customer reviews", "Social gallery", "FAQ", "Footer",
+      "Product gallery", "Dynamic variants", "Color/image swatches", "Quantity offers",
+      "Inline COD form", "Sticky mobile order CTA",
+    ],
   },
   // --- LAMSA (premium Arabic modest-fashion storefront) ---
   {
@@ -269,6 +300,9 @@ function s(type: Section["type"], data: Record<string, unknown>): Section {
 }
 
 export function defaultHomeSections(templateKey: string, websiteType: WebsiteType, businessName: string): Section[] {
+  if (isNoorTemplate(templateKey)) {
+    return noorHomeSections(businessName);
+  }
   if (isLamsaTemplate(templateKey)) {
     return lamsaHomeSections(businessName);
   }
@@ -426,6 +460,16 @@ export function defaultHomeSections(templateKey: string, websiteType: WebsiteTyp
 }
 
 export function defaultPages(templateKey: string, websiteType: WebsiteType, businessName: string): Array<{ key: string; title: string; content: { sections: Section[] } }> {
+  if (isNoorTemplate(templateKey)) {
+    const pages: Array<{ key: string; title: string; content: { sections: Section[] } }> = [
+      { key: "home", title: "الرئيسية", content: { sections: defaultHomeSections(templateKey, websiteType, businessName) } },
+      ...noorContentPages(businessName),
+      { key: "legal-terms", title: "الشروط العامة", content: { sections: [] } },
+      { key: "legal-privacy", title: "سياسة الخصوصية", content: { sections: [] } },
+    ];
+    if (websiteType === "ecommerce") pages.push({ key: "shop", title: "المتجر", content: { sections: [] } });
+    return pages;
+  }
   if (isLamsaTemplate(templateKey)) {
     const pages: Array<{ key: string; title: string; content: { sections: Section[] } }> = [
       { key: "home", title: "الرئيسية", content: { sections: defaultHomeSections(templateKey, websiteType, businessName) } },

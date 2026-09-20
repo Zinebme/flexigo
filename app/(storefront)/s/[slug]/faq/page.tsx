@@ -4,6 +4,8 @@ import { getAnonSupabase } from "../../../../../lib/supabase/anon";
 import { getStorefrontData } from "../../../../../lib/storefront/data";
 import { isLamsaTemplate } from "../../../../../lib/templates/lamsa";
 import { LamsaFaqPage } from "../../../../../components/storefront/templates-v2/lamsa/lamsa-faq-page";
+import { isNoorTemplate } from "../../../../../lib/templates/noor";
+import { NoorFaqPage } from "../../../../../components/storefront/templates-v2/noor/noor-faq-page";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,7 @@ export default async function FaqPage({ params }: { params: Promise<{ slug: stri
   const { slug } = await params;
   const data = await getStorefrontData(slug);
   if (!data) notFound();
+  if (isNoorTemplate(data.template_key)) return <NoorFaqPage data={data} />;
   if (isLamsaTemplate(data.template_key)) return <LamsaFaqPage data={data} />;
 
   const anon = getAnonSupabase();

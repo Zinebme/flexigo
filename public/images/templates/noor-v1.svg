@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="Aperçu desktop du modèle NOOR">
+  <defs>
+    <linearGradient id="noorHero" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F6E8E6"/>
+      <stop offset="100%" stop-color="#E9D6CF"/>
+    </linearGradient>
+    <linearGradient id="noorPlum" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4B3538"/>
+      <stop offset="100%" stop-color="#372529"/>
+    </linearGradient>
+    <linearGradient id="noorCard" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFDFC"/>
+      <stop offset="100%" stop-color="#F6E8E6"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#FFFDFC"/>
+
+  <!-- announcement bar -->
+  <rect width="1600" height="44" fill="#4B3538"/>
+  <rect x="560" y="17" width="480" height="10" rx="5" fill="#F6E8E6" opacity=".75"/>
+
+  <!-- header -->
+  <rect y="44" width="1600" height="84" fill="#FFFDFC"/>
+  <rect y="127" width="1600" height="1" fill="#EEDFD9"/>
+  <rect x="70" y="66" width="40" height="40" rx="20" fill="#C78F8B"/>
+  <rect x="126" y="76" width="130" height="20" rx="10" fill="#4B3538"/>
+  <rect x="320" y="78" width="90" height="14" rx="7" fill="#7C6B70" opacity=".4"/>
+  <rect x="430" y="78" width="90" height="14" rx="7" fill="#7C6B70" opacity=".4"/>
+  <rect x="540" y="78" width="90" height="14" rx="7" fill="#7C6B70" opacity=".4"/>
+  <rect x="650" y="78" width="90" height="14" rx="7" fill="#7C6B70" opacity=".4"/>
+  <circle cx="1300" cy="86" r="16" fill="none" stroke="#4B3538" stroke-width="3"/>
+  <path d="M1312 98l10 10" stroke="#4B3538" stroke-width="3" stroke-linecap="round"/>
+  <rect x="1360" y="64" width="170" height="44" rx="22" fill="#4B3538"/>
+  <rect x="1384" y="82" width="122" height="10" rx="5" fill="#FFFDFC" opacity=".85"/>
+
+  <!-- hero split -->
+  <rect x="70" y="170" width="700" height="420" rx="28" fill="url(#noorHero)"/>
+  <rect x="110" y="250" width="420" height="34" rx="12" fill="#4B3538"/>
+  <rect x="110" y="300" width="330" height="34" rx="12" fill="#4B3538" opacity=".85"/>
+  <rect x="110" y="366" width="460" height="14" rx="7" fill="#7C6B70" opacity=".55"/>
+  <rect x="110" y="390" width="380" height="14" rx="7" fill="#7C6B70" opacity=".55"/>
+  <rect x="110" y="440" width="200" height="54" rx="27" fill="#4B3538"/>
+  <rect x="134" y="462" width="152" height="10" rx="5" fill="#FFFDFC"/>
+  <!-- hero image -->
+  <rect x="800" y="170" width="730" height="420" rx="28" fill="#E9D6CF"/>
+  <rect x="1100" y="230" width="120" height="290" rx="26" fill="#FFFDFC"/>
+  <rect x="1128" y="200" width="64" height="56" rx="14" fill="#C78F8B"/>
+  <rect x="1120" y="330" width="80" height="120" rx="8" fill="#F6E8E6"/>
+  <circle cx="980" cy="480" r="46" fill="#A7B7A0" opacity=".7"/>
+  <rect x="1300" y="460" width="150" height="60" rx="16" fill="#FFFDFC" opacity=".8"/>
+
+  <!-- category tiles -->
+  <rect x="70" y="640" width="228" height="150" rx="22" fill="#F6E8E6"/>
+  <rect x="318" y="640" width="228" height="150" rx="22" fill="#E9D6CF"/>
+  <rect x="566" y="640" width="228" height="150" rx="22" fill="#F6E8E6"/>
+  <rect x="814" y="640" width="228" height="150" rx="22" fill="#E9D6CF"/>
+  <rect x="1062" y="640" width="228" height="150" rx="22" fill="#F6E8E6"/>
+  <rect x="1310" y="640" width="220" height="150" rx="22" fill="#E9D6CF"/>
+  <rect x="96" y="742" width="120" height="14" rx="7" fill="#4B3538" opacity=".7"/>
+  <rect x="344" y="742" width="120" height="14" rx="7" fill="#4B3538" opacity=".7"/>
+  <rect x="592" y="742" width="120" height="14" rx="7" fill="#4B3538" opacity=".7"/>
+  <rect x="840" y="742" width="120" height="14" rx="7" fill="#4B3538" opacity=".7"/>
+  <rect x="1088" y="742" width="120" height="14" rx="7" fill="#4B3538" opacity=".7"/>
+  <rect x="1336" y="742" width="120" height="14" rx="7" fill="#4B3538" opacity=".7"/>
+
+  <!-- product cards -->
+  <g>
+    <rect x="70" y="830" width="340" height="170" rx="24" fill="url(#noorCard)" stroke="#EEDFD9"/>
+    <rect x="94" y="854" width="120" height="120" rx="16" fill="#E9D6CF"/>
+    <rect x="238" y="862" width="140" height="14" rx="7" fill="#4B3538"/>
+    <rect x="238" y="890" width="90" height="12" rx="6" fill="#C5A26B"/>
+    <rect x="238" y="940" width="110" height="18" rx="9" fill="#C78F8B" opacity=".7"/>
+  </g>
+  <g>
+    <rect x="430" y="830" width="340" height="170" rx="24" fill="url(#noorCard)" stroke="#EEDFD9"/>
+    <rect x="454" y="854" width="120" height="120" rx="16" fill="#F6E8E6"/>
+    <rect x="598" y="862" width="140" height="14" rx="7" fill="#4B3538"/>
+    <rect x="598" y="890" width="90" height="12" rx="6" fill="#C5A26B"/>
+    <rect x="598" y="940" width="110" height="18" rx="9" fill="#C78F8B" opacity=".7"/>
+  </g>
+  <g>
+    <rect x="790" y="830" width="340" height="170" rx="24" fill="url(#noorCard)" stroke="#EEDFD9"/>
+    <rect x="814" y="854" width="120" height="120" rx="16" fill="#E9D6CF"/>
+    <rect x="958" y="862" width="140" height="14" rx="7" fill="#4B3538"/>
+    <rect x="958" y="890" width="90" height="12" rx="6" fill="#C5A26B"/>
+    <rect x="958" y="940" width="110" height="18" rx="9" fill="#C78F8B" opacity=".7"/>
+  </g>
+  <g>
+    <rect x="1150" y="830" width="380" height="170" rx="24" fill="url(#noorPlum)"/>
+    <rect x="1176" y="862" width="180" height="16" rx="8" fill="#FFFDFC"/>
+    <rect x="1176" y="892" width="240" height="10" rx="5" fill="#F6E8E6" opacity=".7"/>
+    <rect x="1176" y="936" width="150" height="40" rx="20" fill="#C5A26B"/>
+  </g>
+</svg>

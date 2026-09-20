@@ -561,6 +561,37 @@ async function main() {
   check("Another merchant cannot read the LAMSA tenant", otherMerchantLamsa.rows[0].n === 0);
 
 
+  // ==================================================================
+  section("10. NOOR template registration + explicit tenant creation");
+
+  const noorTpl = await runAs("service_role", null,
+    `select key, name, website_types, screenshot_url from templates where key = 'noor-v1'`);
+  check("NOOR template registered exactly once", noorTpl.rows.length === 1, `rows ${noorTpl.rows.length}`);
+  check("NOOR registry metadata targets ecommerce", noorTpl.rows[0]?.name === "NOOR" && (noorTpl.rows[0]?.website_types ?? []).includes("ecommerce"));
+  check("NOOR registry exposes gallery artwork", noorTpl.rows[0]?.screenshot_url === "/images/templates/noor-v1.svg");
+
+  const noorBefore = await runAs("service_role", null,
+    `select count(*)::int n from stores where template_key = 'noor-v1'`);
+  check("NOOR migration does not auto-migrate an existing store", noorBefore.rows[0].n === 0, `got ${noorBefore.rows[0].n}`);
+
+  const noorCreated = await runAs("service_role", null, `select public.fn_create_store(
+      null, 'نور اختبار', 'noor-integration', 'ecommerce', 'noor-v1', 'ar', 'DZD',
+      '{"primary_color":"#4B3538","secondary_color":"#C5A26B","background_color":"#FFFDFC","typography":"elegant","button_shape":"rounded"}'::jsonb,
+      '{"business":{"cod_enabled":true,"office_delivery_enabled":true}}'::jsonb,
+      '[{"key":"home","title":"الرئيسية","content":{"sections":[]}}]'::jsonb,
+      '[{"wilaya_code":0,"home_fee_cents":70000,"office_fee_cents":45000}]'::jsonb,
+      null, '${SOFIA}') res`);
+  const noorStoreId = noorCreated.rows[0].res;
+  const noorStore = await runAs("service_role", null,
+    `select template_key, language, status from stores where id = $1`, [noorStoreId]);
+  check("Store studio can explicitly create a NOOR tenant", noorStore.rows[0]?.template_key === "noor-v1");
+  check("NOOR tenant is Arabic-first and remains draft", noorStore.rows[0]?.language === "ar" && noorStore.rows[0]?.status === "draft");
+  const anonNoorDraft = await runAs("anon", null, `select count(*)::int n from stores where id = $1`, [noorStoreId]);
+  check("Anonymous storefront cannot read an unpublished NOOR tenant", anonNoorDraft.rows[0].n === 0);
+  const otherMerchantNoor = await runAs("authenticated", KARIM, `select count(*)::int n from stores where id = $1`, [noorStoreId]);
+  check("Another merchant cannot read the NOOR tenant", otherMerchantNoor.rows[0].n === 0);
+
+
   // ==========================================================================
   section("7. Phone normalization (Algeria)");
 
