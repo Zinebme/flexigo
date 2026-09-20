@@ -11,7 +11,7 @@ export const dynamic = "force-static";
 
 export default function SouqPreviewProductPage() {
   const f = SOUQ_PREVIEW_FIXTURE;
-  const p = f.products[0];
+  const p = f.products[0]!;
   const variants: SouqVariantInput[] = f.variants.filter((v) => v.product_id === p.id).map((v) => ({
     id:v.id,name:v.name,options:v.options,price_cents:v.price_cents,stock:v.stock,is_active:v.is_active,
   }));
