@@ -340,6 +340,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <a href={result.preview_url} target="_blank" rel="noreferrer" className={btnPrimary}>Voir l&apos;aperçu ({result.slug})</a>
           <button onClick={() => router.push(`/admin/sites/${result.store_id}`)} className={btnSecondary}>Centre de contrôle</button>
+          <button onClick={() => router.push(`/admin/sites/${result.store_id}?assistant=1`)} className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700">✦ Ajuster avec l’assistant</button>
           <button onClick={() => router.push("/admin/sites")} className={btnSecondary}>Retour aux sites</button>
         </div>
         <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left text-xs text-amber-800">
