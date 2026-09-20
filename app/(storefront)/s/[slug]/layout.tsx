@@ -6,8 +6,10 @@ import { StorefrontFooter } from "@/components/storefront/footer";
 import { UnavailableScreen } from "@/components/storefront/unavailable";
 import { SouqShell } from "@/components/storefront/templates-v2/souq/souq-shell";
 import { LamsaShell } from "@/components/storefront/templates-v2/lamsa/lamsa-shell";
+import { NoorShell } from "@/components/storefront/templates-v2/noor/noor-shell";
 import { isSouqTemplate } from "@/lib/templates/souq";
 import { isLamsaTemplate } from "@/lib/templates/lamsa";
+import { isNoorTemplate } from "@/lib/templates/noor";
 
 /**
  * Storefront layout — the single entry point for every tenant site.
@@ -35,6 +37,9 @@ export default async function StorefrontLayout({
   if (!data) notFound();
 
   // V2 storefronts are explicit: no existing tenant is migrated implicitly.
+  if (isNoorTemplate(store.template_key) || isNoorTemplate(data.template_key)) {
+    return <NoorShell data={data}>{children}</NoorShell>;
+  }
   if (isLamsaTemplate(store.template_key) || isLamsaTemplate(data.template_key)) {
     return <LamsaShell data={data}>{children}</LamsaShell>;
   }

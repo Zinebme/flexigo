@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { getStorefrontData } from "../../../../../lib/storefront/data";
 import { ContactForm } from "../../../../../components/storefront/contact-form";
 import { LamsaContactPage } from "../../../../../components/storefront/templates-v2/lamsa/lamsa-contact-page";
+import { NoorContactPage } from "../../../../../components/storefront/templates-v2/noor/noor-contact-page";
 import { isLamsaTemplate } from "../../../../../lib/templates/lamsa";
+import { isNoorTemplate } from "../../../../../lib/templates/noor";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,7 @@ export default async function ContactPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const data = await getStorefrontData(slug);
   if (!data) notFound();
+  if (isNoorTemplate(data.template_key)) return <NoorContactPage data={data} />;
   if (isLamsaTemplate(data.template_key)) return <LamsaContactPage data={data} />;
   const c = data.settings?.contact;
 

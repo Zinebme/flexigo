@@ -138,6 +138,21 @@ const gallery = z.object({
   images: z.array(imageUrl).max(12).optional(),
 });
 
+// NOOR — optional, strictly data-driven before/after block. It only renders
+// when the merchant supplies BOTH valid images; the storefront never invents
+// results or implies guaranteed outcomes (see noor-before-after component).
+const beforeAfter = z.object({
+  title: textField(120),
+  subtitle: textField(200),
+  before_image: imageUrl,
+  after_image: imageUrl,
+  before_label: textField(40),
+  after_label: textField(40),
+  /** Honest merchant note (e.g. usage period) — informational only. */
+  note: richTextField(300),
+  layout: z.enum(["split", "slider", "side"]).optional(),
+});
+
 const services = z.object({
   title: textField(120),
   subtitle: textField(240),
@@ -214,6 +229,7 @@ export const sectionSchemas = {
   faq: faqSection,
   offer,
   gallery,
+  before_after: beforeAfter,
   services,
   testimonials,
   stats,
@@ -239,6 +255,7 @@ export const sectionSchema = z.discriminatedUnion("type", [
   faqSection.extend({ type: z.literal("faq"), id: z.string().min(1).max(32), enabled: z.boolean() }),
   offer.extend({ type: z.literal("offer"), id: z.string().min(1).max(32), enabled: z.boolean() }),
   gallery.extend({ type: z.literal("gallery"), id: z.string().min(1).max(32), enabled: z.boolean() }),
+  beforeAfter.extend({ type: z.literal("before_after"), id: z.string().min(1).max(32), enabled: z.boolean() }),
   services.extend({ type: z.literal("services"), id: z.string().min(1).max(32), enabled: z.boolean() }),
   testimonials.extend({ type: z.literal("testimonials"), id: z.string().min(1).max(32), enabled: z.boolean() }),
   stats.extend({ type: z.literal("stats"), id: z.string().min(1).max(32), enabled: z.boolean() }),
@@ -314,7 +331,7 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
   how_it_works: {
     label: "Comment ça marche",
     description: "Étapes du processus (commande, livraison, paiement).",
-    allowedFor: ["single_product", "portfolio"],
+    allowedFor: ["single_product", "portfolio", "ecommerce"],
     defaultData: { title: "Comment ça marche", subtitle: null, steps: [] },
   },
   social_proof: {
@@ -343,9 +360,15 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
   },
   gallery: {
     label: "Galerie",
-    description: "Galerie d'images (projets, réalisations).",
-    allowedFor: ["portfolio"],
+    description: "Galerie d'images (projets, réalisations, réseaux sociaux).",
+    allowedFor: ["portfolio", "ecommerce"],
     defaultData: { title: "Nos réalisations", subtitle: null, images: [] },
+  },
+  before_after: {
+    label: "Avant / après",
+    description: "Bloc avant/après affiché uniquement si le marchand fournit les deux images (jamais inventé).",
+    allowedFor: ["ecommerce", "single_product"],
+    defaultData: { title: "", subtitle: null, before_image: null, after_image: null, before_label: "Avant", after_label: "Après", note: null, layout: "split" },
   },
   services: {
     label: "Services",
@@ -415,6 +438,7 @@ export const SECTION_ORDER: SectionType[] = [
   "stats",
   "services",
   "gallery",
+  "before_after",
   "testimonials",
   "reviews",
   "hours",
