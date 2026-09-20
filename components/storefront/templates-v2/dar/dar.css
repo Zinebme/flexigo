@@ -1,4 +1,4 @@
-.dar-root{background:var(--dar-bg);color:var(--dar-ink);font-family:"Tajawal","Segoe UI",Tahoma,system-ui,sans-serif;overflow-x:clip}
+.dar-root{--souq-primary:var(--dar-olive-dark);--souq-primary-soft:var(--dar-cream);--souq-accent:var(--dar-terracotta);--souq-accent-soft:#f5e1d7;--souq-accent-text:#fff;--souq-border:var(--dar-border);--souq-danger:#9b3d35;background:var(--dar-bg);color:var(--dar-ink);font-family:"Tajawal","Segoe UI",Tahoma,system-ui,sans-serif;overflow-x:clip}
 .dar-root *{box-sizing:border-box}.dar-container{width:100%;max-width:1240px;margin-inline:auto;padding-inline:16px}
 .dar-paper{background:var(--dar-paper);border:1px solid var(--dar-border);border-radius:24px;box-shadow:0 12px 35px rgba(78,64,48,.07)}
 .dar-heading{font-family:Georgia,"Times New Roman",serif;font-weight:500;letter-spacing:-.02em;line-height:1.25}
@@ -13,7 +13,7 @@
 .dar-order-form .souq-card{border-color:var(--dar-border)!important;background:var(--dar-paper)!important;box-shadow:none!important}
 .dar-order-form .souq-input{border-color:var(--dar-border)!important;background:#fff!important;color:var(--dar-ink)!important}
 .dar-order-form .souq-label{color:var(--dar-ink)!important}.dar-order-form button[type="submit"]{background:var(--dar-olive-dark)!important;color:white!important;font-weight:900!important}
-.dar-root .souq-price{color:var(--dar-terracotta-dark)}
+.dar-root .souq-price{direction:ltr;unicode-bidi:isolate;display:inline-block;color:var(--dar-terracotta-dark)}
 @media(min-width:640px){.dar-container{padding-inline:24px}.dar-section{padding-block:72px}}@media(min-width:1024px){.dar-container{padding-inline:32px}.dar-section{padding-block:84px}}
 @media(max-width:374px){.dar-container{padding-inline:12px}.dar-section{padding-block:44px}}
 @media(prefers-reduced-motion:reduce){.dar-root *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

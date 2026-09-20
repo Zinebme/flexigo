@@ -18,7 +18,11 @@ function group(cents: number): string {
 /** "2 900 دج" (ar) / "2 900 DA" (fr, en). */
 export function formatSouqPrice(cents: number, lang: StoreLanguage | string | null = "ar", currency = "DZD"): string {
   const unit = lang === "ar" ? "دج" : currency === "DZD" ? "DA" : currency;
-  return `${group(cents)} ${unit}`;
+  const value = `${group(cents)} ${unit}`;
+  // Keep the number + unit together in their intended visual order inside RTL
+  // layouts. Unicode isolates are invisible and prevent "2 900 دج" from
+  // being visually reordered as "900 2 دج" by the bidi algorithm.
+  return lang === "ar" ? `\u2066${value}\u2069` : value;
 }
 
 /** Amount without the unit — useful inside offer cards ("3 قطع / 7 200"). */

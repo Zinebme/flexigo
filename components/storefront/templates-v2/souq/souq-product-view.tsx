@@ -70,7 +70,7 @@ export function SouqProductView({ data }: { data: SouqProductViewData }) {
         {/* ---------------------------------------------------------------- */}
         {/* Gallery                                                          */}
         {/* ---------------------------------------------------------------- */}
-        <div className="lg:order-2 lg:sticky lg:top-24 lg:self-start">
+        <div className="lg:order-1 lg:sticky lg:top-24 lg:self-start">
           <div className="souq-card relative overflow-hidden">
             <div className="relative aspect-square bg-slate-50">
               {current ? (
@@ -154,7 +154,7 @@ export function SouqProductView({ data }: { data: SouqProductViewData }) {
         {/* ---------------------------------------------------------------- */}
         {/* Info + COD form                                                  */}
         {/* ---------------------------------------------------------------- */}
-        <div className="lg:order-1">
+        <div className="lg:order-2">
           <div className="flex flex-wrap items-center gap-2">
             {rating !== null ? <SouqStars value={rating} count={ratingCount} /> : null}
             {form.variant && form.variant.stock > 0 && form.variant.stock <= 5 ? (
