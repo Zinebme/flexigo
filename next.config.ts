@@ -31,7 +31,7 @@ const config: NextConfig = {
   async headers() {
     // The hosted development preview shows the app inside a frame; every other
     // environment keeps the strict clickjacking protection below.
-    const preview = process.env.FLEXIGO_PREVIEW === "1";
+    const preview = process.env.FLEXIGO_PREVIEW === "1" || process.env.NODE_ENV === "development";
     return [
       {
         source: "/:path*",
