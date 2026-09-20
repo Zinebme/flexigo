@@ -49,7 +49,7 @@ export function NoorProductView({ data }: { data: NoorProductViewData }) {
     <div>
       <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
         {/* Gallery */}
-        <div className="lg:order-2">
+        <div className="lg:order-1">
           <div className="relative">
             {images.length > 1 ? (
               <ul className="mb-3 hidden gap-2 lg:flex" aria-label={data.copy.product.gallery}>
@@ -107,7 +107,7 @@ export function NoorProductView({ data }: { data: NoorProductViewData }) {
         </div>
 
         {/* Info + buy box */}
-        <div className="min-w-0 lg:order-1">
+        <div className="min-w-0 lg:order-2">
           <div className="flex flex-wrap items-center gap-3">
             <NoorStars value={data.ratingAverage} count={data.ratingCount} />
             {form.inStock ? (
