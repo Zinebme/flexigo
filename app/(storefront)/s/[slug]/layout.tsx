@@ -9,11 +9,15 @@ import { LamsaShell } from "@/components/storefront/templates-v2/lamsa/lamsa-she
 import { NoorShell } from "@/components/storefront/templates-v2/noor/noor-shell";
 import { VoltShell } from "@/components/storefront/templates-v2/volt/volt-shell";
 import { DarShell } from "@/components/storefront/templates-v2/dar/dar-shell";
+import { PulseShell } from "@/components/storefront/templates-v2/pulse/pulse-shell";
+import { LittleShell } from "@/components/storefront/templates-v2/little/little-shell";
 import { isSouqTemplate } from "@/lib/templates/souq";
 import { isLamsaTemplate } from "@/lib/templates/lamsa";
 import { isNoorTemplate } from "@/lib/templates/noor";
 import { isVoltTemplate } from "@/lib/templates/volt";
 import { isDarTemplate } from "@/lib/templates/dar";
+import { isPulseTemplate } from "@/lib/templates/pulse";
+import { isLittleTemplate } from "@/lib/templates/little";
 
 /**
  * Storefront layout — the single entry point for every tenant site.
@@ -41,6 +45,8 @@ export default async function StorefrontLayout({
   if (!data) notFound();
 
   // V2 storefronts are explicit: no existing tenant is migrated implicitly.
+  if (isLittleTemplate(store.template_key) || isLittleTemplate(data.template_key)) return <LittleShell data={data}>{children}</LittleShell>;
+  if (isPulseTemplate(store.template_key) || isPulseTemplate(data.template_key)) return <PulseShell data={data}>{children}</PulseShell>;
   if (isDarTemplate(store.template_key) || isDarTemplate(data.template_key)) {
     return <DarShell data={data}>{children}</DarShell>;
   }
