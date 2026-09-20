@@ -13,14 +13,15 @@ import type { WebsiteType } from "../types";
 // Field validators (shared)
 // ---------------------------------------------------------------------------
 
-/** https/http image URL or small data URI (SVG placeholders). Never arbitrary. */
+/** HTTPS/HTTP image, safe bundled `/images/` asset, or small data URI. */
 export const imageUrl = z
   .string()
   .max(2000)
   .regex(
-    /^(https?:\/\/[^\s"'<>\\`]+|data:image\/(?:svg\+xml|png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+)$/,
+    /^(https?:\/\/[^\s"'<>\\`]+|\/images\/[A-Za-z0-9_./-]+\.(?:svg|png|jpe?g|webp|gif)|data:image\/(?:svg\+xml|png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+)$/,
     "Image invalide",
   )
+  .refine((value) => !value.startsWith("/images/") || !value.includes(".."), "Image invalide")
   .optional()
   .nullable();
 

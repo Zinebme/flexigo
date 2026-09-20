@@ -390,7 +390,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
           <div className="space-y-4">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <h3 className="text-sm font-bold text-slate-900">🎨 TEMPLATE — Galerie visuelle</h3>
-              <p className="mt-1 text-xs text-slate-500">8 templates production avec composants visuels distincts (pas juste des couleurs). Filtrez par catégorie.</p>
+              <p className="mt-1 text-xs text-slate-500">Templates production avec composants visuels distincts (pas juste des couleurs). Filtrez par catégorie.</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {TEMPLATE_FILTERS.map((f) => (
                   <button key={f} onClick={() => update("template_filter", f)} className={`rounded-full px-3 py-1 text-xs font-semibold ${form.template_filter === f ? "bg-violet-600 text-white" : "bg-white text-slate-600 border border-slate-200"}`}>{f === "all" ? "Tous" : f}</button>
@@ -403,9 +403,9 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
                   key={tpl.key}
                   onClick={() => {
                     update("template_key", tpl.key);
-                    // SOUQ is Arabic-first (RTL): pre-select its language and
-                    // palette. Other templates keep their previous behavior.
-                    if (tpl.key === "souq-v1" || tpl.aliases?.includes("souq")) {
+                    // Arabic-first templates preselect RTL language and their
+                    // own design palette. Existing templates remain unchanged.
+                    if (tpl.language === "ar") {
                       update("language", "ar");
                       update("primary_color", tpl.theme.primaryColor);
                       update("secondary_color", tpl.theme.secondaryColor);

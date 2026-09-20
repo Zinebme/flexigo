@@ -4,7 +4,9 @@ import { getStorefrontData } from "../../../../../lib/storefront/data";
 import { loadCatalog } from "../../../../../lib/storefront/catalog";
 import { ShopBrowser } from "../../../../../components/storefront/shop-browser";
 import { SouqShopPage } from "../../../../../components/storefront/templates-v2/souq/souq-shop-page";
+import { LamsaShopPage } from "../../../../../components/storefront/templates-v2/lamsa/lamsa-shop-page";
 import { isSouqTemplate } from "../../../../../lib/templates/souq";
+import { isLamsaTemplate } from "../../../../../lib/templates/lamsa";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +28,12 @@ export default async function BoutiquePage({
   if (!data) notFound();
   if (data.website_type === "portfolio") notFound();
 
-  // SOUQ storefront: its own shop experience (chips, instant search, filters).
-  if (isSouqTemplate(data.template_key)) {
+  if (isLamsaTemplate(data.template_key) || isSouqTemplate(data.template_key)) {
     const query = searchParams ? await searchParams : {};
     const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+    if (isLamsaTemplate(data.template_key)) {
+      return <LamsaShopPage data={data} filter={first(query.filter) ?? null} sort={first(query.sort) ?? null} />;
+    }
     return <SouqShopPage data={data} filter={first(query.filter) ?? null} sort={first(query.sort) ?? null} />;
   }
 

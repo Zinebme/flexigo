@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getAnonSupabase } from "../../../../../lib/supabase/anon";
 import { getStorefrontData } from "../../../../../lib/storefront/data";
+import { isLamsaTemplate } from "../../../../../lib/templates/lamsa";
+import { LamsaFaqPage } from "../../../../../components/storefront/templates-v2/lamsa/lamsa-faq-page";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +17,7 @@ export default async function FaqPage({ params }: { params: Promise<{ slug: stri
   const { slug } = await params;
   const data = await getStorefrontData(slug);
   if (!data) notFound();
+  if (isLamsaTemplate(data.template_key)) return <LamsaFaqPage data={data} />;
 
   const anon = getAnonSupabase();
   const { data: faqs } = await anon

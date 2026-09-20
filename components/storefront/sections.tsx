@@ -20,7 +20,9 @@ import type { Section } from "../../lib/sections/definitions";
 import type { StorefrontData } from "../../lib/storefront/data";
 import { StorefrontImage } from "./image";
 import { SouqSection } from "./templates-v2/souq/souq-sections";
+import { LamsaSection } from "./templates-v2/lamsa/lamsa-sections";
 import { isSouqTemplate } from "../../lib/templates/souq";
+import { isLamsaTemplate } from "../../lib/templates/lamsa";
 
 export function safeHref(link: string | null | undefined, base: string): string {
   if (!link) return base;
@@ -345,8 +347,11 @@ export async function RenderSection({
   const s = section;
   const tpl = data.template_key ?? "market";
 
-  // SOUQ (souq-v1 / souq) renders its own section set. Additive branch: the
-  // historical template switches below are left byte-for-byte untouched.
+  // V2 templates render their isolated section systems. Historical switches
+  // below remain untouched for all existing template keys.
+  if (isLamsaTemplate(tpl)) {
+    return <LamsaSection data={data} section={s} index={index} />;
+  }
   if (isSouqTemplate(tpl)) {
     return <SouqSection data={data} section={s} index={index} />;
   }

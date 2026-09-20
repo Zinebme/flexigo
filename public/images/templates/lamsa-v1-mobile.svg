@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="430" height="932" viewBox="0 0 430 932" role="img" aria-labelledby="title desc">
+  <title id="title">LAMSA mobile storefront preview</title><desc id="desc">Arabic-first mobile fashion storefront.</desc>
+  <defs><clipPath id="hero"><rect y="104" width="430" height="440"/></clipPath><clipPath id="c1"><rect x="16" y="711" width="191" height="200"/></clipPath><clipPath id="c2"><rect x="223" y="711" width="191" height="200"/></clipPath></defs>
+  <rect width="430" height="932" fill="#FAF7F2"/>
+  <rect width="430" height="34" fill="#4A382F"/><text x="215" y="23" text-anchor="middle" fill="#FAF7F2" font-family="Arial,sans-serif" font-size="11">توصيل إلى 58 ولاية  •  الدفع عند الاستلام</text>
+  <rect y="34" width="430" height="70" fill="#FFFDF9"/><line y1="104" x2="430" y2="104" stroke="#DDD2C6"/>
+  <text x="215" y="78" text-anchor="middle" fill="#4A382F" font-family="Arial,sans-serif" font-size="24" font-weight="700">لمسة</text>
+  <path d="M25 61h22M25 68h22M25 75h22" stroke="#4A382F" stroke-width="2"/><circle cx="393" cy="68" r="10" fill="none" stroke="#4A382F" stroke-width="2"/><path d="M400 76l8 8" stroke="#4A382F" stroke-width="2"/>
+  <image href="/images/lamsa/hero.jpg" y="104" width="430" height="440" preserveAspectRatio="xMidYMid slice" clip-path="url(#hero)"/>
+  <rect x="20" y="470" width="390" height="190" fill="#FAF7F2"/>
+  <text x="382" y="505" text-anchor="end" fill="#B79B6C" font-family="Arial,sans-serif" font-size="12" font-weight="700">مجموعة الموسم</text>
+  <text x="382" y="548" text-anchor="end" fill="#4A382F" font-family="Arial,sans-serif" font-size="31" font-weight="700">أناقتك تبدأ من التفاصيل</text>
+  <text x="382" y="580" text-anchor="end" fill="#756A63" font-family="Arial,sans-serif" font-size="13">تصاميم تجمع بين الأناقة، الراحة والاحتشام</text>
+  <rect x="220" y="601" width="162" height="45" fill="#4A382F"/><text x="301" y="630" text-anchor="middle" fill="#FFF" font-family="Arial,sans-serif" font-size="14" font-weight="700">اكتشفي المجموعة</text>
+  <text x="414" y="695" text-anchor="end" fill="#4A382F" font-family="Arial,sans-serif" font-size="24" font-weight="700">وصل حديثاً</text>
+  <image href="/images/lamsa/abaya.jpg" x="16" y="711" width="191" height="200" preserveAspectRatio="xMidYMid slice" clip-path="url(#c1)"/>
+  <image href="/images/lamsa/khimar.jpg" x="223" y="711" width="191" height="200" preserveAspectRatio="xMidYMid slice" clip-path="url(#c2)"/>
+</svg>

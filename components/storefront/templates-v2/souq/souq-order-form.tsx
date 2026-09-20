@@ -90,6 +90,10 @@ export interface SouqOrderFormData {
   /** Anchor id so the sticky CTA can scroll straight to the form. */
   anchorId?: string;
   className?: string;
+  /** Read-only visual demo: validates locally and never calls checkout. */
+  previewMode?: boolean;
+  /** Optional synthetic order reference shown only by read-only previews. */
+  previewOrderNumber?: string;
 }
 
 type SubmitState =
@@ -344,9 +348,17 @@ export function useSouqOrderState(
         locale: data.lang,
       };
 
+      if (data.previewMode) {
+        // Preview routes exercise local validation and interactive pricing only;
+        // they must never create an order or contact the checkout endpoint.
+        window.setTimeout(() => {
+          setSubmitState({ status: "success", orderNumber: data.previewOrderNumber ?? "DEMO", totalCents: preview.totalCents });
+        }, 350);
+        return;
+      }
       void submitOrder(payload);
     },
-    [data, deliveryType, formRef, inStock, optionIssues, preview.lines, submitOrder, submitState.status, variant, wilayaCode],
+    [data, deliveryType, formRef, inStock, optionIssues, preview.lines, preview.totalCents, submitOrder, submitState.status, variant, wilayaCode],
   );
 
   useEffect(() => {
