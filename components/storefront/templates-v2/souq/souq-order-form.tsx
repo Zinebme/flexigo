@@ -508,8 +508,8 @@ function SouqOptionGroupField({
                 <label
                   className={`flex cursor-pointer items-center gap-3 rounded-[14px] border px-3.5 py-3 transition ${
                     isSelected
-                      ? "border-[var(--souq-primary)] bg-[var(--souq-primary-soft)]"
-                      : "border-[var(--souq-border)] bg-white hover:border-slate-300"
+                      ? "border-[var(--souq-primary)] bg-[var(--souq-primary-soft)] ring-2 ring-[var(--souq-primary)]/20 shadow-sm"
+                      : "border-[var(--souq-border)] bg-white hover:border-slate-400 hover:bg-slate-50"
                   }`}
                 >
                   <input
@@ -555,7 +555,7 @@ function SouqOptionGroupField({
                   aria-pressed={isSelected}
                   disabled={disabled || option.disabled}
                   className={`w-full overflow-hidden rounded-[14px] border-2 p-1 transition ${
-                    isSelected ? "border-[var(--souq-primary)]" : "border-[var(--souq-border)] hover:border-slate-300"
+                    isSelected ? "border-[var(--souq-primary)] ring-2 ring-[var(--souq-primary)]/20 shadow-sm" : "border-[var(--souq-border)] hover:border-slate-400 hover:bg-slate-50"
                   } ${option.disabled ? "cursor-not-allowed opacity-45" : ""}`}
                 >
                   <span className="relative block aspect-square overflow-hidden rounded-[10px] bg-slate-100">
@@ -589,8 +589,8 @@ function SouqOptionGroupField({
                   title={option.label}
                   className={`souq-press flex items-center gap-2 rounded-[14px] border-2 px-3 py-2 text-[13px] font-bold transition ${
                     isSelected
-                      ? "border-[var(--souq-primary)] bg-[var(--souq-primary-soft)] text-[var(--souq-primary)]"
-                      : "border-[var(--souq-border)] bg-white text-slate-700 hover:border-slate-300"
+                      ? "border-[var(--souq-primary)] bg-[var(--souq-primary-soft)] text-[var(--souq-primary)] ring-2 ring-[var(--souq-primary)]/20 shadow-sm"
+                      : "border-[var(--souq-border)] bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50"
                   } ${option.disabled ? "cursor-not-allowed opacity-45 line-through" : ""}`}
                 >
                   {isColor ? (
@@ -601,7 +601,11 @@ function SouqOptionGroupField({
                     />
                   ) : null}
                   <span className="max-w-[130px] truncate">{option.label}</span>
-                  {isSelected ? <SouqIcon name="check" className="h-3.5 w-3.5" /> : null}
+                  {isSelected ? (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--souq-primary)] text-white">
+                      <SouqIcon name="check" className="h-3 w-3" />
+                    </span>
+                  ) : null}
                 </button>
               </li>
             );
@@ -660,8 +664,8 @@ export function SouqQuantityOffers({
                 aria-pressed={isSelected}
                 className={`relative flex h-full w-full flex-col items-start gap-1 rounded-[16px] border-2 p-3 text-start transition ${
                   isSelected
-                    ? "border-[var(--souq-accent)] bg-[var(--souq-accent-soft)] shadow-[0_10px_24px_-18px_rgb(245_158_11_/_0.9)]"
-                    : "border-[var(--souq-border)] bg-white hover:border-slate-300"
+                    ? "border-[var(--souq-accent)] bg-[var(--souq-accent-soft)] ring-2 ring-[var(--souq-accent)]/25 shadow-[0_10px_24px_-18px_rgb(245_158_11_/_0.9)]"
+                    : "border-[var(--souq-border)] bg-white hover:border-slate-400 hover:bg-slate-50"
                 }`}
               >
                 {card.badge === "popular" ? (
@@ -943,7 +947,7 @@ export function SouqOrderFormView({
                     <label
                       key={option.key}
                       className={`souq-press flex cursor-pointer flex-col items-start gap-1 rounded-[16px] border-2 p-3 text-start transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--souq-accent)] has-[:focus-visible]:ring-offset-2 ${
-                        selected ? "border-[var(--souq-primary)] bg-[var(--souq-primary-soft)]" : "border-[var(--souq-border)] bg-white hover:border-slate-300"
+                        selected ? "border-[var(--souq-primary)] bg-[var(--souq-primary-soft)] ring-2 ring-[var(--souq-primary)]/20 shadow-sm" : "border-[var(--souq-border)] bg-white hover:border-slate-400 hover:bg-slate-50"
                       } ${option.enabled ? "" : "cursor-not-allowed opacity-50"}`}
                     >
                       <input
