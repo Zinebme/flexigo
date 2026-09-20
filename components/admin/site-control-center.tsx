@@ -1,16 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { formatDA, formatDateTimeFr, timeAgoFr } from "@/lib/utils";
 import { Badge, Card, Table, Th, Td } from "@/components/ui";
 import { SiteActions } from "./site-actions";
 import { AdvancedAdminClient } from "./advanced-admin-client";
 import { StoreSettingsEditor, ThemeEditor, ProductQuickEditor, CategoryQuickEditor, IntegrationsEditor, OwnerEditor, ContentAdminEditor, DomainControl } from "./site-control-forms";
+import { SiteAssistant } from "./site-assistant";
 
-type Tab = "overview" | "site" | "products" | "categories" | "orders" | "customers" | "stats" | "content" | "appearance" | "delivery" | "integrations" | "domain" | "account" | "logs" | "health";
+type Tab = "overview" | "assistant" | "site" | "products" | "categories" | "orders" | "customers" | "stats" | "content" | "appearance" | "delivery" | "integrations" | "domain" | "account" | "logs" | "health";
 
 const TABS: Array<{ key: Tab; label: string; icon: string }> = [
   { key: "overview", label: "Vue d'ensemble", icon: "📊" },
+  { key: "assistant", label: "Assistant site", icon: "✦" },
   { key: "site", label: "Site", icon: "🏠" },
   { key: "products", label: "Produits", icon: "📦" },
   { key: "categories", label: "Catégories", icon: "🗂️" },
@@ -50,7 +53,8 @@ interface Props {
 }
 
 export function SiteControlCenter(props: Props) {
-  const [tab, setTab] = useState<Tab>("overview");
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => searchParams.get("assistant") === "1" ? "assistant" : "overview");
   const s = props.store;
 
   return (
@@ -122,6 +126,10 @@ export function SiteControlCenter(props: Props) {
             </Card>
           </div>
         </div>
+      )}
+
+      {tab === "assistant" && (
+        <SiteAssistant storeId={s.id as string} storeName={s.name as string} />
       )}
 
       {tab === "site" && (

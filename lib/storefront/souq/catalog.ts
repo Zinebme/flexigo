@@ -254,9 +254,7 @@ export async function loadSouqZones(storeId: string): Promise<SouqZone[]> {
 }
 
 /** Product row including the SOUQ option-group configuration (JSONB). */
-export interface SouqProductRow extends ProductRow {
-  option_groups?: unknown;
-}
+export type SouqProductRow = ProductRow;
 
 async function selectProductRows(storeId: string, opts: { featured?: boolean; latest?: boolean; limit?: number }) {
   const anon = getAnonSupabase();

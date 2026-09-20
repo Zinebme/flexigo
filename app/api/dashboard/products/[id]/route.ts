@@ -58,6 +58,32 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       }
     }
     if (input.description !== undefined) patch.description = input.description || null;
+    if (input.short_description !== undefined) patch.short_description = input.short_description || null;
+    if (input.cost !== undefined) patch.cost_cents = input.cost != null ? Math.round(input.cost * 100) : null;
+    if (input.is_digital !== undefined) patch.is_digital = input.is_digital;
+    if (input.gallery_mode !== undefined) patch.gallery_mode = input.gallery_mode;
+    if (input.landing_images !== undefined) patch.landing_images = input.landing_images;
+    if (input.min_order_quantity !== undefined) patch.min_order_quantity = input.min_order_quantity;
+    if (input.shipping_label !== undefined) patch.shipping_label = input.shipping_label || null;
+    if (input.stock_tracking_mode !== undefined) patch.stock_tracking_mode = input.stock_tracking_mode;
+    if (input.page_element_order !== undefined) patch.page_element_order = input.page_element_order;
+    if (input.option_groups !== undefined) patch.option_groups = input.option_groups;
+
+    const requestedLinks = [...new Set([...(input.related_product_ids ?? []), ...(input.cross_sell_product_ids ?? [])])];
+    if (requestedLinks.length > 0) {
+      const { data: ownedLinks, error: ownedErr } = await admin
+        .from("products")
+        .select("id")
+        .eq("store_id", ctx.store.id)
+        .is("deleted_at", null)
+        .in("id", requestedLinks);
+      if (ownedErr) throw ownedErr;
+      const owned = new Set((ownedLinks ?? []).map((row: { id: string }) => row.id));
+      if (requestedLinks.some((linkedId) => !owned.has(linkedId))) throw err("VALIDATION", "Produit connexe invalide pour cette boutique.");
+    }
+    if (input.related_product_ids !== undefined) patch.related_product_ids = input.related_product_ids.filter((linkedId) => linkedId !== id);
+    if (input.cross_sell_product_ids !== undefined) patch.cross_sell_product_ids = input.cross_sell_product_ids.filter((linkedId) => linkedId !== id);
+
     if (input.price !== undefined) {
       const cents = Math.round(input.price * 100);
       if (cents !== (current.price_cents as number)) {
