@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getStorefrontData } from "../../../../../lib/storefront/data";
 import { loadCatalog } from "../../../../../lib/storefront/catalog";
 import { ShopBrowser } from "../../../../../components/storefront/shop-browser";
+import { SouqShopPage } from "../../../../../components/storefront/templates-v2/souq/souq-shop-page";
+import { isSouqTemplate } from "../../../../../lib/templates/souq";
 
 export const dynamic = "force-dynamic";
 
@@ -12,11 +14,25 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: data ? `${data.name} — Boutique` : "Boutique" };
 }
 
-export default async function BoutiquePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function BoutiquePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { slug } = await params;
   const data = await getStorefrontData(slug);
   if (!data) notFound();
   if (data.website_type === "portfolio") notFound();
+
+  // SOUQ storefront: its own shop experience (chips, instant search, filters).
+  if (isSouqTemplate(data.template_key)) {
+    const query = searchParams ? await searchParams : {};
+    const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+    return <SouqShopPage data={data} filter={first(query.filter) ?? null} sort={first(query.sort) ?? null} />;
+  }
+
   const { products, categories } = await loadCatalog(data.id);
 
   return (

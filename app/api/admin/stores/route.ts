@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { canonicalTemplateKey } from "@/lib/templates/souq";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { toErrorResponse, err } from "@/lib/errors";
@@ -89,10 +90,18 @@ async function resolveOrInviteOwner(args: {
 export async function POST(req: Request) {
   try {
     const ctx = await getAdminContext();
-    const input = parseBody(wizardSchema, await req.json().catch(() => null));
+    const raw = await req.json().catch(() => null);
+    const input = parseBody(wizardSchema, raw);
+    // Whether the caller picked a language explicitly (the schema has a "fr"
+    // default, so a silent caller must still get the template's own language).
+    const languageExplicit =
+      Boolean(raw) && typeof raw === "object" && typeof (raw as { language?: unknown }).language === "string";
     const admin = getAdminSupabase();
 
-    const tpl = getTemplate(input.template_key);
+    // Template aliases (e.g. `souq` → `souq-v1`) are canonicalized before the
+    // store is written, so the DB registry only needs the canonical row.
+    const templateKey = canonicalTemplateKey(input.template_key);
+    const tpl = getTemplate(templateKey);
     if (!tpl) throw err("VALIDATION", "Modèle invalide.");
     if (!tpl.websiteTypes.includes(input.website_type as never)) {
       throw err("VALIDATION", `Le modèle ${tpl.name} n'est pas compatible avec le type ${input.website_type}.`);
@@ -173,7 +182,7 @@ export async function POST(req: Request) {
     };
 
     const settings = defaultSettings(contact as Record<string, string | null>, business);
-    const basePages = defaultPages(input.template_key, input.website_type as never, input.business_name);
+    const basePages = defaultPages(templateKey, input.website_type as never, input.business_name);
     const pages = applyHomepageOverrides(basePages, input.homepage_sections).map((p) => ({
       key: p.key,
       title: p.title,
@@ -190,8 +199,8 @@ export async function POST(req: Request) {
       p_name: input.business_name,
       p_slug: finalSlug,
       p_website_type: input.website_type,
-      p_template_key: input.template_key,
-      p_language: input.language || "fr",
+      p_template_key: templateKey,
+      p_language: languageExplicit ? input.language : (tpl.language ?? input.language),
       p_currency: input.currency || "DZD",
       p_identity: identity,
       p_settings: settings,
@@ -420,7 +429,7 @@ export async function POST(req: Request) {
       metadata: {
         name: input.business_name,
         slug: finalSlug,
-        template: input.template_key,
+        template: templateKey,
         type: input.website_type,
         publish_mode: input.publish_mode,
         owner_attached: Boolean(ownerUserId),

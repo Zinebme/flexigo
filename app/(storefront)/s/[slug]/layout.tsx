@@ -4,6 +4,8 @@ import { getStorefrontData } from "@/lib/storefront/data";
 import { StorefrontHeader } from "@/components/storefront/header";
 import { StorefrontFooter } from "@/components/storefront/footer";
 import { UnavailableScreen } from "@/components/storefront/unavailable";
+import { SouqShell } from "@/components/storefront/templates-v2/souq/souq-shell";
+import { isSouqTemplate } from "@/lib/templates/souq";
 
 /**
  * Storefront layout — the single entry point for every tenant site.
@@ -29,6 +31,13 @@ export default async function StorefrontLayout({
 
   const data = await getStorefrontData(slug);
   if (!data) notFound();
+
+  // SOUQ stores render through their own shell (Arabic-first RTL header,
+  // search, drawer, footer). Every other template keeps the legacy shell
+  // untouched — this branch is additive and template-explicit.
+  if (isSouqTemplate(store.template_key) || isSouqTemplate(data.template_key)) {
+    return <SouqShell data={data}>{children}</SouqShell>;
+  }
 
   const primary = data.theme?.primary_color ?? "#1d4ed8";
   const bg = data.theme?.background_color ?? "#ffffff";

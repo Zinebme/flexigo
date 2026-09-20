@@ -8,6 +8,7 @@ import type { WebsiteType } from "../types";
 import type { Section } from "../sections/definitions";
 import { shortId } from "../utils";
 import type { StoreSettings } from "../supabase/database.types";
+import { SOUQ_TEMPLATE_ALIASES, SOUQ_TEMPLATE_KEY, isSouqTemplate, souqContentPages, souqHomeSections } from "./souq";
 
 export interface TemplateMeta {
   key: string;
@@ -24,6 +25,27 @@ export interface TemplateMeta {
     buttonShape: "rounded" | "sharp" | "pill";
   };
   sections: string[]; // list of section types used
+  // --- Optional, additive metadata (existing templates: unchanged) ---------
+  /** Short machine category used for filtering ("general", "fashion", …). */
+  categoryKey?: string;
+  /** Accepted alternative keys (never generated for new stores). */
+  aliases?: readonly string[];
+  /** Default storefront language for stores created with this template. */
+  language?: "fr" | "ar" | "en";
+  /** Reading direction of the template identity. */
+  direction?: "ltr" | "rtl";
+  /** Mobile preview image for the admin/wizard gallery. */
+  previewMobileUrl?: string;
+  /** Marketing badges shown in the selection gallery. */
+  badges?: string[];
+  /** Presentation capabilities (informational, drives nothing destructive). */
+  highlights?: {
+    dynamicVariants?: boolean;
+    multiSelectOptions?: boolean;
+    quantityOffers?: boolean;
+    codForm?: boolean;
+    rtl?: boolean;
+  };
 }
 
 export const TEMPLATES: TemplateMeta[] = [
@@ -108,6 +130,50 @@ export const TEMPLATES: TemplateMeta[] = [
     theme: { primaryColor: "#dc2626", secondaryColor: "#111827", backgroundColor: "#ffffff", typography: "bold", buttonShape: "pill" },
     sections: ["Hero", "Product gallery/video", "Problem", "Solution", "Benefits", "How it works", "Before/after", "Social proof", "Quantity offers", "Reviews", "FAQ", "COD order form", "Sticky CTA"],
   },
+  // --- SOUQ (first production storefront template, Arabic-first RTL) ---
+  {
+    key: SOUQ_TEMPLATE_KEY,
+    name: "SOUQ",
+    category: "General store",
+    categoryKey: "general",
+    aliases: SOUQ_TEMPLATE_ALIASES,
+    language: "ar",
+    direction: "rtl",
+    description:
+      "SOUQ — قالب المتاجر الجزائرية العامة (Arabic-first RTL). متجر حديث سريع موجّه للتحويل مع الدفع عند الاستلام، أقسام قوية، عروض الكمية، مواصفات ديناميكية (لون/مقاس/إضافات)، نموذج طلب COD أنيق وتجربة موبايل شبيهة بالتطبيقات. Sections: Promo bar/Hero/Categories/Trending/Flash offers/Best sellers/Banner/New arrivals/Why us/Reviews/FAQ/Contact/Footer + product page (gallery, dynamic options, quantity offers, COD form, sticky CTA).",
+    websiteTypes: ["ecommerce"],
+    screenshotUrl: "/images/templates/souq-v1.svg",
+    previewMobileUrl: "/images/templates/souq-v1-mobile.svg",
+    badges: ["Arabic-first", "RTL", "COD", "Mobile-first"],
+    highlights: { dynamicVariants: true, multiSelectOptions: true, quantityOffers: true, codForm: true, rtl: true },
+    theme: {
+      primaryColor: "#0f2a47",
+      secondaryColor: "#f59e0b",
+      backgroundColor: "#f8fafc",
+      typography: "modern",
+      buttonShape: "rounded",
+    },
+    sections: [
+      "Promo bar",
+      "Hero",
+      "Categories",
+      "Trending products",
+      "Flash offers",
+      "Best sellers",
+      "Promotional banner",
+      "New arrivals",
+      "Why choose us",
+      "Reviews",
+      "FAQ",
+      "Contact/Social",
+      "Footer",
+      "Product gallery",
+      "Dynamic variants",
+      "Quantity offers",
+      "COD form",
+      "Sticky CTA",
+    ],
+  },
   // --- LEGACY (kept for existing stores) ---
   {
     key: "ecommerce-modern",
@@ -152,7 +218,10 @@ export const TEMPLATES: TemplateMeta[] = [
 ];
 
 export function getTemplate(key: string): TemplateMeta | undefined {
-  return TEMPLATES.find((t) => t.key === key);
+  const direct = TEMPLATES.find((t) => t.key === key);
+  if (direct) return direct;
+  // Alias-tolerant lookup (e.g. "souq" → "souq-v1"); existing keys are unaffected.
+  return TEMPLATES.find((t) => t.aliases?.includes(key));
 }
 
 export function getTemplatesByCategory(category: string): TemplateMeta[] {
@@ -169,6 +238,9 @@ function s(type: Section["type"], data: Record<string, unknown>): Section {
 }
 
 export function defaultHomeSections(templateKey: string, websiteType: WebsiteType, businessName: string): Section[] {
+  if (isSouqTemplate(templateKey)) {
+    return souqHomeSections(businessName);
+  }
   switch (templateKey) {
     case "elegance":
       return [
@@ -320,6 +392,19 @@ export function defaultHomeSections(templateKey: string, websiteType: WebsiteTyp
 }
 
 export function defaultPages(templateKey: string, websiteType: WebsiteType, businessName: string): Array<{ key: string; title: string; content: { sections: Section[] } }> {
+  if (isSouqTemplate(templateKey)) {
+    // Arabic-first pages (titles + content), same structure as every template.
+    const pages: Array<{ key: string; title: string; content: { sections: Section[] } }> = [
+      { key: "home", title: "الرئيسية", content: { sections: defaultHomeSections(templateKey, websiteType, businessName) } },
+      ...souqContentPages(businessName),
+      { key: "legal-terms", title: "الشروط العامة", content: { sections: [] } },
+      { key: "legal-privacy", title: "سياسة الخصوصية", content: { sections: [] } },
+    ];
+    if (websiteType === "ecommerce") {
+      pages.push({ key: "shop", title: "المتجر", content: { sections: [] } });
+    }
+    return pages;
+  }
   const pages: Array<{ key: string; title: string; content: { sections: Section[] } }> = [
     { key: "home", title: "Accueil", content: { sections: defaultHomeSections(templateKey, websiteType, businessName) } },
     { key: "about", title: "À propos", content: { sections: [s("hero", { title: `À propos de ${businessName}`, subtitle: "Notre histoire, nos valeurs, notre engagement.", image: null, alignment: "center" }), s("contact", { title: "Parlons de votre projet", text: null, show_phone: true, show_whatsapp: true, show_email: true })] } },

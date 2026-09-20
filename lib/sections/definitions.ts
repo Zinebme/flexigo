@@ -54,6 +54,12 @@ const hero = z.object({
   title: textField(120),
   subtitle: textField(240),
   image: imageUrl,
+  // Optional, additive (SOUQ uses them): the historical single `image` stays
+  // the desktop/default image, so every existing store keeps rendering.
+  desktop_image: imageUrl,
+  mobile_image: imageUrl,
+  badge: textField(60),
+  promo_text: textField(160),
   button_text: textField(40),
   button_link: safeLink,
   alignment: alignment.optional(),
@@ -267,7 +273,18 @@ export const SECTION_DEFS: Record<SectionType, SectionDef> = {
     label: "Bannière principale",
     description: "Grande section d'accroche avec image et bouton.",
     allowedFor: ["ecommerce", "single_product", "portfolio"],
-    defaultData: { title: "", subtitle: "", image: null, button_text: "", button_link: null, alignment: "center" },
+    defaultData: {
+      title: "",
+      subtitle: "",
+      image: null,
+      desktop_image: null,
+      mobile_image: null,
+      badge: null,
+      promo_text: null,
+      button_text: "",
+      button_link: null,
+      alignment: "center",
+    },
   },
   banner: {
     label: "Bannière",

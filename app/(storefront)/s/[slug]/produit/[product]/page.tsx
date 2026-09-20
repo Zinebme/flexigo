@@ -7,6 +7,8 @@ import { loadCatalog } from "../../../../../../lib/storefront/catalog";
 import { formatDA } from "../../../../../../lib/utils";
 import { StorefrontImage } from "../../../../../../components/storefront/image";
 import { ProductCard } from "../../../../../../components/storefront/sections";
+import { SouqProductPage } from "../../../../../../components/storefront/templates-v2/souq/souq-product-page";
+import { isSouqTemplate } from "../../../../../../lib/templates/souq";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +31,36 @@ export async function generateMetadata({
   if (!p) return { title: "Produit introuvable" };
   const title = p.seo_title ?? p.name;
   const desc = p.seo_description ?? p.description?.slice(0, 160) ?? undefined;
+
+  // SOUQ adds the product's own OG image (its first real image). Additive:
+  // every other template keeps its previous metadata untouched.
+  if (isSouqTemplate(data.template_key)) {
+    const { data: productRow } = await anon
+      .from("products")
+      .select("id")
+      .eq("store_id", data.id)
+      .eq("slug", product)
+      .maybeSingle();
+    const { data: firstImage } = productRow
+      ? await anon
+          .from("product_images")
+          .select("url")
+          .eq("product_id", productRow.id)
+          .order("position", { ascending: true })
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
+    return {
+      title: `${title} — ${data.name}`,
+      description: desc,
+      openGraph: {
+        title: `${title} — ${data.name}`,
+        description: desc,
+        images: firstImage?.url ? [{ url: firstImage.url }] : undefined,
+      },
+    };
+  }
+
   return { title: `${title} — ${data.name}`, description: desc };
 }
 
@@ -40,6 +72,13 @@ export default async function ProductPage({
   const { slug, product } = await params;
   const data = await getStorefrontData(slug);
   if (!data) notFound();
+
+  // SOUQ product page: gallery + dynamic options + quantity offers + COD form.
+  // Additive branch — the shared implementation below is unchanged for all
+  // other templates.
+  if (isSouqTemplate(data.template_key)) {
+    return <SouqProductPage data={data} productSlug={product} />;
+  }
 
   const anon = getAnonSupabase();
   const [{ data: p }, { data: images }, { data: variants }] = await Promise.all([

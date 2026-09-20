@@ -6,6 +6,8 @@ import { getStorefrontData } from "../../../../../lib/storefront/data";
 import { priceLine, lookupShippingFee, computeTotals } from "../../../../../lib/orders/pricing";
 import { formatDA } from "../../../../../lib/utils";
 import { CheckoutForm, type CheckoutLineInput } from "../../../../../components/storefront/checkout-form";
+import { SouqCheckoutPage } from "../../../../../components/storefront/templates-v2/souq/souq-checkout-page";
+import { isSouqTemplate } from "../../../../../lib/templates/souq";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,13 @@ export default async function CommandePage({
 
   const qs = await searchParams;
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
+  // SOUQ storefront: same checkout engine, SOUQ skin + dynamic option groups.
+  if (isSouqTemplate(data.template_key)) {
+    const qty = Math.min(50, Math.max(1, parseInt(first(qs.qty) ?? "1", 10) || 1));
+    return <SouqCheckoutPage data={data} productId={first(qs.product) ?? null} variantId={first(qs.variant) ?? null} quantity={qty} />;
+  }
+
   const productParam = first(qs.product);
   const variantParam = first(qs.variant);
   const qty = Math.min(50, Math.max(1, parseInt(first(qs.qty) ?? "1", 10) || 1));

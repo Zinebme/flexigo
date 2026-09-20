@@ -401,13 +401,29 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
               {filteredTemplates.map((tpl: TemplateMeta) => (
                 <button
                   key={tpl.key}
-                  onClick={() => { update("template_key", tpl.key); }}
+                  onClick={() => {
+                    update("template_key", tpl.key);
+                    // SOUQ is Arabic-first (RTL): pre-select its language and
+                    // palette. Other templates keep their previous behavior.
+                    if (tpl.key === "souq-v1" || tpl.aliases?.includes("souq")) {
+                      update("language", "ar");
+                      update("primary_color", tpl.theme.primaryColor);
+                      update("secondary_color", tpl.theme.secondaryColor);
+                      update("accent_color", tpl.theme.secondaryColor);
+                    }
+                  }}
                   className={`group relative overflow-hidden rounded-2xl border-2 text-left transition ${form.template_key === tpl.key ? "border-violet-600 bg-violet-50 ring-4 ring-violet-100" : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-lg"}`}
                 >
                   <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={tpl.screenshotUrl} alt={`Aperçu ${tpl.name}`} className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
                     <div className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-1 text-[10px] font-bold text-white">{tpl.category}</div>
+                    {tpl.previewMobileUrl ? (
+                      <div className="absolute bottom-2 right-2 overflow-hidden rounded-md border border-white/40 shadow-lg">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={tpl.previewMobileUrl} alt={`Aperçu mobile ${tpl.name}`} className="h-14 w-9 object-cover object-top" loading="lazy" />
+                      </div>
+                    ) : null}
                     {form.template_key === tpl.key && <div className="absolute right-2 top-2 rounded-full bg-violet-600 px-2 py-1 text-xs font-bold text-white">✓ Sélectionné</div>}
                   </div>
                   <div className="p-4">
