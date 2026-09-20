@@ -10,12 +10,10 @@ export const dynamic = "force-dynamic";
 export default async function NewProductPage() {
   const ctx = await getMerchantContext();
   const admin = getAdminSupabase();
-  const { data: categories } = await admin
-    .from("categories")
-    .select("id, name")
-    .eq("store_id", ctx.store.id)
-    .is("deleted_at", null)
-    .order("position", { ascending: true });
+  const [{ data: categories }, { data: products }] = await Promise.all([
+    admin.from("categories").select("id, name").eq("store_id", ctx.store.id).is("deleted_at", null).order("position", { ascending: true }),
+    admin.from("products").select("id, name").eq("store_id", ctx.store.id).is("deleted_at", null).order("name"),
+  ]);
 
   const canManage = can(ctx.role, "products.manage");
 
@@ -31,11 +29,24 @@ export default async function NewProductPage() {
           <ProductForm
             mode="create"
             categories={(categories ?? []) as Array<{ id: string; name: string }>}
+            productChoices={(products ?? []) as Array<{ id: string; name: string }>}
             initial={{
               name: "",
               slug: "",
               description: "",
+              short_description: "",
               price: 0,
+              cost: null,
+              is_digital: false,
+              gallery_mode: "slideshow",
+              landing_images: [],
+              min_order_quantity: 1,
+              shipping_label: "",
+              stock_tracking_mode: "global",
+              related_product_ids: [],
+              cross_sell_product_ids: [],
+              page_element_order: ["gallery","title","price","variants","offers","description","order_form","landing","reviews","related"],
+              option_groups: [],
               compare_at_price: null,
               sku: "",
               stock: 0,
