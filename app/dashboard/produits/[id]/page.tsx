@@ -88,14 +88,11 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
-          <Card>
-            <CardHeader title="Fiche produit" />
-            {canManage ? (
-              <ProductForm mode="edit" initial={initial} categories={(categories ?? []) as Array<{ id: string; name: string }>} />
-            ) : (
-              <EmptyState icon="🔒" title="Accès en lecture seule" text="Votre rôle permet de consulter mais pas de modifier les produits." />
-            )}
-          </Card>
+          {canManage ? (
+            <ProductForm mode="edit" initial={initial} categories={(categories ?? []) as Array<{ id: string; name: string }>} />
+          ) : (
+            <Card><EmptyState icon="🔒" title="Accès en lecture seule" text="Votre rôle permet de consulter mais pas de modifier les produits." /></Card>
+          )}
 
           <Card>
             <CardHeader title="Ajustement de stock" subtitle="Chaque mouvement est justifié et journalisé (audit).">
