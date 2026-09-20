@@ -41,6 +41,7 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
     price: p.price_cents / 100,
     compare_at_price: p.compare_at_price_cents != null ? (p.compare_at_price_cents as number) / 100 : null,
     sku: p.sku ?? "",
+    stock: p.stock,
     low_stock_threshold: p.low_stock_threshold,
     is_active: p.is_active,
     is_featured: p.is_featured,
