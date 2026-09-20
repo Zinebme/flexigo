@@ -1,27 +1,28 @@
-/* VOLT — Arabic-first electronics / gadgets storefront. */
-.volt-root{--souq-primary:var(--volt-cyan);--souq-primary-soft:rgba(34,211,238,.12);--souq-accent:var(--volt-blue);--souq-accent-soft:rgba(37,99,235,.14);--souq-accent-text:#fff;--souq-border:var(--volt-border);--souq-danger:var(--volt-danger);background:var(--volt-bg);color:var(--volt-ink);font-family:"Tajawal","Segoe UI",Tahoma,system-ui,sans-serif;overflow-x:clip}
+/* VOLT — bright Arabic-first electronics storefront. */
+.volt-root{--souq-primary:var(--volt-blue);--souq-primary-soft:#EAF0FF;--souq-accent:var(--volt-cyan);--souq-accent-soft:#E7FBF8;--souq-accent-text:#0D3C38;--souq-border:var(--volt-border);--souq-danger:var(--volt-danger);background:var(--volt-bg);color:var(--volt-ink);font-family:"Tajawal","Segoe UI",Tahoma,system-ui,sans-serif;overflow-x:clip}
 .volt-root *{box-sizing:border-box}.volt-root button,.volt-root input,.volt-root select,.volt-root textarea{font:inherit}
 .volt-container{width:100%;max-width:1240px;margin-inline:auto;padding-inline:16px}
-.volt-grid-bg{background-image:linear-gradient(rgba(34,211,238,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.045) 1px,transparent 1px);background-size:28px 28px}
-.volt-panel{border:1px solid var(--volt-border);background:linear-gradient(180deg,#0d1420,#090d14);border-radius:18px;box-shadow:0 18px 60px rgba(0,0,0,.28)}
-.volt-title{font-weight:900;letter-spacing:-.02em;line-height:1.28}
-.volt-kicker{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--volt-cyan)}
-.volt-btn{display:inline-flex;min-height:48px;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:0 20px;background:var(--volt-cyan);color:#041017;font-weight:900;transition:.2s}
-.volt-btn:hover{background:var(--volt-cyan-2);transform:translateY(-1px)}
-.volt-btn-outline{display:inline-flex;min-height:48px;align-items:center;justify-content:center;border:1px solid var(--volt-border);border-radius:12px;padding:0 20px;color:var(--volt-ink);font-weight:800;background:#0b1018}
-.volt-product{border:1px solid var(--volt-border);background:var(--volt-surface);border-radius:16px;overflow:hidden;transition:transform .2s,border-color .2s,box-shadow .2s}
-.volt-product:hover{transform:translateY(-3px);border-color:rgba(34,211,238,.55);box-shadow:0 18px 45px rgba(0,0,0,.3)}
-.volt-badge{display:inline-flex;align-items:center;border:1px solid rgba(34,211,238,.28);background:rgba(34,211,238,.08);color:var(--volt-cyan);border-radius:999px;padding:5px 9px;font-size:10px;font-weight:900}
+.volt-grid-bg{background-image:radial-gradient(circle at 18% 10%,rgba(76,111,255,.08),transparent 26%),radial-gradient(circle at 82% 0%,rgba(46,196,182,.10),transparent 24%)}
+.volt-panel{border:1px solid var(--volt-border);background:rgba(255,255,255,.94);border-radius:24px;box-shadow:0 16px 45px rgba(39,61,104,.08)}
+.volt-title{font-weight:900;letter-spacing:-.02em;line-height:1.24;color:var(--volt-ink)}
+.volt-kicker{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--volt-blue)}
+.volt-btn{display:inline-flex;min-height:48px;align-items:center;justify-content:center;gap:8px;border-radius:14px;padding:0 20px;background:linear-gradient(135deg,var(--volt-blue),#6F8BFF);color:white;font-weight:900;box-shadow:0 10px 25px rgba(76,111,255,.22);transition:.2s}
+.volt-btn:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(76,111,255,.28)}
+.volt-btn-outline{display:inline-flex;min-height:48px;align-items:center;justify-content:center;border:1px solid var(--volt-border);border-radius:14px;padding:0 20px;color:var(--volt-ink);font-weight:800;background:white}
+.volt-product{border:1px solid var(--volt-border);background:white;border-radius:22px;overflow:hidden;transition:transform .2s,border-color .2s,box-shadow .2s}
+.volt-product:hover{transform:translateY(-4px);border-color:#B8C9F2;box-shadow:0 20px 45px rgba(48,72,120,.12)}
+.volt-badge{display:inline-flex;align-items:center;border:1px solid #C9D6FF;background:#EEF3FF;color:var(--volt-blue);border-radius:999px;padding:5px 9px;font-size:10px;font-weight:900}
 .volt-section{padding-block:52px}.volt-section-head{margin-bottom:24px;display:flex;align-items:end;justify-content:space-between;gap:16px}
-.volt-root a:focus-visible,.volt-root button:focus-visible,.volt-root input:focus-visible,.volt-root select:focus-visible{outline:2px solid var(--volt-cyan);outline-offset:3px}
-.volt-order-form .souq-card{border-color:var(--volt-border)!important;background:var(--volt-surface)!important;color:var(--volt-ink)!important;box-shadow:none!important}
-.volt-order-form .souq-label{color:#cbd5e1!important}.volt-order-form .souq-input{border-color:var(--volt-border)!important;background:#070b11!important;color:#fff!important}
-.volt-order-form .souq-input:focus{border-color:var(--volt-cyan)!important;box-shadow:0 0 0 3px rgba(34,211,238,.12)!important}
-.volt-order-form button[type="submit"]{background:var(--volt-cyan)!important;color:#031014!important;font-weight:900!important}
-.volt-order-form .souq-error{color:#f87171!important}
-.volt-root .souq-card{border-color:var(--volt-border);background:var(--volt-surface);color:var(--volt-ink)}
-.volt-root .souq-price{direction:ltr;unicode-bidi:isolate;display:inline-block;color:var(--volt-cyan)}
-.volt-root .souq-label{color:#cbd5e1}.volt-root .souq-input{border-color:var(--volt-border);background:#070b11;color:#fff}
+.volt-root a:focus-visible,.volt-root button:focus-visible,.volt-root input:focus-visible,.volt-root select:focus-visible{outline:2px solid var(--volt-blue);outline-offset:3px}
+.volt-order-form .souq-card{border-color:var(--volt-border)!important;background:white!important;color:var(--volt-ink)!important;box-shadow:none!important}
+.volt-order-form .souq-label{color:var(--volt-ink)!important}.volt-order-form .souq-input{border-color:var(--volt-border)!important;background:#fff!important;color:var(--volt-ink)!important}
+.volt-order-form .souq-input:focus{border-color:var(--volt-blue)!important;box-shadow:0 0 0 3px rgba(76,111,255,.12)!important}
+.volt-order-form button[type="submit"]{background:linear-gradient(135deg,var(--volt-blue),#6F8BFF)!important;color:#fff!important;font-weight:900!important}
+.volt-order-form .souq-error{color:var(--volt-danger)!important}
+.volt-root .souq-card{border-color:var(--volt-border);background:white;color:var(--volt-ink)}
+.volt-root .souq-price{direction:ltr;unicode-bidi:isolate;display:inline-block;color:var(--volt-blue)}
+.volt-root .souq-label{color:var(--volt-ink)}.volt-root .souq-input{border-color:var(--volt-border);background:#fff;color:var(--volt-ink)}
+.volt-glow{background:linear-gradient(135deg,#EDF3FF 0%,#F8FBFF 45%,#E8FBF8 100%)}
 @media(min-width:640px){.volt-container{padding-inline:24px}.volt-section{padding-block:72px}}
 @media(min-width:1024px){.volt-container{padding-inline:32px}.volt-section{padding-block:88px}}
 @media(max-width:374px){.volt-container{padding-inline:12px}.volt-section{padding-block:42px}}

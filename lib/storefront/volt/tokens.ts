@@ -1,18 +1,18 @@
 import type { CSSProperties } from "react";
 
 export const VOLT_COLORS = {
-  bg: "#05070B",
-  surface: "#0B1018",
-  surface2: "#111827",
-  border: "#1F2A3A",
-  ink: "#F8FAFC",
-  muted: "#94A3B8",
-  cyan: "#22D3EE",
-  cyan2: "#67E8F9",
-  blue: "#2563EB",
-  amber: "#F59E0B",
-  success: "#22C55E",
-  danger: "#EF4444",
+  bg: "#F7FAFF",
+  surface: "#FFFFFF",
+  surface2: "#EEF4FF",
+  border: "#D9E4F5",
+  ink: "#14213D",
+  muted: "#65748B",
+  cyan: "#2EC4B6",
+  cyan2: "#62D9D0",
+  blue: "#4C6FFF",
+  amber: "#F4B740",
+  success: "#22A06B",
+  danger: "#D64545",
 } as const;
 
 export function voltCssVars(): CSSProperties {

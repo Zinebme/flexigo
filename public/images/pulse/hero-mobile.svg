@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F7FAF8"/><stop offset="1" stop-color="#EAF8F1" stop-opacity=".55"/></linearGradient></defs>
+<rect width="900" height="1200" fill="url(#g)"/>
+<circle cx="738" cy="216" r="171" fill="#0C7A54" opacity=".28"/>
+<circle cx="612" cy="864" r="108" fill="#B8F34A" opacity=".28"/>
+<rect x="513" y="204.00000000000003" width="252.00000000000003" height="696" rx="49.5" fill="#fff" opacity=".92"/>
+<text x="639" y="552" text-anchor="middle" font-size="162">🏃</text>
+<text x="72" y="456" fill="#132018" font-family="Arial" font-weight="800" font-size="52">PULSE</text>
+<text x="72" y="564" fill="#132018" opacity=".62" font-family="Arial" font-size="22">MOVE / TRAIN</text>
+<rect x="72" y="660" width="185" height="64" rx="32" fill="#0C7A54"/>
+<text x="164.5" y="702" text-anchor="middle" fill="#fff" font-family="Arial" font-weight="800" font-size="21">PULSE</text>
+</svg>

@@ -87,7 +87,7 @@ interface FormState {
 
 const STEPS = [
   { key: "client", label: "CLIENT", desc: "Informations client & compte marchand" },
-  { key: "template", label: "TEMPLATE", desc: "5 boutiques complètes prêtes à livrer" },
+  { key: "template", label: "TEMPLATE", desc: "7 boutiques complètes prêtes à livrer" },
   { key: "brand", label: "IDENTITÉ", desc: "Branding, couleurs, contact" },
   { key: "homepage", label: "CONTENU", desc: "Sections homepage prédéfinies" },
   { key: "products", label: "PRODUITS", desc: "Produits initiaux" },
@@ -99,7 +99,7 @@ const STEPS = [
   { key: "review", label: "FINAL REVIEW", desc: "Checklist & publication" },
 ] as const;
 
-const TEMPLATE_FILTERS = ["all", "Fashion", "Beauty", "Tech", "Home", "General store"] as const;
+const TEMPLATE_FILTERS = ["all", "Fashion", "Beauty", "Tech", "Home", "Baby", "Sport", "General store"] as const;
 
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (

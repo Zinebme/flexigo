@@ -9,11 +9,15 @@ import { LamsaCategoryPage } from "../../../../../../components/storefront/templ
 import { NoorCategoryPage } from "../../../../../../components/storefront/templates-v2/noor/noor-shop-page";
 import { VoltCategoryPage } from "../../../../../../components/storefront/templates-v2/volt/volt-shop-page";
 import { DarCategoryPage } from "../../../../../../components/storefront/templates-v2/dar/dar-shop-page";
+import { PulseCategoryPage } from "../../../../../../components/storefront/templates-v2/pulse/pulse-shop-page";
+import { LittleCategoryPage } from "../../../../../../components/storefront/templates-v2/little/little-shop-page";
 import { isSouqTemplate } from "../../../../../../lib/templates/souq";
 import { isLamsaTemplate } from "../../../../../../lib/templates/lamsa";
 import { isNoorTemplate } from "../../../../../../lib/templates/noor";
 import { isVoltTemplate } from "../../../../../../lib/templates/volt";
 import { isDarTemplate } from "../../../../../../lib/templates/dar";
+import { isPulseTemplate } from "../../../../../../lib/templates/pulse";
+import { isLittleTemplate } from "../../../../../../lib/templates/little";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +59,8 @@ export default async function CategoryPage({
     .maybeSingle();
   if (!cat) notFound();
 
+  if (isLittleTemplate(data.template_key)) return <LittleCategoryPage data={data} category={{ id: cat.id, name: cat.name, slug: cat.slug ?? category, description: cat.description ?? null }} />;
+  if (isPulseTemplate(data.template_key)) return <PulseCategoryPage data={data} category={{ id: cat.id, name: cat.name, slug: cat.slug ?? category, description: cat.description ?? null }} />;
   if (isDarTemplate(data.template_key)) {
     return <DarCategoryPage data={data} category={{ id: cat.id, name: cat.name, slug: cat.slug ?? category, description: cat.description ?? null }} />;
   }

@@ -1,0 +1,3 @@
+insert into public.templates (key,name,description,website_types,is_system,screenshot_url)
+values ('little-v1','LITTLE','قالب عربي RTL مرح وناعم للأطفال والرضع بألوان pastel وحركات لطيفة، صفحة منتج ديناميكية ونموذج COD مدمج.',array['ecommerce'],true,'/images/templates/little-v1.svg')
+on conflict (key) do update set name=excluded.name,description=excluded.description,website_types=excluded.website_types,screenshot_url=excluded.screenshot_url;

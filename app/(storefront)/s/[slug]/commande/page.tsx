@@ -11,11 +11,15 @@ import { LamsaCheckoutPage } from "../../../../../components/storefront/template
 import { NoorCheckoutPage } from "../../../../../components/storefront/templates-v2/noor/noor-checkout-page";
 import { VoltCheckoutPage } from "../../../../../components/storefront/templates-v2/volt/volt-checkout-page";
 import { DarCheckoutPage } from "../../../../../components/storefront/templates-v2/dar/dar-checkout-page";
+import { PulseCheckoutPage } from "../../../../../components/storefront/templates-v2/pulse/pulse-checkout-page";
+import { LittleCheckoutPage } from "../../../../../components/storefront/templates-v2/little/little-checkout-page";
 import { isSouqTemplate } from "../../../../../lib/templates/souq";
 import { isLamsaTemplate } from "../../../../../lib/templates/lamsa";
 import { isNoorTemplate } from "../../../../../lib/templates/noor";
 import { isVoltTemplate } from "../../../../../lib/templates/volt";
 import { isDarTemplate } from "../../../../../lib/templates/dar";
+import { isPulseTemplate } from "../../../../../lib/templates/pulse";
+import { isLittleTemplate } from "../../../../../lib/templates/little";
 
 export const dynamic = "force-dynamic";
 
@@ -35,9 +39,11 @@ export default async function CommandePage({
   const qs = await searchParams;
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-  if (isDarTemplate(data.template_key) || isVoltTemplate(data.template_key) || isNoorTemplate(data.template_key) || isLamsaTemplate(data.template_key) || isSouqTemplate(data.template_key)) {
+  if (isLittleTemplate(data.template_key) || isPulseTemplate(data.template_key) || isDarTemplate(data.template_key) || isVoltTemplate(data.template_key) || isNoorTemplate(data.template_key) || isLamsaTemplate(data.template_key) || isSouqTemplate(data.template_key)) {
     const qty = Math.min(50, Math.max(1, parseInt(first(qs.qty) ?? "1", 10) || 1));
     const props = { data, productId: first(qs.product) ?? null, variantId: first(qs.variant) ?? null, quantity: qty };
+    if (isLittleTemplate(data.template_key)) return <LittleCheckoutPage {...props} />;
+    if (isPulseTemplate(data.template_key)) return <PulseCheckoutPage {...props} />;
     if (isDarTemplate(data.template_key)) return <DarCheckoutPage {...props} />;
     if (isVoltTemplate(data.template_key)) return <VoltCheckoutPage {...props} />;
     if (isNoorTemplate(data.template_key)) return <NoorCheckoutPage {...props} />;

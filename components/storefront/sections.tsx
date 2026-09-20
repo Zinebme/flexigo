@@ -24,11 +24,15 @@ import { LamsaSection } from "./templates-v2/lamsa/lamsa-sections";
 import { NoorSection } from "./templates-v2/noor/noor-sections";
 import { VoltSection } from "./templates-v2/volt/volt-sections";
 import { DarSection } from "./templates-v2/dar/dar-sections";
+import { PulseSection } from "./templates-v2/pulse/pulse-sections";
+import { LittleSection } from "./templates-v2/little/little-sections";
 import { isSouqTemplate } from "../../lib/templates/souq";
 import { isLamsaTemplate } from "../../lib/templates/lamsa";
 import { isNoorTemplate } from "../../lib/templates/noor";
 import { isVoltTemplate } from "../../lib/templates/volt";
 import { isDarTemplate } from "../../lib/templates/dar";
+import { isPulseTemplate } from "../../lib/templates/pulse";
+import { isLittleTemplate } from "../../lib/templates/little";
 
 export function safeHref(link: string | null | undefined, base: string): string {
   if (!link) return base;
@@ -355,6 +359,8 @@ export async function RenderSection({
 
   // V2 templates render their isolated section systems. Historical switches
   // below remain untouched for all existing template keys.
+  if (isLittleTemplate(tpl)) return <LittleSection data={data} section={s} index={index} />;
+  if (isPulseTemplate(tpl)) return <PulseSection data={data} section={s} index={index} />;
   if (isDarTemplate(tpl)) {
     return <DarSection data={data} section={s} index={index} />;
   }

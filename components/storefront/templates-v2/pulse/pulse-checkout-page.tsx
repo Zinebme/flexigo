@@ -1,0 +1,1 @@
+import type {StorefrontData} from "@/lib/storefront/data";import {SouqCheckoutPage} from "../souq/souq-checkout-page";export function PulseCheckoutPage(props:{data:StorefrontData;productId:string|null;variantId:string|null;quantity:number}){return <div className="pulse-order-form pulse-container py-8"><SouqCheckoutPage {...props}/></div>}

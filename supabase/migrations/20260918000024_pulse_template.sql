@@ -1,0 +1,3 @@
+insert into public.templates (key,name,description,website_types,is_system,screenshot_url)
+values ('pulse-v1','PULSE','قالب عربي RTL رياضي حديث للجيم والجري وكرة القدم واللياقة، بتصميم مشرق، صفحة منتج ديناميكية ونموذج COD مدمج.',array['ecommerce'],true,'/images/templates/pulse-v1.svg')
+on conflict (key) do update set name=excluded.name,description=excluded.description,website_types=excluded.website_types,screenshot_url=excluded.screenshot_url;
