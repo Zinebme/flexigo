@@ -35,3 +35,8 @@ Platform admins can edit, publish, suspend, archive, duplicate, export and soft-
 ## Existing capabilities preserved
 
 Merchant team invitations by email, marketing pixels/tags, Google Sheets, Telegram, WhatsApp, domains, order shipping, customer management, statistics, RLS and audit logging are preserved.
+
+
+## Validation
+
+This pass keeps all advanced capabilities available while moving routine site production to the foreground. Destructive site removal is soft-delete only and audited.
