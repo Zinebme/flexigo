@@ -462,3 +462,19 @@ export function installSouqPreview(): void {
   const client = createPreviewClient();
   setSupabaseOverrides({ anon: client, admin: client });
 }
+
+
+/** Static fixture exported for the production-safe visual preview route. */
+export const SOUQ_PREVIEW_FIXTURE = {
+  store,
+  theme,
+  categories,
+  products,
+  images,
+  variants,
+  offers,
+  zones,
+  reviews,
+  faq,
+  homeSections,
+} as const;
