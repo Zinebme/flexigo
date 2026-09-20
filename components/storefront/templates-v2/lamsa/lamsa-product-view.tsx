@@ -41,7 +41,7 @@ export function LamsaProductView({ data }: { data: LamsaProductViewData }) {
   return (
     <div className="pb-22 lg:pb-0">
       <div className="grid gap-7 lg:grid-cols-[1.1fr_.9fr] lg:gap-12 xl:gap-16">
-        <div className="min-w-0 lg:order-2 lg:sticky lg:top-28 lg:self-start">
+        <div className="min-w-0 lg:order-1 lg:sticky lg:top-28 lg:self-start">
           <div className="grid gap-3 lg:grid-cols-[74px_1fr]">
             {images.length > 1 ? <ul className="hidden max-h-[630px] flex-col gap-2 overflow-y-auto lg:flex">{images.map((image, index) => <li key={`${image}-${index}`}><button type="button" onClick={() => setActive(index)} aria-current={index === active} aria-label={data.copy.product.imageOf.replace("{n}", String(index + 1)).replace("{total}", String(images.length))} className={cn("relative aspect-[3/4] w-full overflow-hidden border-2 bg-[var(--lamsa-beige)]", active === index ? "border-[var(--lamsa-chocolate)]" : "border-transparent opacity-70")}><StorefrontImage src={image} alt="" fill sizes="74px" className="object-cover" /></button></li>)}</ul> : null}
             <div
@@ -62,7 +62,7 @@ export function LamsaProductView({ data }: { data: LamsaProductViewData }) {
           {images.length > 1 ? <div className="mt-3 flex justify-center gap-1.5 lg:hidden" aria-label={data.copy.product.gallery}>{images.map((_, index) => <button key={index} type="button" onClick={() => setActive(index)} aria-label={String(index + 1)} className={cn("h-1 rounded-full transition-all", active === index ? "w-7 bg-[var(--lamsa-chocolate)]" : "w-3 bg-[var(--lamsa-border)]")} />)}</div> : null}
         </div>
 
-        <div className="min-w-0 lg:order-1">
+        <div className="min-w-0 lg:order-2">
           <div className="flex flex-wrap items-center gap-3"><LamsaStars value={data.ratingAverage} count={data.ratingCount} />{form.inStock ? <span className="text-[11px] font-semibold text-[#526A56]">{data.copy.product.inStock}</span> : <span className="text-[11px] font-semibold text-[#9B3D35]">{data.copy.product.outOfStock}</span>}</div>
           <h1 className="lamsa-display mt-3 text-[1.65rem] leading-[1.55] text-[var(--lamsa-ink)] sm:text-[2rem]">{data.product.name}</h1>
           <div className="mt-3"><LamsaPrice cents={displayPrice} compareAtCents={data.product.compareAtPriceCents} lang={data.lang} currency={data.currency} large /></div>
