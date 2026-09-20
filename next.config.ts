@@ -29,12 +29,15 @@ const config: NextConfig = {
     ],
   },
   async headers() {
+    // The hosted development preview shows the app inside a frame; every other
+    // environment keeps the strict clickjacking protection below.
+    const preview = process.env.FLEXIGO_PREVIEW === "1";
     return [
       {
         source: "/:path*",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "DENY" },
+          ...(preview ? [] : [{ key: "X-Frame-Options", value: "DENY" }]),
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
           { key: "X-XSS-Protection", value: "1; mode=block" },
