@@ -52,6 +52,22 @@ export interface TemplateMeta {
   };
 }
 
+
+export const READY_TEMPLATE_KEYS = [SOUQ_TEMPLATE_KEY, LAMSA_TEMPLATE_KEY, NOOR_TEMPLATE_KEY, VOLT_TEMPLATE_KEY, DAR_TEMPLATE_KEY] as const;
+
+export function isReadyTemplateKey(key: string): boolean {
+  return (READY_TEMPLATE_KEYS as readonly string[]).includes(key);
+}
+
+export function templatePreviewPath(key: string): string | null {
+  if (isSouqTemplate(key)) return "/preview/souq";
+  if (isLamsaTemplate(key)) return "/preview/lamsa";
+  if (isNoorTemplate(key)) return "/preview/noor";
+  if (isVoltTemplate(key)) return "/preview/volt";
+  if (isDarTemplate(key)) return "/preview/dar";
+  return null;
+}
+
 export const TEMPLATES: TemplateMeta[] = [
   // --- 8 NEW PRODUCTION TEMPLATES ---
   {
@@ -336,6 +352,8 @@ export const TEMPLATES: TemplateMeta[] = [
     sections: ["Hero", "Stats", "Services", "Gallery", "Testimonials", "Hours", "Map", "FAQ", "Contact"],
   },
 ];
+
+export const READY_TEMPLATES: TemplateMeta[] = TEMPLATES.filter((t) => isReadyTemplateKey(t.key));
 
 export function getTemplate(key: string): TemplateMeta | undefined {
   const direct = TEMPLATES.find((t) => t.key === key);
