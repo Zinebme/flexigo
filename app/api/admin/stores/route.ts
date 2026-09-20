@@ -189,7 +189,17 @@ export async function POST(req: Request) {
       content: p.content,
     }));
 
-    const zones = defaultShippingZones(input.default_home_fee, input.default_office_fee);
+    const zones = input.shipping_provider === "manual" && input.manual_shipping_zones.length > 0
+      ? [
+          ...input.manual_shipping_zones.map((zone) => ({
+            wilaya_code: zone.wilaya_code,
+            home_fee_cents: Math.round(zone.home_fee * 100),
+            office_fee_cents: Math.round(zone.office_fee * 100),
+            is_active: zone.is_active,
+          })),
+          { wilaya_code: 0, home_fee_cents: Math.round(input.default_home_fee * 100), office_fee_cents: Math.round(input.default_office_fee * 100), is_active: true },
+        ]
+      : defaultShippingZones(input.default_home_fee, input.default_office_fee);
 
     const { data: storeId, error: rpcErr } = await (admin.rpc as unknown as (
       fn: string,
