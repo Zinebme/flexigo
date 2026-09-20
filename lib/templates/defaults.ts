@@ -55,7 +55,7 @@ export interface TemplateMeta {
 }
 
 
-export const READY_TEMPLATE_KEYS = [SOUQ_TEMPLATE_KEY, LAMSA_TEMPLATE_KEY, NOOR_TEMPLATE_KEY, VOLT_TEMPLATE_KEY, DAR_TEMPLATE_KEY] as const;
+export const READY_TEMPLATE_KEYS = [SOUQ_TEMPLATE_KEY, LAMSA_TEMPLATE_KEY, NOOR_TEMPLATE_KEY, VOLT_TEMPLATE_KEY, DAR_TEMPLATE_KEY, PULSE_TEMPLATE_KEY, LITTLE_TEMPLATE_KEY] as const;
 
 export function isReadyTemplateKey(key: string): boolean {
   return (READY_TEMPLATE_KEYS as readonly string[]).includes(key);
@@ -67,6 +67,8 @@ export function templatePreviewPath(key: string): string | null {
   if (isNoorTemplate(key)) return "/preview/noor";
   if (isVoltTemplate(key)) return "/preview/volt";
   if (isDarTemplate(key)) return "/preview/dar";
+  if (isPulseTemplate(key)) return "/preview/pulse";
+  if (isLittleTemplate(key)) return "/preview/little";
   return null;
 }
 
@@ -156,7 +158,7 @@ export const TEMPLATES: TemplateMeta[] = [
   {
     key: LITTLE_TEMPLATE_KEY,
     name: "LITTLE",
-    category: "Kids",
+    category: "Baby",
     categoryKey: "kids",
     language: "ar",
     direction: "rtl",
@@ -223,16 +225,16 @@ export const TEMPLATES: TemplateMeta[] = [
     language: "ar",
     direction: "rtl",
     description:
-      "VOLT — قالب عربي داكن وعصري للإلكترونيات والأجهزة والإكسسوارات. هوية تقنية جريئة، بطاقات مواصفات، صفحة منتج بخيارات ديناميكية وعروض كمية ونموذج COD مدمج، وتجربة موبايل سريعة.",
+      "VOLT — قالب عربي مشرق وعصري للإلكترونيات والأجهزة والإكسسوارات. هوية تقنية نظيفة باللون الأزرق والتركواز، بطاقات مواصفات واضحة، صفحة منتج بخيارات ديناميكية وعروض كمية ونموذج COD مدمج.",
     websiteTypes: ["ecommerce"],
     screenshotUrl: "/images/templates/volt-v1.svg",
     previewMobileUrl: "/images/templates/volt-v1-mobile.svg",
     badges: ["Arabic-first", "RTL", "Tech", "COD", "Mobile-first"],
     highlights: { dynamicVariants: true, multiSelectOptions: true, quantityOffers: true, codForm: true, rtl: true },
     theme: {
-      primaryColor: "#05070B",
-      secondaryColor: "#22D3EE",
-      backgroundColor: "#05070B",
+      primaryColor: "#4C6FFF",
+      secondaryColor: "#2EC4B6",
+      backgroundColor: "#F7FAFF",
       typography: "bold",
       buttonShape: "rounded",
     },
