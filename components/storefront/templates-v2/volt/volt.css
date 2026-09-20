@@ -1,0 +1,28 @@
+/* VOLT — Arabic-first electronics / gadgets storefront. */
+.volt-root{background:var(--volt-bg);color:var(--volt-ink);font-family:"Tajawal","Segoe UI",Tahoma,system-ui,sans-serif;overflow-x:clip}
+.volt-root *{box-sizing:border-box}.volt-root button,.volt-root input,.volt-root select,.volt-root textarea{font:inherit}
+.volt-container{width:100%;max-width:1240px;margin-inline:auto;padding-inline:16px}
+.volt-grid-bg{background-image:linear-gradient(rgba(34,211,238,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.045) 1px,transparent 1px);background-size:28px 28px}
+.volt-panel{border:1px solid var(--volt-border);background:linear-gradient(180deg,#0d1420,#090d14);border-radius:18px;box-shadow:0 18px 60px rgba(0,0,0,.28)}
+.volt-title{font-weight:900;letter-spacing:-.02em;line-height:1.28}
+.volt-kicker{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--volt-cyan)}
+.volt-btn{display:inline-flex;min-height:48px;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:0 20px;background:var(--volt-cyan);color:#041017;font-weight:900;transition:.2s}
+.volt-btn:hover{background:var(--volt-cyan-2);transform:translateY(-1px)}
+.volt-btn-outline{display:inline-flex;min-height:48px;align-items:center;justify-content:center;border:1px solid var(--volt-border);border-radius:12px;padding:0 20px;color:var(--volt-ink);font-weight:800;background:#0b1018}
+.volt-product{border:1px solid var(--volt-border);background:var(--volt-surface);border-radius:16px;overflow:hidden;transition:transform .2s,border-color .2s,box-shadow .2s}
+.volt-product:hover{transform:translateY(-3px);border-color:rgba(34,211,238,.55);box-shadow:0 18px 45px rgba(0,0,0,.3)}
+.volt-badge{display:inline-flex;align-items:center;border:1px solid rgba(34,211,238,.28);background:rgba(34,211,238,.08);color:var(--volt-cyan);border-radius:999px;padding:5px 9px;font-size:10px;font-weight:900}
+.volt-section{padding-block:52px}.volt-section-head{margin-bottom:24px;display:flex;align-items:end;justify-content:space-between;gap:16px}
+.volt-root a:focus-visible,.volt-root button:focus-visible,.volt-root input:focus-visible,.volt-root select:focus-visible{outline:2px solid var(--volt-cyan);outline-offset:3px}
+.volt-order-form .souq-card{border-color:var(--volt-border)!important;background:var(--volt-surface)!important;color:var(--volt-ink)!important;box-shadow:none!important}
+.volt-order-form .souq-label{color:#cbd5e1!important}.volt-order-form .souq-input{border-color:var(--volt-border)!important;background:#070b11!important;color:#fff!important}
+.volt-order-form .souq-input:focus{border-color:var(--volt-cyan)!important;box-shadow:0 0 0 3px rgba(34,211,238,.12)!important}
+.volt-order-form button[type="submit"]{background:var(--volt-cyan)!important;color:#031014!important;font-weight:900!important}
+.volt-order-form .souq-error{color:#f87171!important}
+.volt-root .souq-card{border-color:var(--volt-border);background:var(--volt-surface);color:var(--volt-ink)}
+.volt-root .souq-price{color:var(--volt-cyan)}
+.volt-root .souq-label{color:#cbd5e1}.volt-root .souq-input{border-color:var(--volt-border);background:#070b11;color:#fff}
+@media(min-width:640px){.volt-container{padding-inline:24px}.volt-section{padding-block:72px}}
+@media(min-width:1024px){.volt-container{padding-inline:32px}.volt-section{padding-block:88px}}
+@media(max-width:374px){.volt-container{padding-inline:12px}.volt-section{padding-block:42px}}
+@media(prefers-reduced-motion:reduce){.volt-root *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
