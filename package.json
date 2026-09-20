@@ -18,7 +18,8 @@
     "test:db": "node tests/integration/run.mjs",
     "db:local:setup": "bash scripts/local-db.sh setup",
     "db:local:migrate": "bash scripts/local-db.sh migrate",
-    "db:local:seed": "bash scripts/local-db.sh seed"
+    "db:local:seed": "bash scripts/local-db.sh seed",
+    "preview:souq": "FLEXIGO_PREVIEW=1 next dev -H 0.0.0.0"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -32,6 +33,9 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.3.3",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/node": "^26.6.1",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
@@ -39,6 +43,7 @@
     "embedded-postgres": "^18.4.0-beta.17",
     "eslint": "^9.30.0",
     "eslint-config-next": "16.3.5",
+    "jsdom": "^30.1.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "vitest": "^5.0.1"

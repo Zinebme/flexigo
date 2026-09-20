@@ -64,7 +64,11 @@ export async function PUT(req: Request) {
     if (!store) throw err("NOT_FOUND", "Site introuvable");
 
     const current = (store as { settings: StoreSettings }).settings;
+    // Backward-compatible merge: contact/business behave exactly as before, and
+    // any other existing key (appearance, per-template settings such as the
+    // SOUQ `checkout` block) is preserved instead of being dropped on save.
     const next: StoreSettings = {
+      ...(current as unknown as Record<string, unknown>),
       contact: { ...current.contact, ...(input.contact ? {
         email: input.contact.email || null,
         phone: input.contact.phone || null,

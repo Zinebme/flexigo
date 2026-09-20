@@ -1,0 +1,389 @@
+/**
+ * SOUQ — template-scoped styles.
+ *
+ * Everything is namespaced under `.souq-root` (the SOUQ storefront shell) so it
+ * can never leak into another template. Uses CSS variables set from the store
+ * theme, transform/opacity-only animations, and honours prefers-reduced-motion.
+ * No external font request: system Arabic stack keeps the template fast on
+ * average mobile connections.
+ */
+
+.souq-root {
+  background-color: var(--souq-surface, #f8fafc);
+  color: var(--souq-ink, #1e293b);
+  font-family: "Noto Sans Arabic", "Noto Naskh Arabic", "Segoe UI", Tahoma, system-ui, -apple-system, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: clip;
+}
+
+.souq-root * {
+  scrollbar-width: thin;
+}
+
+/* Arabic numerals alignment inside prices */
+.souq-root .souq-price {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* --- layout helpers ------------------------------------------------------ */
+
+.souq-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+
+@media (min-width: 640px) {
+  .souq-container {
+    padding-inline: 24px;
+  }
+}
+
+/* Edge-to-edge horizontal scrollers on mobile */
+.souq-scroll-x {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
+  scrollbar-width: none;
+}
+
+.souq-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+.souq-scroll-x > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+/* --- cards --------------------------------------------------------------- */
+
+.souq-card {
+  background: var(--souq-card, #ffffff);
+  border: 1px solid var(--souq-border, #e2e8f0);
+  border-radius: var(--souq-radius-card, 18px);
+  box-shadow: 0 1px 2px rgb(15 42 71 / 0.04);
+}
+
+.souq-hover-lift {
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease,
+    border-color 220ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .souq-hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 30px -18px rgb(15 42 71 / 0.35);
+    border-color: color-mix(in srgb, var(--souq-primary, #0f2a47) 22%, #e2e8f0);
+  }
+}
+
+.souq-zoom {
+  transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .souq-zoom-parent:hover .souq-zoom {
+    transform: scale(1.06);
+  }
+}
+
+/* --- buttons ------------------------------------------------------------- */
+
+.souq-press {
+  transition:
+    transform 140ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.souq-press:active {
+  transform: scale(0.975);
+}
+
+/* --- entry animations (transform/opacity only) --------------------------- */
+
+@keyframes souqFadeUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes souqScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.965);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes souqSlideDown {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.souq-anim-up {
+  animation: souqFadeUp 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.souq-anim-scale {
+  animation: souqScaleIn 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.souq-anim-down {
+  animation: souqSlideDown 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.souq-delay-1 {
+  animation-delay: 90ms;
+}
+.souq-delay-2 {
+  animation-delay: 180ms;
+}
+.souq-delay-3 {
+  animation-delay: 270ms;
+}
+
+/* --- drawers / overlays -------------------------------------------------- */
+
+@keyframes souqDrawerIn {
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes souqDrawerInLtr {
+  from {
+    transform: translate3d(-100%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.souq-drawer-rtl {
+  animation: souqDrawerIn 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.souq-drawer-ltr {
+  animation: souqDrawerInLtr 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.souq-backdrop {
+  animation: souqFade 180ms ease both;
+}
+
+@keyframes souqFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* --- sticky mobile CTA --------------------------------------------------- */
+
+.souq-sticky-cta {
+  transition:
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 200ms ease;
+}
+
+.souq-sticky-cta[data-hidden="true"] {
+  transform: translate3d(0, 115%, 0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* --- accordions (details/summary: zero JS) ------------------------------- */
+
+.souq-faq-item > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.souq-faq-item > summary::-webkit-details-marker {
+  display: none;
+}
+
+.souq-faq-item .souq-faq-chevron {
+  transition: transform 220ms ease;
+}
+
+.souq-faq-item[open] .souq-faq-chevron {
+  transform: rotate(180deg);
+}
+
+.souq-faq-answer {
+  animation: souqFade 260ms ease both;
+}
+
+/* --- focus visibility (accessibility) ----------------------------------- */
+
+.souq-root :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--souq-accent, #f59e0b);
+  outline-offset: 2px;
+}
+
+/* --- skeleton ------------------------------------------------------------ */
+
+@keyframes souqShimmer {
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.souq-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #eef2f7;
+}
+
+.souq-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.65), transparent);
+  animation: souqShimmer 1.4s infinite;
+}
+
+/* --- form controls (COD form, search, quantity stepper) ------------------ */
+
+.souq-shell {
+  min-height: 100vh;
+  background-color: var(--souq-surface, #f8fafc);
+}
+
+.souq-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--souq-ink, #1e293b);
+  margin-bottom: 6px;
+}
+
+.souq-input {
+  width: 100%;
+  border: 1.5px solid var(--souq-border, #e2e8f0);
+  border-radius: var(--souq-radius-control, 14px);
+  background: #ffffff;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--souq-ink, #1e293b);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.souq-input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.souq-input:focus {
+  border-color: var(--souq-primary, #0f2a47);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--souq-primary, #0f2a47) 14%, transparent);
+  outline: none;
+}
+
+.souq-input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* Error state: used together with aria-invalid on the control */
+.souq-input[aria-invalid="true"] {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.souq-input[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px rgb(220 38 38 / 0.14);
+}
+
+select.souq-input {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #64748b 50%),
+    linear-gradient(135deg, #64748b 50%, transparent 50%);
+  background-position:
+    calc(100% - 19px) calc(50% - 2px),
+    calc(100% - 14px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-inline-end: 36px;
+}
+
+[dir="rtl"] select.souq-input {
+  background-position:
+    19px calc(50% - 2px),
+    14px calc(50% - 2px);
+  padding-inline-end: 14px;
+  padding-inline-start: 36px;
+}
+
+.souq-help {
+  margin-top: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--souq-muted, #64748b);
+}
+
+.souq-error {
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+/* --- reduced motion ----------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .souq-root *,
+  .souq-root *::before,
+  .souq-root *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .souq-anim-up,
+  .souq-anim-scale,
+  .souq-anim-down,
+  .souq-drawer-rtl,
+  .souq-drawer-ltr {
+    opacity: 1;
+    transform: none;
+  }
+}

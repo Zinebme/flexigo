@@ -16,10 +16,38 @@ export default async function AdminTemplatesPage() {
 
   return (
     <>
-      <PageHeader title="Templates" subtitle="4 modèles visuellement distincts — pas de simples recolorations." />
+      <PageHeader title="Templates" subtitle="Galerie des modèles storefront — aperçus desktop + mobile, identités visuelles distinctes." />
       <div className="grid gap-4 md:grid-cols-2">
         {TEMPLATES.map((tpl) => (
-          <Card key={tpl.key} className="p-5">
+          <Card key={tpl.key} className="overflow-hidden p-0">
+            {tpl.screenshotUrl ? (
+              <div className="relative flex items-start gap-3 border-b border-slate-100 bg-slate-50 p-3">
+                {/* Desktop preview */}
+                {/* eslint-disable-next-line @next/next/no-img-element -- static template previews from /public */}
+                <img
+                  src={tpl.screenshotUrl}
+                  alt={`Aperçu ${tpl.name}`}
+                  className="h-32 w-full max-w-[320px] flex-1 rounded-lg border border-slate-200 bg-white object-cover object-top"
+                  loading="lazy"
+                />
+                {/* Mobile preview (when the template provides one) */}
+                {tpl.previewMobileUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- static template previews from /public
+                  <img
+                    src={tpl.previewMobileUrl}
+                    alt={`Aperçu mobile ${tpl.name}`}
+                    className="hidden h-32 w-[80px] shrink-0 rounded-lg border border-slate-200 bg-white object-cover object-top sm:block"
+                    loading="lazy"
+                  />
+                ) : null}
+                {tpl.direction === "rtl" ? (
+                  <span className="absolute bottom-4 start-5 rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-bold text-white">
+                    RTL — العربية
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-xl" style={{ background: tpl.theme.primaryColor }} />
@@ -42,6 +70,7 @@ export default async function AdminTemplatesPage() {
             </div>
             <div className="mt-4 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
               Sections par défaut générées via <code className="font-mono">defaultHomeSections()</code> — bannières 1600×700 desktop / 800×1000 mobile recommandées.
+            </div>
             </div>
           </Card>
         ))}

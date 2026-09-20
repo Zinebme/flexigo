@@ -19,6 +19,8 @@ import { formatDA } from "../../lib/utils";
 import type { Section } from "../../lib/sections/definitions";
 import type { StorefrontData } from "../../lib/storefront/data";
 import { StorefrontImage } from "./image";
+import { SouqSection } from "./templates-v2/souq/souq-sections";
+import { isSouqTemplate } from "../../lib/templates/souq";
 
 export function safeHref(link: string | null | undefined, base: string): string {
   if (!link) return base;
@@ -329,10 +331,25 @@ export function ProductCard({ p, base, orderLabel, tpl }: { p: ProductLite; base
 }
 
 // Main renderer
-export async function RenderSection({ data, section }: { data: StorefrontData; section: Section }) {
+export async function RenderSection({
+  data,
+  section,
+  index = 0,
+}: {
+  data: StorefrontData;
+  section: Section;
+  /** Optional position on the page (SOUQ uses it for unique anchor ids). */
+  index?: number;
+}) {
   const base = `/s/${data.slug}`;
   const s = section;
   const tpl = data.template_key ?? "market";
+
+  // SOUQ (souq-v1 / souq) renders its own section set. Additive branch: the
+  // historical template switches below are left byte-for-byte untouched.
+  if (isSouqTemplate(tpl)) {
+    return <SouqSection data={data} section={s} index={index} />;
+  }
 
   const elegance = tpl === "elegance" || tpl === "fashion-luxury";
   const glow = tpl === "glow";

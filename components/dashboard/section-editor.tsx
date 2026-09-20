@@ -30,6 +30,10 @@ const FIELDS: Record<SectionType, FieldSpec[]> = {
     { key: "title", label: "Titre", kind: "text" },
     { key: "subtitle", label: "Sous-titre", kind: "text" },
     { key: "image", label: "Image", kind: "image" },
+    // Optional additions (used by the SOUQ template; ignored by the others).
+    { key: "mobile_image", label: "Image mobile (optionnel)", kind: "image" },
+    { key: "badge", label: "Badge (optionnel)", kind: "text" },
+    { key: "promo_text", label: "Texte promo (optionnel)", kind: "text" },
     { key: "button_text", label: "Texte du bouton", kind: "text" },
     { key: "button_link", label: "Lien du bouton", kind: "link" },
     { key: "alignment", label: "Alignement", kind: "alignment" },

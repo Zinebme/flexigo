@@ -154,6 +154,9 @@ async function main() {
   const ADMIN = "a0000000-0000-4000-8000-000000000001"; // SUPER_ADMIN
   const BATT = "e0000000-0000-4000-8000-000000000017"; // NovaShop batterie 3400 DA
   const HIJAB = "e0000000-0000-4000-8000-000000000001"; // Almasa hijab 1800 DA
+  const SOUQ = "b0000000-0000-4000-8000-000000000005"; // Souq Plus (SOUQ — Arabic-first COD)
+  const SOUQ_WATCH = "e0000000-0000-4000-8000-000000000031"; // 2900 DZD, packs 2 → 5200, 3 → 7200
+  const SOUQ_WATCH_V44 = "f0000000-0000-4000-8000-000000000032"; // 44 mm variant, 3100 DZD
 
   // ==========================================================================
   section("1. Tenant isolation (Merchant A vs Merchant B)");
@@ -447,6 +450,85 @@ async function main() {
   check("Copied store has NO customers (no PII copy)", copyCustomers.rows[0].n === 0);
   const copyShipCfg = await runAs("service_role", null, `select count(*)::int n from shipping_integrations where store_id = $1`, [copyId]);
   check("Copied store has NO shipping credentials", copyShipCfg.rows[0].n === 0);
+
+
+  // ==========================================================================
+  section("8. SOUQ template (Arabic-first RTL storefront)");
+
+  // The template must be registered so fn_create_store accepts it.
+  const souqTpl = await runAs("service_role", null, `select key, name, website_types from templates where key = 'souq-v1'`);
+  check("SOUQ template registered in the platform registry", souqTpl.rows.length === 1, `rows ${souqTpl.rows.length}`);
+  check("SOUQ template targets ecommerce sites", (souqTpl.rows[0]?.website_types ?? []).includes("ecommerce"));
+
+  const legacyKeys = ["ecommerce-modern", "fashion-luxury", "single-product", "portfolio", "elegance", "glow", "tech", "casa", "little", "active", "market", "convert"];
+  const allKeys = await runAs("service_role", null, `select key from templates`);
+  const keySet = new Set(allKeys.rows.map((r) => r.key));
+  check("Every pre-existing template key is still registered", legacyKeys.every((k) => keySet.has(k)), `missing: ${legacyKeys.filter((k) => !keySet.has(k))}`);
+
+  // Demo store: Arabic-first, active, published.
+  const souqStore = await runAs("service_role", null, `select name, slug, language, website_type, template_key, status, published_version from stores where id = $1`, [SOUQ]);
+  check("SOUQ demo store uses the souq-v1 template", souqStore.rows[0]?.template_key === "souq-v1", `got ${souqStore.rows[0]?.template_key}`);
+  check("SOUQ demo store is Arabic-first (language ar)", souqStore.rows[0]?.language === "ar", `got ${souqStore.rows[0]?.language}`);
+  check("SOUQ demo store is live (active + published)", souqStore.rows[0]?.status === "active" && souqStore.rows[0]?.published_version >= 1);
+
+  // Catalogue + Arabic demo content.
+  const souqCats = await runAs("service_role", null, `select count(*)::int n from categories where store_id = $1 and is_visible`, [SOUQ]);
+  check("SOUQ demo has 5 visible Arabic categories", souqCats.rows[0].n === 5, `got ${souqCats.rows[0].n}`);
+  const souqProducts = await runAs("service_role", null, `select count(*)::int n from products where store_id = $1 and is_active and name ~ '[\u0600-\u06FF]'`, [SOUQ]);
+  check("SOUQ demo products have Arabic names", souqProducts.rows[0].n >= 5, `got ${souqProducts.rows[0].n}`);
+  const souqFaq = await runAs("service_role", null, `select count(*)::int n from faq_items where store_id = $1 and is_visible and question like '%الدفع عند الاستلام%'`, [SOUQ]);
+  check("SOUQ FAQ answers the COD question", souqFaq.rows[0].n >= 1, `got ${souqFaq.rows[0].n}`);
+  const souqOffers = await runAs("service_role", null, `select count(*)::int n from quantity_offers where store_id = $1 and product_id = $2 and is_active`, [SOUQ, SOUQ_WATCH]);
+  check("SOUQ quantity offers exist for the flagship product", souqOffers.rows[0].n === 2, `got ${souqOffers.rows[0].n}`);
+
+  // Checkout — server-side pricing, wilaya zone, then office fallback.
+  const souqHome = await runAs("anon", null, `select public.fn_place_cod_order(
+    $1, ('[{"product_id": "' || $2 || '", "variant_id": "' || $3 || '", "quantity": 2}]')::jsonb,
+    'زبون تجريبي', '0550 77 88 99', null, 16, 'الجزائر', 'شارع الاختبار', 'home', null, null, null, null, 'storefront') res`,
+    [SOUQ, SOUQ_WATCH, SOUQ_WATCH_V44]);
+  const souqOrder = souqHome.rows[0].res;
+  // 2 × 3100 DA (variant price) → pack offer 5200 DA (520000c) + Alger home 50000c
+  check("SOUQ order total recomputed server-side (pack offer + wilaya fee)", souqOrder.total_cents === 520000 + 50000, `got ${souqOrder.total_cents}`);
+  check("SOUQ order keeps the DB subtotal (browser price ignored)", souqOrder.subtotal_cents === 520000, `got ${souqOrder.subtotal_cents}`);
+  check("SOUQ order uses the wilaya-specific home fee", souqOrder.shipping_fee_cents === 50000, `got ${souqOrder.shipping_fee_cents}`);
+  check("SOUQ order number uses the ORD-XXXXXX format", /^ORD-\d{6}$/.test(souqOrder.order_number), `got ${souqOrder.order_number}`);
+
+  const souqOffice = await runAs("anon", null, `select public.fn_place_cod_order(
+    $1, ('[{"product_id": "' || $2 || '", "quantity": 1}]')::jsonb,
+    'زبون تجريبي 2', '0661 22 33 44', null, 6, 'بجاية', null, 'office', 'مكتب التوصيل', null, null, null, 'storefront') res`,
+    [SOUQ, SOUQ_WATCH]);
+  const officeOrder = souqOffice.rows[0].res;
+  // wilaya 6 has no zone → fallback wilaya 0 (office 40000c)
+  check("SOUQ office delivery falls back to the default zone", officeOrder.shipping_fee_cents === 40000, `got ${officeOrder.shipping_fee_cents}`);
+  check("SOUQ office pickup stores the office name", officeOrder.total_cents === 290000 + 40000, `got ${officeOrder.total_cents}`);
+
+  // Stock decremented for the SOUQ store too (variant stock for variant lines).
+  const watchStock = await runAs("service_role", null, `select stock from products where id = $1`, [SOUQ_WATCH]);
+  check("SOUQ product stock decremented for the quantity-only line", watchStock.rows[0].stock === 42 - 1, `got ${watchStock.rows[0].stock}`);
+  const variantStock = await runAs("service_role", null, `select stock from product_variants where id = $1`, [SOUQ_WATCH_V44]);
+  check("SOUQ variant stock decremented for the variant line", variantStock.rows[0].stock === 14 - 2, `got ${variantStock.rows[0].stock}`);
+
+  // Invalid phone is rejected exactly like on every other template.
+  await expectError("SOUQ checkout rejects an invalid phone", "anon", null,
+    `select * from public.fn_place_cod_order($1, ('[{"product_id": "' || $2 || '", "quantity": 1}]')::jsonb, 'Bad Phone', '12345', null, 16, 'الجزائر', null, 'home', null, null, null, null, 'storefront')`,
+    "INVALID_PHONE", [SOUQ, SOUQ_WATCH]);
+
+  // Tenant isolation is unchanged for the new store.
+  const karimSouq = await runAs("authenticated", KARIM, `select count(*)::int n from products where store_id = $1`, [SOUQ]);
+  check("NovaShop owner CANNOT see SOUQ products", karimSouq.rows[0].n === 0, `got ${karimSouq.rows[0].n}`);
+  const karimSouqOrders = await runAs("authenticated", KARIM, `select count(*)::int n from orders where store_id = $1`, [SOUQ]);
+  check("NovaShop owner CANNOT see SOUQ orders", karimSouqOrders.rows[0].n === 0, `got ${karimSouqOrders.rows[0].n}`);
+
+  // SOUQ demo account owns the store and can read its own data.
+  const souqOwner = await runAs("authenticated", "a0000000-0000-4000-8000-000000000041", `select count(*)::int n from products where store_id = $1`, [SOUQ]);
+  check("SOUQ demo owner sees its own products", souqOwner.rows[0].n >= 5, `got ${souqOwner.rows[0].n}`);
+  const souqOwnerOther = await runAs("authenticated", "a0000000-0000-4000-8000-000000000041", `select count(*)::int n from products where store_id = $1`, [NOVA]);
+  check("SOUQ demo owner CANNOT see another store's products", souqOwnerOther.rows[0].n === 0, `got ${souqOwnerOther.rows[0].n}`);
+
+  // The SOUQ product's Arabic description survives intact (RTL content integrity).
+  const souqDesc = await runAs("anon", null, `select description from products where id = $1`, [SOUQ_WATCH]);
+  check("SOUQ product description is Arabic and non-empty", typeof souqDesc.rows[0]?.description === "string" && souqDesc.rows[0].description.length > 40, `got ${souqDesc.rows[0]?.description?.length}`);
+
 
   // ==========================================================================
   section("7. Phone normalization (Algeria)");

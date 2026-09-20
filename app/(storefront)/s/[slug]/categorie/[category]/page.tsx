@@ -4,6 +4,8 @@ import { getAnonSupabase } from "../../../../../../lib/supabase/anon";
 import { getStorefrontData } from "../../../../../../lib/storefront/data";
 import { loadCatalog } from "../../../../../../lib/storefront/catalog";
 import { ShopBrowser } from "../../../../../../components/storefront/shop-browser";
+import { SouqCategoryPage } from "../../../../../../components/storefront/templates-v2/souq/souq-shop-page";
+import { isSouqTemplate } from "../../../../../../lib/templates/souq";
 
 export const dynamic = "force-dynamic";
 
@@ -38,12 +40,22 @@ export default async function CategoryPage({
   const anon = getAnonSupabase();
   const { data: cat } = await anon
     .from("categories")
-    .select("id, name, description")
+    .select("id, name, slug, description")
     .eq("store_id", data.id)
     .eq("slug", category)
     .eq("is_visible", true)
     .maybeSingle();
   if (!cat) notFound();
+
+  // SOUQ storefront: dedicated RTL category page.
+  if (isSouqTemplate(data.template_key)) {
+    return (
+      <SouqCategoryPage
+        data={data}
+        category={{ id: cat.id, name: cat.name, slug: cat.slug ?? category, description: cat.description ?? null }}
+      />
+    );
+  }
 
   const { products, categories } = await loadCatalog(data.id);
   const inCategory = products.filter((p) => p.category_id === cat.id);

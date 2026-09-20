@@ -1,8 +1,8 @@
 -- ===========================================================================
 -- FlexiGo — demo seed (development only)
 --
--- Creates 4 demo stores with realistic data so every template can be
--- demonstrated immediately. All data is FAKE (no real persons).
+-- Creates 5 demo stores with realistic data so every template can be
+-- demonstrated immediately (the 5th, سوق بلس, showcases SOUQ). All data is FAKE.
 --
 -- Demo accounts (password for ALL of them:  Flexigo!2026demo)
 --   Super admin : admin@flexigo.dz
@@ -12,6 +12,7 @@
 --   NovaShop (editor)     : amine@novashop.demo
 --   PureSkin (owner)      : lina.merabet@demo.dz
 --   Cabinet Horizon (owner): amel.bouchama@demo.dz
+--   Souq Plus — SOUQ (owner)  : yasmine.kaci@souqplus.demo
 --
 -- ⚠️ Never run this seed in production.
 -- ===========================================================================
@@ -455,6 +456,180 @@ insert into public.pages (store_id, key, title, content) values
   ('b0000000-0000-4000-8000-000000000004', 'legal-terms', 'Conditions générales', '{"sections": []}'),
   ('b0000000-0000-4000-8000-000000000004', 'legal-privacy', 'Confidentialité', '{"sections": []}')
 on conflict (store_id, key) do nothing;
+
+-- ===========================================================================
+-- SOUQ — demo store (Arabic-first COD template, key `souq-v1`)
+-- All content is generic and fictional: no real brands, no lorem ipsum.
+-- ===========================================================================
+
+insert into auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data) values
+  ('a0000000-0000-4000-8000-000000000041', 'yasmine.kaci@souqplus.demo', crypt('Flexigo!2026demo', gen_salt('bf')), now(), '{"full_name": "Yasmine Kaci"}'::jsonb)
+on conflict (id) do nothing;
+
+insert into auth.identities (id, user_id, provider, provider_id) values
+  ('email-' || 'a0000000-0000-4000-8000-000000000041', 'a0000000-0000-4000-8000-000000000041', 'email', 'a0000000-0000-4000-8000-000000000041')
+on conflict (id) do nothing;
+
+insert into public.profiles (id, full_name, email, is_verified, last_login_at) values
+  ('a0000000-0000-4000-8000-000000000041', 'Yasmine Kaci', 'yasmine.kaci@souqplus.demo', true, now() - interval '6 hours')
+on conflict (id) do nothing;
+
+insert into public.organizations (id, name, owner_user_id, internal_notes, status, created_by) values
+  ('c0000000-0000-4000-8000-000000000005', 'Souq Plus', 'a0000000-0000-4000-8000-000000000041', 'Demo SOUQ — boutique generaliste arabe, COD 58 wilayas.', 'active', 'a0000000-0000-4000-8000-000000000001')
+on conflict (id) do nothing;
+
+insert into public.stores (id, organization_id, name, slug, website_type, template_key, language, currency, status, settings, published_version, created_by) values
+  ('b0000000-0000-4000-8000-000000000005', 'c0000000-0000-4000-8000-000000000005', 'سوق بلس', 'souq-plus', 'ecommerce', 'souq-v1', 'ar', 'DZD', 'active',
+   '{"contact":{"email":"contact@souq-plus.dz","phone":"0550 44 55 66","whatsapp":"https://wa.me/213550445566","instagram":"https://instagram.com/souqplus.dz","facebook":"https://facebook.com/souqplusdz","tiktok":null,"address":"شارع ديدوش مراد، الجزائر العاصمة"},"business":{"cod_enabled":true,"reviews_enabled":true,"faq_enabled":true,"allow_negative_stock":false,"max_items_per_order":10,"office_delivery_enabled":true,"accent_color":"#f59e0b"}}'::jsonb,
+   1, 'a0000000-0000-4000-8000-000000000041')
+on conflict (id) do nothing;
+
+insert into public.store_members (store_id, user_id, role, status, invited_by) values
+  ('b0000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000041', 'OWNER', 'active', 'a0000000-0000-4000-8000-000000000001')
+on conflict (store_id, user_id) do nothing;
+
+insert into public.themes (store_id, logo_url, favicon_url, primary_color, secondary_color, background_color, typography, button_shape, announcement) values
+  ('b0000000-0000-4000-8000-000000000005', 'https://picsum.photos/seed/souqplus-logo/400/400', null, '#0f2a47', '#f59e0b', '#f8fafc', 'modern', 'rounded', 'توصيل إلى 58 ولاية • الدفع عند الاستلام')
+on conflict (store_id) do update set
+  logo_url = excluded.logo_url, primary_color = excluded.primary_color, secondary_color = excluded.secondary_color,
+  background_color = excluded.background_color, typography = excluded.typography, button_shape = excluded.button_shape,
+  announcement = excluded.announcement;
+
+-- --- categories (Arabic) ---------------------------------------------------
+insert into public.categories (id, store_id, name, slug, description, image_url, position, is_visible) values
+  ('d0000000-0000-4000-8000-000000000031', 'b0000000-0000-4000-8000-000000000005', 'إلكترونيات', 'electronics', 'أجهزة وملحقات إلكترونية عملية للاستعمال اليومي.', 'https://picsum.photos/seed/souq-cat-tech/600/400', 1, true),
+  ('d0000000-0000-4000-8000-000000000032', 'b0000000-0000-4000-8000-000000000005', 'المنزل', 'home', 'كل ما يجعل منزلك أسهل وأجمل.', 'https://picsum.photos/seed/souq-cat-home/600/400', 2, true),
+  ('d0000000-0000-4000-8000-000000000033', 'b0000000-0000-4000-8000-000000000005', 'المطبخ', 'kitchen', 'مستلزمات المطبخ والتنظيم.', 'https://picsum.photos/seed/souq-cat-kitchen/600/400', 3, true),
+  ('d0000000-0000-4000-8000-000000000034', 'b0000000-0000-4000-8000-000000000005', 'العناية', 'care', 'منتجات العناية الشخصية والراحة.', 'https://picsum.photos/seed/souq-cat-care/600/400', 4, true),
+  ('d0000000-0000-4000-8000-000000000035', 'b0000000-0000-4000-8000-000000000005', 'إكسسوارات', 'accessories', 'إكسسوارات صغيرة بأسعار مناسبة.', 'https://picsum.photos/seed/souq-cat-acc/600/400', 5, true)
+on conflict (id) do nothing;
+
+-- --- products (Arabic, DZD) -------------------------------------------------
+insert into public.products (id, store_id, category_id, name, slug, description, price_cents, compare_at_price_cents, sku, stock, low_stock_threshold, is_active, is_featured, position) values
+  ('e0000000-0000-4000-8000-000000000031', 'b0000000-0000-4000-8000-000000000005', 'd0000000-0000-4000-8000-000000000031', 'ساعة ذكية رياضية', 'saat-dhakiyya', 'ساعة ذكية بشاشة لمس كبيرة، تتبع النشاط ونبضات القلب، إشعارات المكالمات والرسائل.
+- بطارية تدوم حتى 7 أيام
+- مقاومة للماء والغبار
+- متوفرة بعدة ألوان ومقاسات', 290000, 390000, 'SQ-WAT-031', 42, 8, true, true, 1),
+  ('e0000000-0000-4000-8000-000000000032', 'b0000000-0000-4000-8000-000000000005', 'd0000000-0000-4000-8000-000000000031', 'سماعات لاسلكية', 'samaat-lasilkiyya', 'سماعات بلوتوث بصوت نقي ووضوح في المكالمات.
+- علبة شحن تدوم 24 ساعة
+- اتصال سريع ومستقر
+- مناسبة للرياضة والتنقل', 240000, 320000, 'SQ-EAR-032', 60, 10, true, true, 2),
+  ('e0000000-0000-4000-8000-000000000033', 'b0000000-0000-4000-8000-000000000005', 'd0000000-0000-4000-8000-000000000032', 'مصباح LED قابل للشحن', 'misbah-led', 'مصباح LED عملي للاستعمال اليومي وفي حالات انقطاع الكهرباء.
+- إضاءة قوية بثلاث مستويات
+- قابل للشحن عبر USB
+- خفيف وسهل الحمل', 190000, 250000, 'SQ-LED-033', 55, 10, true, true, 3),
+  ('e0000000-0000-4000-8000-000000000034', 'b0000000-0000-4000-8000-000000000005', 'd0000000-0000-4000-8000-000000000033', 'منظم مطبخ متعدد', 'munazzim-matbakh', 'منظم مطبخ يساعدك على ترتيب الأدوات والمؤن بسهولة.
+- خامات متينة سهلة التنظيف
+- مقاسات مناسبة للأرفف
+- توفير مساحة واضح', 150000, null, 'SQ-ORG-034', 70, 12, true, false, 4),
+  ('e0000000-0000-4000-8000-000000000035', 'b0000000-0000-4000-8000-000000000005', 'd0000000-0000-4000-8000-000000000032', 'جهاز تنظيف صغير', 'jihaz-tandhif', 'جهاز تنظيف صغير للزوايا والأسطح الضيقة.
+- قوة شفط مناسبة للاستعمال المنزلي
+- خفيف وسهل الاستعمال
+- يعمل بالشحن', 390000, 490000, 'SQ-CLN-035', 6, 8, true, true, 5),
+  ('e0000000-0000-4000-8000-000000000036', 'b0000000-0000-4000-8000-000000000005', 'd0000000-0000-4000-8000-000000000034', 'جهاز مساج محمول', 'jihaz-masaj', 'جهاز مساج صغير للراحة بعد يوم طويل.
+- سرعات متعددة
+- تصميم مريح للاستعمال
+- قابل للشحن', 230000, 280000, 'SQ-MSG-036', 30, 8, true, false, 6)
+on conflict (id) do nothing;
+
+insert into public.product_images (product_id, store_id, url, alt, position) values
+  ('e0000000-0000-4000-8000-000000000031', 'b0000000-0000-4000-8000-000000000005', 'https://picsum.photos/seed/souq-watch-1/800/800', 'ساعة ذكية رياضية', 0),
+  ('e0000000-0000-4000-8000-000000000031', 'b0000000-0000-4000-8000-000000000005', 'https://picsum.photos/seed/souq-watch-2/800/800', 'ساعة ذكية رياضية - من الجانب', 1),
+  ('e0000000-0000-4000-8000-000000000032', 'b0000000-0000-4000-8000-000000000005', 'https://picsum.photos/seed/souq-earbuds-1/800/800', 'سماعات لاسلكية', 0),
+  ('e0000000-0000-4000-8000-000000000032', 'b0000000-0000-4000-8000-000000000005', 'https://picsum.photos/seed/souq-earbuds-2/800/800', 'سماعات لاسلكية مع علبة الشحن', 1),
+  ('e0000000-0000-4000-8000-000000000033', 'b0000000-0000-4000-8000-000000000005', 'https://picsum.photos/seed/souq-lamp-1/800/800', 'مصباح LED قابل للشحن', 0),
+  ('e0000000-0000-4000-8000-000000000034', 'b0000000-0000-4000-8000-000000000005', 'https://picsum.photos/seed/souq-organizer-1/800/800', 'منظم مطبخ متعدد', 0),
+  ('e0000000-0000-4000-8000-000000000035', 'b0000000-0000-4000-8000-000000000005', 'https://picsum.photos/seed/souq-cleaner-1/800/800', 'جهاز تنظيف صغير', 0),
+  ('e0000000-0000-4000-8000-000000000036', 'b0000000-0000-4000-8000-000000000005', 'https://picsum.photos/seed/souq-massager-1/800/800', 'جهاز مساج محمول', 0)
+on conflict do nothing;
+
+-- --- variants (option groups are derived from the `options` keys) -----------
+insert into public.product_variants (id, product_id, name, options, price_cents, sku, stock, is_active, position) values
+  ('f0000000-0000-4000-8000-000000000031', 'e0000000-0000-4000-8000-000000000031', 'أسود / 40 ملم', '{"اللون": "أسود", "المقاس": "40 ملم"}'::jsonb, null, 'SQ-WAT-031-B40', 18, true, 1),
+  ('f0000000-0000-4000-8000-000000000032', 'e0000000-0000-4000-8000-000000000031', 'أسود / 44 ملم', '{"اللون": "أسود", "المقاس": "44 ملم"}'::jsonb, 310000, 'SQ-WAT-031-B44', 14, true, 2),
+  ('f0000000-0000-4000-8000-000000000033', 'e0000000-0000-4000-8000-000000000031', 'ذهبي / 44 ملم', '{"اللون": "ذهبي", "المقاس": "44 ملم"}'::jsonb, 320000, 'SQ-WAT-031-G44', 10, true, 3),
+  ('f0000000-0000-4000-8000-000000000034', 'e0000000-0000-4000-8000-000000000032', 'أبيض', '{"اللون": "أبيض"}'::jsonb, null, 'SQ-EAR-032-W', 35, true, 1),
+  ('f0000000-0000-4000-8000-000000000035', 'e0000000-0000-4000-8000-000000000032', 'أسود', '{"اللون": "أسود"}'::jsonb, null, 'SQ-EAR-032-B', 25, true, 2),
+  ('f0000000-0000-4000-8000-000000000036', 'e0000000-0000-4000-8000-000000000033', 'ضوء دافئ', '{"النوع": "ضوء دافئ"}'::jsonb, null, 'SQ-LED-033-W', 30, true, 1),
+  ('f0000000-0000-4000-8000-000000000037', 'e0000000-0000-4000-8000-000000000033', 'ضوء أبيض', '{"النوع": "ضوء أبيض"}'::jsonb, null, 'SQ-LED-033-C', 25, true, 2),
+  ('f0000000-0000-4000-8000-000000000038', 'e0000000-0000-4000-8000-000000000034', 'صغير', '{"المقاس": "صغير"}'::jsonb, null, 'SQ-ORG-034-S', 40, true, 1),
+  ('f0000000-0000-4000-8000-000000000039', 'e0000000-0000-4000-8000-000000000034', 'كبير', '{"المقاس": "كبير"}'::jsonb, 170000, 'SQ-ORG-034-L', 30, true, 2)
+on conflict (id) do nothing;
+
+-- --- quantity offers (COD packs) -------------------------------------------
+insert into public.quantity_offers (id, store_id, product_id, min_quantity, total_price_cents, label, is_active, position) values
+  ('e1000000-0000-4000-8000-000000000031', 'b0000000-0000-4000-8000-000000000005', 'e0000000-0000-4000-8000-000000000031', 2, 520000, 'قطعتان : 5 200 دج', true, 1),
+  ('e1000000-0000-4000-8000-000000000032', 'b0000000-0000-4000-8000-000000000005', 'e0000000-0000-4000-8000-000000000031', 3, 720000, '3 قطع : 7 200 دج', true, 2),
+  ('e1000000-0000-4000-8000-000000000033', 'b0000000-0000-4000-8000-000000000005', 'e0000000-0000-4000-8000-000000000032', 2, 440000, 'قطعتان : 4 400 دج', true, 1)
+on conflict (id) do nothing;
+
+-- --- shipping zones (wilaya 0 = fallback for every other wilaya) -----------
+insert into public.shipping_zones (store_id, wilaya_code, home_fee_cents, office_fee_cents, is_active) values
+  ('b0000000-0000-4000-8000-000000000005', 0, 70000, 40000, true),
+  ('b0000000-0000-4000-8000-000000000005', 16, 50000, 30000, true),
+  ('b0000000-0000-4000-8000-000000000005', 31, 60000, 35000, true),
+  ('b0000000-0000-4000-8000-000000000005', 25, 70000, 45000, true)
+on conflict (store_id, wilaya_code) do nothing;
+
+-- --- reviews (approved only; product reviews carry no fake verification) ---
+insert into public.reviews (store_id, product_id, customer_name, rating, title, body, is_approved, created_at) values
+  ('b0000000-0000-4000-8000-000000000005', 'e0000000-0000-4000-8000-000000000031', 'أ. ب.', 5, 'جودة ممتازة', 'الساعة وصلت بسرعة والبطارية تدوم فعلاً. أنصح بها.', true, now() - interval '5 days'),
+  ('b0000000-0000-4000-8000-000000000005', 'e0000000-0000-4000-8000-000000000031', 'م. ز.', 4, 'مناسبة للرياضة', 'خفيفة ومريحة، والتطبيق سهل الاستعمال.', true, now() - interval '11 days'),
+  ('b0000000-0000-4000-8000-000000000005', 'e0000000-0000-4000-8000-000000000032', 'س. ك.', 5, 'صوت واضح', 'السماعات أفضل مما توقعت، والمكالمات واضحة.', true, now() - interval '3 days'),
+  ('b0000000-0000-4000-8000-000000000005', 'e0000000-0000-4000-8000-000000000035', 'ه. ع.', 4, 'عملية جداً', 'تنظف الزوايا الصعبة، لكن الصوت عالٍ قليلاً.', true, now() - interval '8 days'),
+  ('b0000000-0000-4000-8000-000000000005', 'e0000000-0000-4000-8000-000000000033', 'ر. م.', 5, 'مفيد في انقطاع الكهرباء', 'الإضاءة قوية والشحن يدوم.', true, now() - interval '14 days'),
+  ('b0000000-0000-4000-8000-000000000005', null, 'ن. ح.', 5, 'خدمة جيدة', 'اتصلوا بي لتأكيد الطلب ووصل في الوقت المحدد.', true, now() - interval '6 days')
+on conflict do nothing;
+
+-- --- FAQ (Arabic) -----------------------------------------------------------
+insert into public.faq_items (store_id, question, answer, position, is_visible) values
+  ('b0000000-0000-4000-8000-000000000005', 'هل الدفع عند الاستلام متوفر؟', 'نعم، تدفع نقداً عند استلام طلبك من عامل التوصيل أو من مكتب التوصيل.', 1, true),
+  ('b0000000-0000-4000-8000-000000000005', 'كم تستغرق مدة التوصيل؟', 'بين 24 و 72 ساعة حسب الولاية، ويتم الاتصال بك لتأكيد الطلب قبل الإرسال.', 2, true),
+  ('b0000000-0000-4000-8000-000000000005', 'هل يمكنني اختيار التوصيل إلى المكتب؟', 'نعم، اختر «التوصيل إلى المكتب» في نموذج الطلب وحدد مكتب التوصيل القريب منك.', 3, true),
+  ('b0000000-0000-4000-8000-000000000005', 'كيف أتأكد من طلبي؟', 'نتصل بك هاتفياً بعد إرسال الطلب لتأكيد المعلومات والعنوان.', 4, true),
+  ('b0000000-0000-4000-8000-000000000005', 'هل أستطيع تغيير الكمية بعد الطلب؟', 'نعم، أخبرنا عند الاتصال بك وسنعدّل الطلب قبل الإرسال.', 5, true)
+on conflict do nothing;
+
+-- --- pages (Arabic content, published as v1) -------------------------------
+insert into public.pages (store_id, key, title, content) values
+  ('b0000000-0000-4000-8000-000000000005', 'home', 'الرئيسية', '{
+    "sections": [
+      {"id":"sq1","type":"hero","enabled":true,"title":"كل ما تحتاجه في مكان واحد","subtitle":"منتجات مختارة بعناية، أسعار مناسبة والدفع عند الاستلام.","badge":"عروض هذا الأسبوع","promo_text":"توصيل إلى 58 ولاية • الدفع عند الاستلام","image":"https://picsum.photos/seed/souq-hero/1600/1000","desktop_image":"https://picsum.photos/seed/souq-hero/1600/1000","mobile_image":"https://picsum.photos/seed/souq-hero-mobile/900/900","button_text":"تسوق الآن","button_link":"/boutique","alignment":"right"},
+      {"id":"sq2","type":"collections","enabled":true,"title":"تسوق حسب القسم","subtitle":"اختر القسم الذي يناسبك وابدأ التسوق.","category_id":null,"max_items":8},
+      {"id":"sq3","type":"products","enabled":true,"title":"الأكثر رواجاً","subtitle":"منتجات يطلبها زبائننا كل يوم.","source":"all","product_count":8},
+      {"id":"sq4","type":"offer","enabled":true,"title":"عروض محدودة","subtitle":"خصومات على كمية محدودة","text":"اطلب قطعتين أو ثلاث بسعر أقل — بدون رمز خصم."},
+      {"id":"sq5","type":"products","enabled":true,"title":"الأكثر مبيعاً","subtitle":"اختيار الزبائن الأكثر تكراراً.","source":"featured","product_count":6},
+      {"id":"sq6","type":"banner","enabled":true,"title":"توصيل سريع إلى باب منزلك","subtitle":"ادفع عند الاستلام في 58 ولاية — بدون أي مخاطرة.","desktop_image":"https://picsum.photos/seed/souq-banner/1600/700","mobile_image":"https://picsum.photos/seed/souq-banner-mobile/900/900","button_text":"اطلب الآن","button_link":"/boutique","alignment":"right","show_desktop":true,"show_mobile":true},
+      {"id":"sq7","type":"products","enabled":true,"title":"وصل حديثاً","subtitle":"أحدث ما أضفناه إلى المتجر.","source":"latest","product_count":8},
+      {"id":"sq8","type":"features","enabled":true,"title":"لماذا تختارنا؟","subtitle":"نهتم بتجربة الشراء من الطلب إلى الاستلام.","items":[{"title":"الدفع عند الاستلام","text":"لا تدفع أي دينار قبل أن تستلم طلبك وتتأكد منه."},{"title":"توصيل إلى 58 ولاية","text":"إلى المنزل أو إلى مكتب التوصيل القريب منك."},{"title":"طلب آمن","text":"بياناتك محفوظة ولا تُستعمل إلا لمعالجة طلبك."},{"title":"خدمة الزبائن","text":"نتصل بك لتأكيد الطلب ونجيب عن كل أسئلتك."}]},
+      {"id":"sq9","type":"reviews","enabled":true,"title":"آراء الزبائن","subtitle":"شهادات من زبائن طلبوا واستلموا."},
+      {"id":"sq10","type":"faq","enabled":true,"title":"الأسئلة الشائعة","subtitle":"كل ما تحتاج معرفته قبل الطلب.","max_items":6},
+      {"id":"sq11","type":"contact","enabled":true,"title":"تواصل معنا","text":"فريق سوق بلس جاهز لمساعدتك قبل الطلب وبعده.","show_phone":true,"show_whatsapp":true,"show_email":false}
+    ]}'),
+  ('b0000000-0000-4000-8000-000000000005', 'shop', 'المتجر', '{"sections": []}'),
+  ('b0000000-0000-4000-8000-000000000005', 'about', 'من نحن', '{
+    "sections": [
+      {"id":"sqa1","type":"hero","enabled":true,"title":"من نحن — سوق بلس","subtitle":"متجر جزائري يبيع منتجات مختارة بعناية مع الدفع عند الاستلام.","image":null,"alignment":"center"},
+      {"id":"sqa2","type":"features","enabled":true,"title":"التزاماتنا","subtitle":null,"items":[{"title":"منتجات مختارة","text":"نختبر المنتجات قبل عرضها في المتجر."},{"title":"أسعار واضحة","text":"السعر المعروض هو السعر النهائي بدون رسوم خفية."},{"title":"دعم بعد البيع","text":"نبقى على تواصل معك حتى بعد استلام الطلب."}]},
+      {"id":"sqa3","type":"contact","enabled":true,"title":"تواصل معنا","text":null,"show_phone":true,"show_whatsapp":true,"show_email":false}
+    ]}'),
+  ('b0000000-0000-4000-8000-000000000005', 'faq', 'الأسئلة الشائعة', '{
+    "sections": [
+      {"id":"sqf1","type":"hero","enabled":true,"title":"الأسئلة الشائعة","subtitle":"كل ما تحتاج معرفته قبل الطلب.","image":null,"alignment":"center"},
+      {"id":"sqf2","type":"faq","enabled":true,"title":"الأسئلة الشائعة","subtitle":null,"max_items":12}
+    ]}'),
+  ('b0000000-0000-4000-8000-000000000005', 'contact', 'تواصل معنا', '{
+    "sections": [
+      {"id":"sqc1","type":"hero","enabled":true,"title":"تواصل معنا","subtitle":"نجيب على استفساراتك بسرعة عبر الهاتف أو واتساب.","image":null,"alignment":"center"},
+      {"id":"sqc2","type":"contact","enabled":true,"title":"بيانات التواصل","text":null,"show_phone":true,"show_whatsapp":true,"show_email":true}
+    ]}'),
+  ('b0000000-0000-4000-8000-000000000005', 'legal-terms', 'الشروط العامة', '{"sections": []}'),
+  ('b0000000-0000-4000-8000-000000000005', 'legal-privacy', 'سياسة الخصوصية', '{"sections": []}')
+on conflict (store_id, key) do nothing;
+
+insert into public.whatsapp_integrations (store_id, is_active, phone, provider, status) values
+  ('b0000000-0000-4000-8000-000000000005', true, '0550 44 55 66', 'none', 'idle')
+on conflict (store_id) do nothing;
 
 -- publish v1 for all pages that have content
 -- Legal pages stay DRAFTS in the demo (merchant must publish them).

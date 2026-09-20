@@ -23,7 +23,7 @@ const PLATFORM_HOSTS = new Set(
 );
 
 /** Paths that always belong to the platform, never to a tenant. */
-const PLATFORM_PATHS = /^\/(admin|dashboard|api|login|register|auth)(\/|$)/;
+const PLATFORM_PATHS = /^\/(admin|dashboard|api|login|register|auth|preview)(\/|$)/;
 
 const STOREFRONT_CSP = [
   "default-src 'self'",
@@ -51,9 +51,27 @@ const DASHBOARD_CSP = [
   "object-src 'none'",
 ].join("; ");
 
+/**
+ * Preview harness (development only): the hosted preview embeds the app in a
+ * frame, so framing is allowed for that run instead of being denied.
+ */
+const STOREFRONT_CSP_PREVIEW = STOREFRONT_CSP.replace("frame-ancestors 'none'", "frame-ancestors *");
+
+function storefrontCsp(): string {
+  return process.env.FLEXIGO_PREVIEW === "1" ? STOREFRONT_CSP_PREVIEW : STOREFRONT_CSP;
+}
+
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const host = (request.headers.get("host") ?? "").toLowerCase();
   const { pathname } = request.nextUrl;
+
+  // Preview harness (development only, FLEXIGO_PREVIEW=1): opening the preview
+  // URL lands on the SOUQ demo storefront instead of the platform landing page.
+  if (process.env.FLEXIGO_PREVIEW === "1" && pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/s/souq-plus";
+    return NextResponse.redirect(url);
+  }
 
   // 1. Platform paths always pass through (dashboard, admin, api, auth).
   if (PLATFORM_PATHS.test(pathname) || pathname.startsWith("/_next") || host === "") {
@@ -67,14 +85,16 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   // 2. Already a /s/[slug] path on the platform host → pass through.
   if (pathname.startsWith("/s/")) {
     const res = NextResponse.next();
-    res.headers.set("Content-Security-Policy", STOREFRONT_CSP);
+    res.headers.set("Content-Security-Policy", storefrontCsp());
     return res;
   }
 
   // 3. Platform host root → platform landing (brand page).
   const isPlatformHost =
     PLATFORM_HOSTS.has(host) ||
-    (process.env.NODE_ENV === "development" && !host.includes("."));
+    (process.env.NODE_ENV === "development" && !host.includes(".")) ||
+    // Hosted dev preview domain, when the preview harness is enabled.
+    (process.env.FLEXIGO_PREVIEW === "1" && host.endsWith(".e2b.app"));
   if (isPlatformHost) {
     return NextResponse.next();
   }
@@ -92,7 +112,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   const url = request.nextUrl.clone();
   url.pathname = pathname === "/" ? `/s/${store.slug}` : `/s/${store.slug}${pathname}`;
   const res = NextResponse.rewrite(url);
-  res.headers.set("Content-Security-Policy", STOREFRONT_CSP);
+  res.headers.set("Content-Security-Policy", storefrontCsp());
   return res;
 }
 

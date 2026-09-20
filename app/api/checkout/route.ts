@@ -37,6 +37,12 @@ const checkoutBody = z.object({
   referrer: z.string().max(500).optional().or(z.literal("")).nullable(),
   // Honeypot — must remain empty for humans.
   website: z.string().max(200).optional().or(z.literal("")).nullable(),
+  /**
+   * Optional response locale (additive). Absent → historical French messages,
+   * so every existing caller keeps byte-identical behavior. SOUQ (Arabic-first)
+   * sends "ar" and receives Arabic messages instead of French ones.
+   */
+  locale: z.enum(["fr", "ar", "en"]).optional(),
 });
 
 /** Stable machine codes raised by fn_place_cod_order → French messages. */
@@ -55,6 +61,31 @@ const MESSAGES: Record<string, string> = {
   VARIANT_NOT_FOUND: "Cette variante n'est plus disponible.",
   OUT_OF_STOCK: "Stock insuffisant pour cette quantité.",
 };
+
+/** Same stable machine codes, Arabic wording (SOUQ storefront). */
+const MESSAGES_AR: Record<string, string> = {
+  STORE_NOT_FOUND: "هذا الموقع غير موجود.",
+  STORE_NOT_ACTIVE: "هذا الموقع لا يستقبل طلبات حالياً.",
+  COD_DISABLED: "الدفع عند الاستلام غير مفعّل في هذا المتجر.",
+  EMPTY_CART: "سلتك فارغة.",
+  TOO_MANY_LINES: "الحد الأقصى 10 منتجات في الطلب الواحد.",
+  INVALID_NAME: "يرجى إدخال الاسم واللقب.",
+  INVALID_COMMUNE: "يرجى إدخال البلدية.",
+  INVALID_PHONE: "يرجى إدخال رقم هاتف صحيح",
+  INVALID_MOBILE: "يرجى إدخال رقم هاتف محمول جزائري صحيح (05/06/07)",
+  INVALID_QUANTITY: "الكمية غير صحيحة.",
+  PRODUCT_NOT_FOUND: "هذا المنتج لم يعد متوفراً.",
+  VARIANT_NOT_FOUND: "هذه المواصفات لم تعد متوفرة.",
+  OUT_OF_STOCK: "هذا المنتج غير متوفر حالياً",
+};
+
+const GENERIC_AR = "حدث خطأ أثناء إرسال الطلب، حاول مرة أخرى";
+const VALIDATION_AR = "يرجى التحقق من المعلومات المدخلة";
+
+function messageFor(code: string, locale: string | undefined): string {
+  if (locale === "ar") return MESSAGES_AR[code] ?? GENERIC_AR;
+  return MESSAGES[code] ?? "Une erreur est survenue. Réessayez.";
+}
 
 async function detectDuplicate(service: ReturnType<typeof getAdminSupabase>, storeId: string, phone: string, lines: z.infer<typeof checkoutBody>["lines"]): Promise<boolean> {
   // Server-side check with the service client: the anon role cannot read
@@ -80,38 +111,44 @@ async function detectDuplicate(service: ReturnType<typeof getAdminSupabase>, sto
 export async function POST(req: NextRequest) {
   try {
     const raw = await req.json().catch(() => null);
+    const requestedLocale =
+      raw && typeof raw === "object" && "locale" in raw && (raw as { locale?: unknown }).locale === "ar" ? "ar" : undefined;
     const parsed = checkoutBody.safeParse(raw);
     if (!parsed.success) {
       const first = parsed.error.issues[0];
-      return Response.json({ ok: false, error: first?.message ?? "Demande invalide." }, { status: 400 });
+      return Response.json(
+        { ok: false, error: requestedLocale === "ar" ? VALIDATION_AR : first?.message ?? "Demande invalide." },
+        { status: 400 },
+      );
     }
     const body = parsed.data;
+    const locale = body.locale;
 
     // Rate limit per IP (anti-spam / anti-automation).
     const ip = clientIpFromHeaders(req.headers);
     const rl = hit(`checkout:${ip}`, 10, 10 * 60 * 1000);
     if (!rl.ok) {
       return Response.json(
-        { ok: false, error: "Trop de tentatives. Réessayez dans quelques minutes." },
+        { ok: false, error: locale === "ar" ? "تم إرسال عدة طلبات من نفس الجهاز، حاول بعد قليل" : "Trop de tentatives. Réessayez dans quelques minutes." },
         { status: 429, headers: { "Retry-After": String(rl.retryAfterMs / 1000) } },
       );
     }
 
     // Honeypot: bots fill the hidden field.
     if ((body.website ?? "").trim() !== "") {
-      return Response.json({ ok: false, error: "Demande invalide." }, { status: 400 });
+      return Response.json({ ok: false, error: locale === "ar" ? VALIDATION_AR : "Demande invalide." }, { status: 400 });
     }
 
     // Phone must normalize to a valid Algerian number.
     const normalized = normalizeDZPhone(body.phone);
     if (!normalized) {
-      return Response.json({ ok: false, error: MESSAGES.INVALID_PHONE }, { status: 400 });
+      return Response.json({ ok: false, error: messageFor("INVALID_PHONE", locale) }, { status: 400 });
     }
 
     // Store must exist and be active.
     const store = await resolveStoreBySlug(body.store_slug);
     if (!store || store.status !== "active") {
-      return Response.json({ ok: false, error: MESSAGES.STORE_NOT_ACTIVE }, { status: 400 });
+      return Response.json({ ok: false, error: messageFor("STORE_NOT_ACTIVE", locale) }, { status: 400 });
     }
 
     const anon = getAnonSupabase();
@@ -120,7 +157,13 @@ export async function POST(req: NextRequest) {
     const dup = await detectDuplicate(getAdminSupabase(), store.id, normalized, body.lines);
     if (dup) {
       return Response.json(
-        { ok: false, error: "Cette commande vient d'être enregistrée. Évitez d'envoyer le formulaire deux fois." },
+        {
+          ok: false,
+          error:
+            locale === "ar"
+              ? "تم تسجيل طلبك للتو، لا تكرر الإرسال"
+              : "Cette commande vient d'être enregistrée. Évitez d'envoyer le formulaire deux fois.",
+        },
         { status: 409 },
       );
     }
@@ -146,7 +189,7 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       const code = (String(error.message ?? "").split("\n")[0] ?? "").split(":")[0]?.trim() ?? "";
-      return Response.json({ ok: false, error: MESSAGES[code] ?? "Une erreur est survenue. Réessayez." }, { status: 400 });
+      return Response.json({ ok: false, error: messageFor(code, locale) }, { status: 400 });
     }
     const out = data as { order_id: string; order_number: string; subtotal_cents: number; shipping_fee_cents: number; total_cents: number; status: string };
 
@@ -158,7 +201,7 @@ export async function POST(req: NextRequest) {
           storeId: store.id,
           event: "new_order",
           payload: {
-            orderNumber: Number(out.order_number),
+            orderNumber: out.order_number,
             customerName: body.full_name,
             totalCents: out.total_cents,
             wilaya: String(body.wilaya_code),

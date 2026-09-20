@@ -48,7 +48,7 @@ export default async function StorefrontHome({
           Ce site est en cours de configuration.
         </div>
       ) : (
-        sections.map((section, i) => <RenderSection key={i} data={data} section={section} />)
+        sections.map((section, i) => <RenderSection key={i} data={data} section={section} index={i} />)
       )}
     </>
   );
