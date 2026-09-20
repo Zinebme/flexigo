@@ -19,7 +19,7 @@ const variants:SouqVariantInput[]=[
 const groups=buildOptionGroups(variants,null,[]);
 export default function VoltProductPreview(){
  return <div dir="rtl" className="volt-root min-h-screen volt-grid-bg" style={voltCssVars()}>
-  <div className="bg-[#030509] px-3 py-2 text-center text-[11px] font-bold text-[var(--volt-cyan)]">معاينة تفاعلية — الإرسال الحقيقي معطل</div>
+  <div className="bg-[var(--volt-blue)] px-3 py-2 text-center text-[11px] font-bold text-white">معاينة تفاعلية — الإرسال الحقيقي معطل</div>
   <VoltContainer className="py-6"><a href="/preview/volt" className="text-xs font-bold text-slate-500">← العودة إلى VOLT</a><div className="mt-5"><VoltProductView data={{
    storeSlug:"volt-demo",base:"/preview/volt",copy:souqCopy("ar"),lang:"ar",currency:"DZD",settings:SOUQ_CHECKOUT_DEFAULTS,
    product:{id:"e1000000-0000-4000-8000-000000000000",slug:"smart-watch",name:"ساعة ذكية AMOLED X2",priceCents:890000,compareAtPriceCents:1090000,imageUrl:"/images/volt/watch.svg",stock:20,ratingAverage:4.8,ratingCount:128},
