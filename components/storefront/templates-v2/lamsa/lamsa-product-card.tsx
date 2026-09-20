@@ -1,0 +1,65 @@
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import type { SouqProductSummary } from "@/lib/storefront/souq/catalog";
+import type { SouqCopy } from "@/lib/storefront/souq/copy";
+import type { StoreLanguage } from "@/lib/types";
+import { discountPercent } from "@/lib/storefront/souq/order-model";
+import { StorefrontImage } from "../../image";
+import { LamsaIcon, LamsaPrice } from "./lamsa-ui";
+
+export function LamsaProductCard({
+  product,
+  base,
+  copy,
+  lang,
+  currency = "DZD",
+  priority = false,
+  className = "",
+}: {
+  product: SouqProductSummary;
+  base: string;
+  copy: SouqCopy;
+  lang: StoreLanguage | string | null;
+  currency?: string;
+  priority?: boolean;
+  className?: string;
+}) {
+  const href = `${base}/produit/${product.slug}`;
+  const discount = discountPercent(product.priceCents, product.compareAtPriceCents);
+  const unavailable = !product.hasVariants && product.stock <= 0;
+  return (
+    <article className={cn("lamsa-product group min-w-0", className)}>
+      <Link href={href} className="relative block aspect-[4/5] overflow-hidden bg-[var(--lamsa-beige)]" aria-label={product.name}>
+        {product.image ? (
+          <StorefrontImage
+            src={product.image}
+            alt={product.name}
+            fill
+            priority={priority}
+            sizes="(max-width: 480px) 48vw, (max-width: 1024px) 31vw, 24vw"
+            className={cn("lamsa-product-image object-cover", unavailable && "grayscale-[35%] opacity-70")}
+          />
+        ) : (
+          <span className="flex h-full items-center justify-center text-[var(--lamsa-taupe)]"><LamsaIcon name="image" className="h-9 w-9" /></span>
+        )}
+        <span className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/15 to-transparent opacity-0 transition group-hover:opacity-100" />
+        <span className="absolute start-2.5 top-2.5 flex flex-col items-start gap-1.5">
+          {product.isFeatured ? <span className="lamsa-product-label">{copy.product.bestSeller}</span> : null}
+          {discount > 0 ? <span className="lamsa-product-label lamsa-product-label--light">{copy.product.specialOffer}</span> : null}
+        </span>
+        {unavailable ? <span className="absolute inset-x-3 bottom-3 bg-[var(--lamsa-ivory)]/95 px-3 py-2 text-center text-xs font-semibold text-[var(--lamsa-muted)]">{copy.product.outOfStock}</span> : null}
+      </Link>
+      <div className="pt-3">
+        {product.categoryName ? <p className="mb-1 text-[10px] font-semibold tracking-[0.08em] text-[var(--lamsa-taupe)]">{product.categoryName}</p> : null}
+        <Link href={href} className="line-clamp-2 min-h-11 text-[13px] font-semibold leading-[1.7] text-[var(--lamsa-ink)] transition hover:text-[var(--lamsa-chocolate)] sm:text-sm">
+          {product.name}
+        </Link>
+        <div className="mt-1.5"><LamsaPrice cents={product.priceCents} compareAtCents={product.compareAtPriceCents} lang={lang} currency={currency} /></div>
+        <Link href={href} className="mt-2 inline-flex min-h-10 items-center gap-1.5 border-b border-[var(--lamsa-chocolate)] text-xs font-semibold text-[var(--lamsa-chocolate)] transition hover:border-[var(--lamsa-gold)] hover:text-[var(--lamsa-gold)]">
+          {unavailable ? copy.product.notAvailable : "عرض التفاصيل"}
+          <LamsaIcon name="arrow-left" className="h-3.5 w-3.5 ltr:rotate-180" />
+        </Link>
+      </div>
+    </article>
+  );
+}

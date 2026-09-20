@@ -5,7 +5,9 @@ import { StorefrontHeader } from "@/components/storefront/header";
 import { StorefrontFooter } from "@/components/storefront/footer";
 import { UnavailableScreen } from "@/components/storefront/unavailable";
 import { SouqShell } from "@/components/storefront/templates-v2/souq/souq-shell";
+import { LamsaShell } from "@/components/storefront/templates-v2/lamsa/lamsa-shell";
 import { isSouqTemplate } from "@/lib/templates/souq";
+import { isLamsaTemplate } from "@/lib/templates/lamsa";
 
 /**
  * Storefront layout — the single entry point for every tenant site.
@@ -32,9 +34,10 @@ export default async function StorefrontLayout({
   const data = await getStorefrontData(slug);
   if (!data) notFound();
 
-  // SOUQ stores render through their own shell (Arabic-first RTL header,
-  // search, drawer, footer). Every other template keeps the legacy shell
-  // untouched — this branch is additive and template-explicit.
+  // V2 storefronts are explicit: no existing tenant is migrated implicitly.
+  if (isLamsaTemplate(store.template_key) || isLamsaTemplate(data.template_key)) {
+    return <LamsaShell data={data}>{children}</LamsaShell>;
+  }
   if (isSouqTemplate(store.template_key) || isSouqTemplate(data.template_key)) {
     return <SouqShell data={data}>{children}</SouqShell>;
   }

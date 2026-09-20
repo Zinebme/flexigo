@@ -8,7 +8,9 @@ import { formatDA } from "../../../../../../lib/utils";
 import { StorefrontImage } from "../../../../../../components/storefront/image";
 import { ProductCard } from "../../../../../../components/storefront/sections";
 import { SouqProductPage } from "../../../../../../components/storefront/templates-v2/souq/souq-product-page";
+import { LamsaProductPage } from "../../../../../../components/storefront/templates-v2/lamsa/lamsa-product-page";
 import { isSouqTemplate } from "../../../../../../lib/templates/souq";
+import { isLamsaTemplate } from "../../../../../../lib/templates/lamsa";
 
 export const dynamic = "force-dynamic";
 
@@ -32,9 +34,8 @@ export async function generateMetadata({
   const title = p.seo_title ?? p.name;
   const desc = p.seo_description ?? p.description?.slice(0, 160) ?? undefined;
 
-  // SOUQ adds the product's own OG image (its first real image). Additive:
-  // every other template keeps its previous metadata untouched.
-  if (isSouqTemplate(data.template_key)) {
+  // V2 templates add the product's own real OG image.
+  if (isSouqTemplate(data.template_key) || isLamsaTemplate(data.template_key)) {
     const { data: productRow } = await anon
       .from("products")
       .select("id")
@@ -73,9 +74,9 @@ export default async function ProductPage({
   const data = await getStorefrontData(slug);
   if (!data) notFound();
 
-  // SOUQ product page: gallery + dynamic options + quantity offers + COD form.
-  // Additive branch — the shared implementation below is unchanged for all
-  // other templates.
+  if (isLamsaTemplate(data.template_key)) {
+    return <LamsaProductPage data={data} productSlug={product} />;
+  }
   if (isSouqTemplate(data.template_key)) {
     return <SouqProductPage data={data} productSlug={product} />;
   }

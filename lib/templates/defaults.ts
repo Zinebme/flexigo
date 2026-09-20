@@ -9,6 +9,7 @@ import type { Section } from "../sections/definitions";
 import { shortId } from "../utils";
 import type { StoreSettings } from "../supabase/database.types";
 import { SOUQ_TEMPLATE_ALIASES, SOUQ_TEMPLATE_KEY, isSouqTemplate, souqContentPages, souqHomeSections } from "./souq";
+import { LAMSA_TEMPLATE_KEY, isLamsaTemplate, lamsaContentPages, lamsaHomeSections } from "./lamsa";
 
 export interface TemplateMeta {
   key: string;
@@ -130,6 +131,36 @@ export const TEMPLATES: TemplateMeta[] = [
     theme: { primaryColor: "#dc2626", secondaryColor: "#111827", backgroundColor: "#ffffff", typography: "bold", buttonShape: "pill" },
     sections: ["Hero", "Product gallery/video", "Problem", "Solution", "Benefits", "How it works", "Before/after", "Social proof", "Quantity offers", "Reviews", "FAQ", "COD order form", "Sticky CTA"],
   },
+  // --- LAMSA (premium Arabic modest-fashion storefront) ---
+  {
+    key: LAMSA_TEMPLATE_KEY,
+    name: "LAMSA",
+    category: "Fashion",
+    categoryKey: "fashion",
+    language: "ar",
+    direction: "rtl",
+    description:
+      "LAMSA — قالب عربي فاخر للأزياء المحتشمة والحجاب والعبايات. هوية تحريرية هادئة، صور بنسبة 4:5، مجموعات بصرية، بحث سريع، صفحة منتج بمعرض ديناميكي وخيارات متعددة وعروض كمية ونموذج دفع عند الاستلام مباشر.",
+    websiteTypes: ["ecommerce"],
+    screenshotUrl: "/images/templates/lamsa-v1.svg",
+    previewMobileUrl: "/images/templates/lamsa-v1-mobile.svg",
+    badges: ["Arabic-first", "RTL", "Fashion", "COD", "Mobile-first"],
+    highlights: { dynamicVariants: true, multiSelectOptions: true, quantityOffers: true, codForm: true, rtl: true },
+    theme: {
+      primaryColor: "#4A382F",
+      secondaryColor: "#B79B6C",
+      backgroundColor: "#FAF7F2",
+      typography: "elegant",
+      buttonShape: "rounded",
+    },
+    sections: [
+      "Announcement bar", "Editorial hero", "New arrivals", "Image-led collections",
+      "Best sellers", "Lifestyle editorial", "Campaign banner", "Featured products",
+      "Trust benefits", "Editorial reviews", "Social gallery", "FAQ", "Footer",
+      "4:5 product gallery", "Dynamic variants", "Color/image swatches",
+      "Quantity offers", "Inline COD form", "Sticky mobile order CTA",
+    ],
+  },
   // --- SOUQ (first production storefront template, Arabic-first RTL) ---
   {
     key: SOUQ_TEMPLATE_KEY,
@@ -238,6 +269,9 @@ function s(type: Section["type"], data: Record<string, unknown>): Section {
 }
 
 export function defaultHomeSections(templateKey: string, websiteType: WebsiteType, businessName: string): Section[] {
+  if (isLamsaTemplate(templateKey)) {
+    return lamsaHomeSections(businessName);
+  }
   if (isSouqTemplate(templateKey)) {
     return souqHomeSections(businessName);
   }
@@ -392,6 +426,16 @@ export function defaultHomeSections(templateKey: string, websiteType: WebsiteTyp
 }
 
 export function defaultPages(templateKey: string, websiteType: WebsiteType, businessName: string): Array<{ key: string; title: string; content: { sections: Section[] } }> {
+  if (isLamsaTemplate(templateKey)) {
+    const pages: Array<{ key: string; title: string; content: { sections: Section[] } }> = [
+      { key: "home", title: "الرئيسية", content: { sections: defaultHomeSections(templateKey, websiteType, businessName) } },
+      ...lamsaContentPages(businessName),
+      { key: "legal-terms", title: "الشروط العامة", content: { sections: [] } },
+      { key: "legal-privacy", title: "سياسة الخصوصية", content: { sections: [] } },
+    ];
+    if (websiteType === "ecommerce") pages.push({ key: "shop", title: "المتجر", content: { sections: [] } });
+    return pages;
+  }
   if (isSouqTemplate(templateKey)) {
     // Arabic-first pages (titles + content), same structure as every template.
     const pages: Array<{ key: string; title: string; content: { sections: Section[] } }> = [

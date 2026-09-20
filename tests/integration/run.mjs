@@ -531,6 +531,37 @@ async function main() {
 
 
   // ==========================================================================
+  section("9. LAMSA template registration + explicit tenant creation");
+
+  const lamsaTpl = await runAs("service_role", null,
+    `select key, name, website_types, screenshot_url from templates where key = 'lamsa-v1'`);
+  check("LAMSA template registered exactly once", lamsaTpl.rows.length === 1, `rows ${lamsaTpl.rows.length}`);
+  check("LAMSA registry metadata targets ecommerce", lamsaTpl.rows[0]?.name === "LAMSA" && (lamsaTpl.rows[0]?.website_types ?? []).includes("ecommerce"));
+  check("LAMSA registry exposes gallery artwork", lamsaTpl.rows[0]?.screenshot_url === "/images/templates/lamsa-v1.svg");
+
+  const lamsaBefore = await runAs("service_role", null,
+    `select count(*)::int n from stores where template_key = 'lamsa-v1'`);
+  check("LAMSA migration does not auto-migrate an existing store", lamsaBefore.rows[0].n === 0, `got ${lamsaBefore.rows[0].n}`);
+
+  const lamsaCreated = await runAs("service_role", null, `select public.fn_create_store(
+      null, 'لمسة اختبار', 'lamsa-integration', 'ecommerce', 'lamsa-v1', 'ar', 'DZD',
+      '{"primary_color":"#4A382F","secondary_color":"#B79B6C","background_color":"#FAF7F2","typography":"elegant","button_shape":"rounded"}'::jsonb,
+      '{"business":{"cod_enabled":true,"office_delivery_enabled":true}}'::jsonb,
+      '[{"key":"home","title":"الرئيسية","content":{"sections":[]}}]'::jsonb,
+      '[{"wilaya_code":0,"home_fee_cents":70000,"office_fee_cents":45000}]'::jsonb,
+      null, 'a0000000-0000-4000-8000-000000000001') res`);
+  const lamsaStoreId = lamsaCreated.rows[0].res;
+  const lamsaStore = await runAs("service_role", null,
+    `select template_key, language, status from stores where id = $1`, [lamsaStoreId]);
+  check("Store studio can explicitly create a LAMSA tenant", lamsaStore.rows[0]?.template_key === "lamsa-v1");
+  check("LAMSA tenant is Arabic-first and remains draft", lamsaStore.rows[0]?.language === "ar" && lamsaStore.rows[0]?.status === "draft");
+  const anonLamsaDraft = await runAs("anon", null, `select count(*)::int n from stores where id = $1`, [lamsaStoreId]);
+  check("Anonymous storefront cannot read an unpublished LAMSA tenant", anonLamsaDraft.rows[0].n === 0);
+  const otherMerchantLamsa = await runAs("authenticated", KARIM, `select count(*)::int n from stores where id = $1`, [lamsaStoreId]);
+  check("Another merchant cannot read the LAMSA tenant", otherMerchantLamsa.rows[0].n === 0);
+
+
+  // ==========================================================================
   section("7. Phone normalization (Algeria)");
 
   const ph = await runAs("service_role", null, `select

@@ -284,6 +284,22 @@ describe("SOUQ — COD form interactions", () => {
     expect(document.body.textContent).not.toContain("11111111-1111-4111-8111-111111111111");
   });
 
+  it("keeps template preview mode read-only while preserving validation and success UX", async () => {
+    const user = userEvent.setup();
+    renderForm({ previewMode: true, previewOrderNumber: "DEMO-LAMSA" });
+    await chooseInStockVariant(user);
+    await user.type(screen.getByLabelText(new RegExp(copy.checkout.firstName)), "أمينة");
+    await user.type(screen.getByLabelText(new RegExp(copy.checkout.lastName)), "بن علي");
+    await user.type(screen.getByLabelText(new RegExp(copy.checkout.phone)), "0550445566");
+    await user.selectOptions(wilayaSelect(), "16");
+    await user.selectOptions(communeSelect(), "Bab El Oued");
+    await user.type(screen.getByLabelText(new RegExp(copy.checkout.address)), "حي 5 جويلية، عمارة 12");
+    await user.click(submitButton());
+
+    expect(await screen.findByText("DEMO-LAMSA")).not.toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("never surfaces a raw server or database message", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
