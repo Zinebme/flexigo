@@ -53,6 +53,9 @@
 
 /* Arabic numerals alignment inside prices */
 .souq-root .souq-price {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
