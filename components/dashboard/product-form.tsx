@@ -17,6 +17,7 @@ export interface ProductFormInitial {
   price: number;
   compare_at_price: number | null;
   sku: string;
+  stock?: number;
   low_stock_threshold: number;
   is_active: boolean;
   is_featured: boolean;
@@ -57,6 +58,7 @@ export function ProductForm({ initial, categories, mode }: Props) {
   const [price, setPrice] = useState(String(initial.price || ""));
   const [compareAt, setCompareAt] = useState(initial.compare_at_price != null ? String(initial.compare_at_price) : "");
   const [sku, setSku] = useState(initial.sku);
+  const [stock, setStock] = useState(String(initial.stock ?? 0));
   const [threshold, setThreshold] = useState(String(initial.low_stock_threshold));
   const [isActive, setIsActive] = useState(initial.is_active);
   const [isFeatured, setIsFeatured] = useState(initial.is_featured);
@@ -92,23 +94,24 @@ export function ProductForm({ initial, categories, mode }: Props) {
   const shownSlug = slugTouched ? slug : slugSuggestion;
 
   async function handleUpload() {
-    const file = fileRef.current?.files?.[0];
-    if (!file) return;
+    const files = Array.from(fileRef.current?.files ?? []).slice(0, Math.max(0, 8 - images.length));
+    if (files.length === 0) return;
     setUploading(true);
     setError(null);
-    const form = new FormData();
-    form.append("file", file);
-    form.append("purpose", "product");
     try {
-      const res = await fetch("/api/dashboard/upload", { method: "POST", body: form });
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; url?: string; error?: { message?: string } | string; warnings?: string[] };
-      if (!res.ok || !data.ok || !data.url) {
-        const msg = typeof data.error === "string" ? data.error : (data.error?.message ?? "Téléversement impossible");
-        setError(msg);
-        return;
+      for (const file of files) {
+        const form = new FormData();
+        form.append("file", file);
+        form.append("purpose", "product");
+        const res = await fetch("/api/dashboard/upload", { method: "POST", body: form });
+        const data = (await res.json().catch(() => ({}))) as { ok?: boolean; url?: string; error?: { message?: string } | string; warnings?: string[] };
+        if (!res.ok || !data.ok || !data.url) {
+          setError(typeof data.error === "string" ? data.error : (data.error?.message ?? "Téléversement impossible"));
+          break;
+        }
+        if (data.warnings?.length) setError(`⚠️ ${data.warnings[0]}`);
+        setImages((prev) => (prev.length >= 8 ? prev : [...prev, data.url as string]));
       }
-      if (data.warnings?.length) setError(`⚠️ ${data.warnings[0]}`);
-      setImages((prev) => (prev.length >= 8 ? prev : [...prev, data.url as string]));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -128,6 +131,7 @@ export function ProductForm({ initial, categories, mode }: Props) {
       price: Number.parseFloat(price),
       compare_at_price: compareAt ? Number.parseFloat(compareAt) : null,
       sku,
+      stock: mode === "create" ? (Number.parseInt(stock, 10) || 0) : undefined,
       low_stock_threshold: Number.parseInt(threshold, 10) || 0,
       is_active: isActive,
       is_featured: isFeatured,
@@ -184,11 +188,17 @@ export function ProductForm({ initial, categories, mode }: Props) {
     }
   }
 
-  const label = "mb-1 block text-sm font-semibold text-slate-700";
-  const input = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
+  const label = "mb-1.5 block text-sm font-semibold text-slate-700";
+  const input = "w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100";
+  const section = "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm";
 
   return (
     <form onSubmit={submit} className="space-y-5">
+      <section className={section}>
+        <div className="mb-5">
+          <h3 className="text-base font-bold text-slate-900">Général</h3>
+          <p className="mt-1 text-xs text-slate-500">Nom, catégorie, description et identité commerciale du produit.</p>
+        </div>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="md:col-span-2">
           <label className={label}>Nom du produit *</label>
@@ -219,8 +229,15 @@ export function ProductForm({ initial, categories, mode }: Props) {
           <label className={label}>SKU</label>
           <input className={input} value={sku} onChange={(e) => setSku(e.target.value)} maxLength={60} />
         </div>
+        {mode === "create" ? (
+          <div>
+            <label className={label}>Stock initial</label>
+            <input type="number" min="0" className={input} value={stock} onChange={(e) => setStock(e.target.value)} />
+            <p className="mt-1 text-xs text-slate-400">Après création, les changements passent par le gestionnaire de stock audité.</p>
+          </div>
+        ) : null}
         <div>
-          <label className={label}>Seuil stock faible</label>
+          <label className={label}>Alerte stock faible</label>
           <input type="number" min="0" className={input} value={threshold} onChange={(e) => setThreshold(e.target.value)} />
         </div>
         <div className="md:col-span-2">
@@ -228,14 +245,18 @@ export function ProductForm({ initial, categories, mode }: Props) {
           <textarea className={input} rows={5} maxLength={6000} value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
       </div>
+      </section>
 
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <span className={label}>Images (JPG, PNG, WebP, SVG — max 8)</span>
-          <div className="flex items-center gap-2">
-            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" className="text-sm" />
-            <button type="button" className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50" onClick={handleUpload} disabled={uploading || images.length >= 8}>
-              {uploading ? "Envoi…" : "Ajouter"}
+      <section className={section}>
+        <div className="mb-4">
+          <h3 className="text-base font-bold text-slate-900">Photos</h3>
+          <p className="mt-1 text-xs text-slate-500">Téléversez directement jusqu'à 8 images. Carré 800×800 px recommandé ; les formats et tailles sont contrôlés côté serveur.</p>
+        </div>
+        <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 p-5">
+          <div className="flex flex-col items-center justify-center gap-3 text-center sm:flex-row sm:text-left">
+            <input ref={fileRef} type="file" multiple accept="image/jpeg,image/png,image/webp" className="block max-w-full text-sm" />
+            <button type="button" className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50" onClick={handleUpload} disabled={uploading || images.length >= 8}>
+              {uploading ? "Téléversement…" : "Ajouter les photos"}
             </button>
           </div>
         </div>
@@ -257,11 +278,14 @@ export function ProductForm({ initial, categories, mode }: Props) {
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <span className={label}>Variantes (couleur, taille…)</span>
+      <section className={section}>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">Variantes</h3>
+            <p className="mt-1 text-xs text-slate-500">Couleurs, tailles et autres options. Une combinaison peut avoir son propre prix et stock.</p>
+          </div>
           <button
             type="button"
             className="text-sm font-semibold text-blue-600 hover:underline"
@@ -317,11 +341,14 @@ export function ProductForm({ initial, categories, mode }: Props) {
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <span className={label}>Offres quantité (ex : 2 pièces = 3 900 DA)</span>
+      <section className={section}>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">Offres quantité</h3>
+            <p className="mt-1 text-xs text-slate-500">Exemple : 2 pièces = 3 900 DA. Le total réel reste recalculé côté serveur.</p>
+          </div>
           <button
             type="button"
             className="text-sm font-semibold text-blue-600 hover:underline"
@@ -373,8 +400,13 @@ export function ProductForm({ initial, categories, mode }: Props) {
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
+      <section className={section}>
+        <div className="mb-4">
+          <h3 className="text-base font-bold text-slate-900">Référencement & visibilité</h3>
+          <p className="mt-1 text-xs text-slate-500">Ce qui apparaît dans les moteurs de recherche et dans la boutique.</p>
+        </div>
       <div className="grid gap-4 md:grid-cols-2">
         <div>
           <label className={label}>SEO — Titre (optionnel)</label>
@@ -386,7 +418,7 @@ export function ProductForm({ initial, categories, mode }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="mt-5 flex flex-wrap items-center gap-6 rounded-xl bg-slate-50 p-4">
         <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
           <input type="checkbox" className="h-4 w-4 rounded border-slate-300" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
           Produit actif
@@ -396,8 +428,9 @@ export function ProductForm({ initial, categories, mode }: Props) {
           Mis en avant
         </label>
       </div>
+      </section>
 
-      <div className="flex items-center gap-3 border-t border-slate-100 pt-4">
+      <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
         <button
           type="submit"
           className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
