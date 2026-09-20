@@ -1,6 +1,6 @@
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
-import { TEMPLATES } from "@/lib/templates/defaults";
+import { READY_TEMPLATES, templatePreviewPath } from "@/lib/templates/defaults";
 import { PageHeader, Card } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -16,9 +16,9 @@ export default async function AdminTemplatesPage() {
 
   return (
     <>
-      <PageHeader title="Templates" subtitle="Galerie des modèles storefront — aperçus desktop + mobile, identités visuelles distinctes." />
+      <PageHeader title="Templates" subtitle="Uniquement les templates réellement prêts à livrer. Cliquez sur Visualiser avant de les utiliser pour un client." />
       <div className="grid gap-4 md:grid-cols-2">
-        {TEMPLATES.map((tpl) => (
+        {READY_TEMPLATES.map((tpl) => (
           <Card key={tpl.key} className="overflow-hidden p-0">
             {tpl.screenshotUrl ? (
               <div className="relative flex items-start gap-3 border-b border-slate-100 bg-slate-50 p-3">
@@ -68,8 +68,28 @@ export default async function AdminTemplatesPage() {
               <span className="rounded-full px-2 py-1 text-white" style={{ background: tpl.theme.primaryColor }}>Primaire</span>
               <span className="rounded-full px-2 py-1 text-white" style={{ background: tpl.theme.secondaryColor }}>Secondaire</span>
             </div>
-            <div className="mt-4 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
-              Sections par défaut générées via <code className="font-mono">defaultHomeSections()</code> — bannières 1600×700 desktop / 800×1000 mobile recommandées.
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              {templatePreviewPath(tpl.key) ? (
+                <>
+                  <a
+                    href={templatePreviewPath(tpl.key) ?? "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
+                  >
+                    Visualiser
+                  </a>
+                  <a
+                    href={`${templatePreviewPath(tpl.key)}/produit`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    Voir page produit
+                  </a>
+                </>
+              ) : null}
+              <span className="text-xs text-slate-400">Aperçu démo — aucune commande réelle.</span>
             </div>
             </div>
           </Card>
