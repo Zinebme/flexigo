@@ -7,9 +7,11 @@ import { ShopBrowser } from "../../../../../../components/storefront/shop-browse
 import { SouqCategoryPage } from "../../../../../../components/storefront/templates-v2/souq/souq-shop-page";
 import { LamsaCategoryPage } from "../../../../../../components/storefront/templates-v2/lamsa/lamsa-shop-page";
 import { NoorCategoryPage } from "../../../../../../components/storefront/templates-v2/noor/noor-shop-page";
+import { VoltCategoryPage } from "../../../../../../components/storefront/templates-v2/volt/volt-shop-page";
 import { isSouqTemplate } from "../../../../../../lib/templates/souq";
 import { isLamsaTemplate } from "../../../../../../lib/templates/lamsa";
 import { isNoorTemplate } from "../../../../../../lib/templates/noor";
+import { isVoltTemplate } from "../../../../../../lib/templates/volt";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +53,9 @@ export default async function CategoryPage({
     .maybeSingle();
   if (!cat) notFound();
 
+  if (isVoltTemplate(data.template_key)) {
+    return <VoltCategoryPage data={data} category={{ id: cat.id, name: cat.name, slug: cat.slug ?? category, description: cat.description ?? null }} />;
+  }
   if (isNoorTemplate(data.template_key)) {
     return <NoorCategoryPage data={data} category={{ id: cat.id, name: cat.name, slug: cat.slug ?? category, description: cat.description ?? null }} />;
   }
