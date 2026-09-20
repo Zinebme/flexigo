@@ -40,6 +40,7 @@ export default async function NewProductPage() {
               price: 0,
               compare_at_price: null,
               sku: "",
+              stock: 0,
               low_stock_threshold: 5,
               is_active: true,
               is_featured: false,
