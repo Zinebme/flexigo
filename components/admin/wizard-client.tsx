@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { TEMPLATES, type TemplateMeta, defaultHomeSections } from "@/lib/templates/defaults";
+import { READY_TEMPLATES, type TemplateMeta, defaultHomeSections, templatePreviewPath } from "@/lib/templates/defaults";
 import { slugify } from "@/lib/slug";
 import { inputCls, labelCls, btnPrimary, btnSecondary } from "@/components/ui";
 
@@ -82,7 +82,7 @@ interface FormState {
 
 const STEPS = [
   { key: "client", label: "CLIENT", desc: "Informations client & compte marchand" },
-  { key: "template", label: "TEMPLATE", desc: "Galerie visuelle — 8 designs distincts" },
+  { key: "template", label: "TEMPLATE", desc: "5 boutiques complètes prêtes à livrer" },
   { key: "brand", label: "IDENTITÉ", desc: "Branding, couleurs, contact" },
   { key: "homepage", label: "CONTENU", desc: "Sections homepage prédéfinies" },
   { key: "products", label: "PRODUITS", desc: "Produits initiaux" },
@@ -94,7 +94,7 @@ const STEPS = [
   { key: "review", label: "FINAL REVIEW", desc: "Checklist & publication" },
 ] as const;
 
-const TEMPLATE_FILTERS = ["all", "Fashion", "Beauty", "Tech", "Home", "Baby", "Sport", "General store", "Single product"] as const;
+const TEMPLATE_FILTERS = ["all", "Fashion", "Beauty", "Tech", "Home", "General store"] as const;
 
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
@@ -124,7 +124,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
     owner_phone: "",
     owner_whatsapp: "",
     account_mode: "create_now",
-    template_key: "market",
+    template_key: "souq-v1",
     template_filter: "all",
     slug: "",
     logo_url: "",
@@ -176,7 +176,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
 
   // Derived template list
   const filteredTemplates = useMemo(() => {
-    let list = TEMPLATES.filter((t) => t.category !== "Legacy");
+    let list = READY_TEMPLATES;
     if (form.template_filter !== "all") {
       list = list.filter((t) => t.category === form.template_filter);
     }
@@ -184,7 +184,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
     return list;
   }, [form.template_filter]);
 
-  const selectedTemplate = useMemo(() => TEMPLATES.find((t) => t.key === form.template_key), [form.template_key]);
+  const selectedTemplate = useMemo(() => READY_TEMPLATES.find((t) => t.key === form.template_key), [form.template_key]);
 
   // Initialize homepage sections when template changes
   const initHomepageSections = () => {
@@ -390,7 +390,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
           <div className="space-y-4">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <h3 className="text-sm font-bold text-slate-900">🎨 TEMPLATE — Galerie visuelle</h3>
-              <p className="mt-1 text-xs text-slate-500">Templates production avec composants visuels distincts (pas juste des couleurs). Filtrez par catégorie.</p>
+              <p className="mt-1 text-xs text-slate-500">Seulement les 5 templates qui ont un vrai site complet et une page produit fonctionnelle. Visualisez-les avant de sélectionner.</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {TEMPLATE_FILTERS.map((f) => (
                   <button key={f} onClick={() => update("template_filter", f)} className={`rounded-full px-3 py-1 text-xs font-semibold ${form.template_filter === f ? "bg-violet-600 text-white" : "bg-white text-slate-600 border border-slate-200"}`}>{f === "all" ? "Tous" : f}</button>
@@ -399,8 +399,15 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredTemplates.map((tpl: TemplateMeta) => (
-                <button
+                <div
                   key={tpl.key}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    update("template_key", tpl.key);
+                  }}
                   onClick={() => {
                     update("template_key", tpl.key);
                     // Arabic-first templates preselect RTL language and their
@@ -433,12 +440,22 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
                       {tpl.sections.slice(0, 4).map((s) => <span key={s} className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">{s}</span>)}
                       {tpl.sections.length > 4 && <span className="text-[10px] text-slate-400">+{tpl.sections.length - 4}</span>}
                     </div>
-                    <div className="mt-3 flex gap-2">
-                      <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-bold text-white">Utiliser ce template</span>
-                      <span className="rounded-full border border-slate-200 px-2 py-1 text-[10px] text-slate-500">Desktop 1600×700 · Mobile 800×1000</span>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-bold text-white">Utiliser ce template</span>
+                      {templatePreviewPath(tpl.key) ? (
+                        <a
+                          href={templatePreviewPath(tpl.key) ?? "#"}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(event) => event.stopPropagation()}
+                          className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-100"
+                        >
+                          Visualiser
+                        </a>
+                      ) : null}
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
             {selectedTemplate && (
