@@ -47,6 +47,7 @@ export function darHomeSections(businessName: string): Section[] {
       ],
     }),
     s("products", { title: "وصل حديثاً", subtitle: "أحدث الإضافات للبيت والمطبخ", source: "latest", product_count: 8 }),
+    s("gallery", { title: "إلهام للبيت", subtitle: "أفكار دافئة للمطبخ، الترتيب وطاولة البيت", images: ["/images/dar/inspiration.svg","/images/dar/table.svg","/images/dar/organize.svg"] }),
     s("reviews", { title: `آراء زبائن ${businessName}`, subtitle: "تجارب حقيقية منشورة من المتجر" }),
     s("faq", { title: "أسئلة شائعة", subtitle: "كل ما تحتاج معرفته قبل الطلب", max_items: 8 }),
     s("contact", { title: "تحتاج مساعدة؟", text: "تواصل معنا عبر القنوات التي أضافها المتجر.", show_phone: true, show_whatsapp: true, show_email: false }),
