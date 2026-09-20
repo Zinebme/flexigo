@@ -23,7 +23,7 @@ const PLATFORM_HOSTS = new Set(
 );
 
 /** Paths that always belong to the platform, never to a tenant. */
-const PLATFORM_PATHS = /^\/(admin|dashboard|api|login|register|auth)(\/|$)/;
+const PLATFORM_PATHS = /^\/(admin|dashboard|api|login|register|auth|preview)(\/|$)/;
 
 const STOREFRONT_CSP = [
   "default-src 'self'",
