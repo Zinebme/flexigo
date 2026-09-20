@@ -42,6 +42,21 @@ export async function POST(req: Request) {
 
     const priceCents = Math.round(input.price * 100);
     const compareCents = input.compare_at_price != null ? Math.round(input.compare_at_price * 100) : null;
+    const costCents = input.cost != null ? Math.round(input.cost * 100) : null;
+
+    // Related/cross-sell IDs are tenant-scoped: never accept IDs from another store.
+    const requestedLinks = [...new Set([...input.related_product_ids, ...input.cross_sell_product_ids])];
+    if (requestedLinks.length > 0) {
+      const { data: ownedLinks, error: ownedErr } = await admin
+        .from("products")
+        .select("id")
+        .eq("store_id", ctx.store.id)
+        .is("deleted_at", null)
+        .in("id", requestedLinks);
+      if (ownedErr) throw ownedErr;
+      const owned = new Set((ownedLinks ?? []).map((row: { id: string }) => row.id));
+      if (requestedLinks.some((id) => !owned.has(id))) throw err("VALIDATION", "Produit connexe invalide pour cette boutique.");
+    }
 
     const { data: product, error: prodError } = await admin
       .from("products")
@@ -51,8 +66,20 @@ export async function POST(req: Request) {
         name: input.name,
         slug,
         description: input.description || null,
+        short_description: input.short_description || null,
         price_cents: priceCents,
         compare_at_price_cents: compareCents,
+        cost_cents: costCents,
+        is_digital: input.is_digital,
+        gallery_mode: input.gallery_mode,
+        landing_images: input.landing_images,
+        min_order_quantity: input.min_order_quantity,
+        shipping_label: input.shipping_label || null,
+        stock_tracking_mode: input.stock_tracking_mode,
+        related_product_ids: input.related_product_ids,
+        cross_sell_product_ids: input.cross_sell_product_ids,
+        page_element_order: input.page_element_order,
+        option_groups: input.option_groups,
         sku: input.sku || null,
         stock: input.stock,
         low_stock_threshold: input.low_stock_threshold,
