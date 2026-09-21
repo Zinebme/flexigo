@@ -12,3 +12,4 @@
 .little-root main>section{animation:littleEnter .72s ease both}.little-root .little-panel img{transition:transform .7s ease}.little-root .little-panel:hover img{transform:scale(1.035)}.little-chip{animation:littleWiggle 4.5s ease-in-out infinite}
 @keyframes littleEnter{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @media(min-width:640px){.little-container{padding-inline:24px}.little-section{padding-block:74px}}@media(min-width:1024px){.little-container{padding-inline:32px}.little-section{padding-block:88px}}@media(prefers-reduced-motion:reduce){.little-root *{animation:none!important;transition:none!important}}
+.little-root .mt-4.flex.items-baseline.gap-3>strong,.little-root .mt-4.flex.items-baseline.gap-3>span{direction:ltr;unicode-bidi:isolate;display:inline-block;white-space:nowrap;font-variant-numeric:tabular-nums}

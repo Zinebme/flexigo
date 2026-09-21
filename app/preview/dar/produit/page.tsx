@@ -10,7 +10,7 @@ import type { SouqVariantInput } from "@/lib/storefront/souq/variants";
 import "@/components/storefront/templates-v2/dar/dar.css";
 
 export const dynamic="force-static";
-export const metadata:Metadata={title:"DAR — صفحة المنتج",robots:{index:false,follow:false}};
+export const metadata:Metadata={title:"منظم منزلي متعدد الاستعمال — DAR",robots:{index:false,follow:false}};
 
 const variants:SouqVariantInput[]=[
  {id:"d1000000-0000-4000-8000-000000000001",name:"بيج / متوسط",options:{"اللون":"بيج","الحجم":"متوسط"},price_cents:290000,stock:8,is_active:true},
@@ -20,7 +20,7 @@ const variants:SouqVariantInput[]=[
 const groups=buildOptionGroups(variants,null,[]);
 export default function DarProductPreview(){
  return <div dir="rtl" className="dar-root min-h-screen" style={darCssVars()}>
-  <div className="bg-[var(--dar-olive-dark)] px-3 py-2 text-center text-[11px] font-bold text-white">معاينة تفاعلية — الإرسال الحقيقي معطل</div>
+  <div className="bg-[var(--dar-olive-dark)] px-3 py-2 text-center text-[11px] font-bold text-white">توصيل إلى 58 ولاية • تغليف آمن</div>
   <DarContainer className="py-6"><Link href="/preview/dar" className="text-xs font-bold text-[var(--dar-muted)]">← العودة إلى DAR</Link><div className="mt-5"><DarProductView data={{
    storeSlug:"dar-demo",base:"/preview/dar",copy:souqCopy("ar"),lang:"ar",currency:"DZD",settings:SOUQ_CHECKOUT_DEFAULTS,
    product:{id:"d1000000-0000-4000-8000-000000000000",slug:"organizer",name:"منظم منزلي متعدد الاستعمال",priceCents:290000,compareAtPriceCents:340000,imageUrl:"/images/dar/storage-premium.webp",stock:20,ratingAverage:4.8,ratingCount:96},

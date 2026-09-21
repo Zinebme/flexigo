@@ -10,7 +10,7 @@ import type { SouqVariantInput } from "@/lib/storefront/souq/variants";
 import "@/components/storefront/templates-v2/pulse/pulse.css";
 export const dynamic = "force-static";
 export const metadata: Metadata = {
-  title: "PULSE — صفحة المنتج",
+  title: "حذاء جري خفيف — PULSE",
   robots: { index: false, follow: false },
 };
 const variants: SouqVariantInput[] = [
@@ -44,7 +44,7 @@ export default function Page() {
   return (
     <div dir="rtl" className="pulse-root min-h-screen" style={pulseCssVars()}>
       <div className="bg-[var(--pulse-dark)] px-3 py-2 text-center text-[11px] font-bold text-white">
-        معاينة تفاعلية — لا توجد طلبات حقيقية
+        توصيل إلى كامل الجزائر • استبدال المقاس متاح
       </div>
       <PulseContainer className="py-6">
         <Link href="/preview/pulse" className="text-xs font-bold text-slate-500">
@@ -108,7 +108,7 @@ export default function Page() {
                 "/images/pulse/hero-premium.webp",
               ],
               description:
-                "حذاء رياضي خفيف للتمرين والجري اليومي مع خيارات مقاس ولون واضحة.",
+                "حذاء خفيف بوسادة مريحة ونعل مرن للجري والمشي اليومي. اختر اللون والمقاس المناسب لك.",
               ratingAverage: 4.8,
               ratingCount: 84,
               shipping: {

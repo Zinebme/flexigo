@@ -29,3 +29,4 @@
 @media(min-width:1024px){.volt-container{padding-inline:32px}.volt-section{padding-block:88px}}
 @media(max-width:374px){.volt-container{padding-inline:12px}.volt-section{padding-block:42px}}
 @media(prefers-reduced-motion:reduce){.volt-root *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+.volt-root .mt-4.flex.items-baseline.gap-3>strong,.volt-root .mt-4.flex.items-baseline.gap-3>span{direction:ltr;unicode-bidi:isolate;display:inline-block;white-space:nowrap;font-variant-numeric:tabular-nums}

@@ -10,7 +10,7 @@ import type { SouqVariantInput } from "@/lib/storefront/souq/variants";
 import "@/components/storefront/templates-v2/little/little.css";
 export const dynamic = "force-static";
 export const metadata: Metadata = {
-  title: "LITTLE — صفحة المنتج",
+  title: "طقم رضيع ناعم — LITTLE",
   robots: { index: false, follow: false },
 };
 const variants: SouqVariantInput[] = [
@@ -44,7 +44,7 @@ export default function Page() {
   return (
     <div dir="rtl" className="little-root min-h-screen" style={littleCssVars()}>
       <div className="bg-[var(--little-pink)] px-3 py-2 text-center text-[11px] font-bold text-white">
-        معاينة تفاعلية — لا توجد طلبات حقيقية
+        توصيل إلى 58 ولاية • هدايا مغلفة بعناية
       </div>
       <LittleContainer className="py-6">
         <Link href="/preview/little" className="text-xs font-bold text-slate-500">
@@ -108,7 +108,7 @@ export default function Page() {
                 "/images/little/hero-premium.webp",
               ],
               description:
-                "طقم ناعم ومريح للأطفال مع خيارات اللون والعمر، مصمم لتجربة شراء سهلة وواضحة.",
+                "طقم قطني ناعم ومريح لبشرة الطفل، متوفر بألوان هادئة ومقاسات مناسبة للسنوات الأولى.",
               ratingAverage: 4.9,
               ratingCount: 112,
               shipping: {

@@ -11,3 +11,4 @@
 .pulse-root main>section{animation:pulseEnter .62s cubic-bezier(.2,.8,.2,1) both}.pulse-root .pulse-panel img{transition:transform .55s ease}.pulse-root .pulse-panel:hover img{transform:scale(1.045)}.pulse-chip{animation:pulseBeat 3.2s ease-in-out infinite}
 @keyframes pulseEnter{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}@keyframes pulseBeat{50%{transform:scale(1.045)}}
 @media(min-width:640px){.pulse-container{padding-inline:24px}.pulse-section{padding-block:74px}}@media(min-width:1024px){.pulse-container{padding-inline:32px}.pulse-section{padding-block:88px}}@media(prefers-reduced-motion:reduce){.pulse-root *{animation:none!important;transition:none!important}}
+.pulse-root .mt-4.flex.items-baseline.gap-3>strong,.pulse-root .mt-4.flex.items-baseline.gap-3>span{direction:ltr;unicode-bidi:isolate;display:inline-block;white-space:nowrap;font-variant-numeric:tabular-nums}

@@ -19,3 +19,4 @@
 @media(min-width:640px){.dar-container{padding-inline:24px}.dar-section{padding-block:72px}}@media(min-width:1024px){.dar-container{padding-inline:32px}.dar-section{padding-block:84px}}
 @media(max-width:374px){.dar-container{padding-inline:12px}.dar-section{padding-block:44px}}
 @media(prefers-reduced-motion:reduce){.dar-root *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+.dar-root .mt-4.flex.items-baseline.gap-3>strong,.dar-root .mt-4.flex.items-baseline.gap-3>span{direction:ltr;unicode-bidi:isolate;display:inline-block;white-space:nowrap;font-variant-numeric:tabular-nums}
