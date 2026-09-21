@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { voltCssVars } from "@/lib/storefront/volt/tokens";
 import { VoltContainer } from "@/components/storefront/templates-v2/volt/volt-ui";
 import { VoltProductView } from "@/components/storefront/templates-v2/volt/volt-product-view";
@@ -20,13 +21,13 @@ const groups=buildOptionGroups(variants,null,[]);
 export default function VoltProductPreview(){
  return <div dir="rtl" className="volt-root min-h-screen volt-grid-bg" style={voltCssVars()}>
   <div className="bg-[var(--volt-blue)] px-3 py-2 text-center text-[11px] font-bold text-white">معاينة تفاعلية — الإرسال الحقيقي معطل</div>
-  <VoltContainer className="py-6"><a href="/preview/volt" className="text-xs font-bold text-slate-500">← العودة إلى VOLT</a><div className="mt-5"><VoltProductView data={{
+  <VoltContainer className="py-6"><Link href="/preview/volt" className="text-xs font-bold text-slate-500">← العودة إلى VOLT</Link><div className="mt-5"><VoltProductView data={{
    storeSlug:"volt-demo",base:"/preview/volt",copy:souqCopy("ar"),lang:"ar",currency:"DZD",settings:SOUQ_CHECKOUT_DEFAULTS,
-   product:{id:"e1000000-0000-4000-8000-000000000000",slug:"smart-watch",name:"ساعة ذكية AMOLED X2",priceCents:890000,compareAtPriceCents:1090000,imageUrl:"/images/volt/watch.svg",stock:20,ratingAverage:4.8,ratingCount:128},
+   product:{id:"e1000000-0000-4000-8000-000000000000",slug:"smart-watch",name:"ساعة ذكية AMOLED X2",priceCents:890000,compareAtPriceCents:1090000,imageUrl:"/images/volt/watch-premium.webp",stock:20,ratingAverage:4.8,ratingCount:128},
    variants,optionGroups:groups,addOnProducts:[],offers:[{id:"e1000000-0000-4000-8000-000000000010",store_id:"e1000000-0000-4000-8000-000000000099",product_id:"e1000000-0000-4000-8000-000000000000",min_quantity:2,total_price_cents:1690000,label:"عرض قطعتين",is_active:true}],
    zones:[{wilaya_code:0,home_fee_cents:60000,office_fee_cents:40000,is_active:true},{wilaya_code:16,home_fee_cents:50000,office_fee_cents:30000,is_active:true}],
    officeDeliveryEnabled:true,whatsapp:null,previewMode:true,previewOrderNumber:"DEMO-VOLT-001",anchorId:"volt-order-form",
-   images:["/images/volt/watch.svg","/images/volt/banner.svg"],description:"شاشة AMOLED واضحة، بطارية تدوم طويلاً، إشعارات، تتبع نشاط، وخيارات سعة ولون ديناميكية.",ratingAverage:4.8,ratingCount:128,
+   images:["/images/volt/watch-premium.webp","/images/volt/hero-premium.webp"],description:"شاشة AMOLED واضحة، بطارية تدوم طويلاً، إشعارات، تتبع نشاط، وخيارات سعة ولون ديناميكية.",ratingAverage:4.8,ratingCount:128,
    shipping:{hasZones:true,homeFromCents:50000,officeFromCents:30000,officeEnabled:true}
   }}/></div></VoltContainer>
  </div>

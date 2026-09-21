@@ -23,6 +23,8 @@
 .volt-root .souq-price{direction:ltr;unicode-bidi:isolate;display:inline-block;color:var(--volt-blue)}
 .volt-root .souq-label{color:var(--volt-ink)}.volt-root .souq-input{border-color:var(--volt-border);background:#fff;color:var(--volt-ink)}
 .volt-glow{background:linear-gradient(135deg,#EDF3FF 0%,#F8FBFF 45%,#E8FBF8 100%)}
+.volt-root main>section{animation:voltEnter .65s ease both}.volt-root main>section:nth-child(2){animation-delay:.08s}.volt-root main>section:nth-child(3){animation-delay:.14s}.volt-root .volt-panel img{transition:transform .65s ease}.volt-root .volt-panel:hover img{transform:scale(1.035)}
+@keyframes voltEnter{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @media(min-width:640px){.volt-container{padding-inline:24px}.volt-section{padding-block:72px}}
 @media(min-width:1024px){.volt-container{padding-inline:32px}.volt-section{padding-block:88px}}
 @media(max-width:374px){.volt-container{padding-inline:12px}.volt-section{padding-block:42px}}

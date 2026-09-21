@@ -7,7 +7,7 @@ import "./volt.css";
 
 export async function VoltShell({data,children}:{data:StorefrontData;children:ReactNode}){
  const shop=await loadSouqShop(data.id); const base=data.base; const contact=data.settings?.contact;
- const nav=[{href:base,label:"الرئيسية"},{href:`${base}/boutique`,label:"المتجر"},{href:`${base}/boutique?sort=featured`,label:"الأكثر طلباً"},{href:`${base}/boutique?filter=offers`,label:"العروض"},{href:`${base}/faq`,label:"الأسئلة الشائعة"}];
+ const nav=[{href:base,label:"الرئيسية"},{href:`${base}/boutique`,label:"المتجر"},{href:`${base}/boutique?sort=featured`,label:"الأكثر طلباً"},{href:`${base}/a-propos`,label:"من نحن"},{href:`${base}/faq`,label:"الأسئلة الشائعة"},{href:`${base}/contact`,label:"تواصل"}];
  return <div dir="rtl" className="volt-root min-h-screen volt-grid-bg" style={voltCssVars()} data-template="volt-v1">
   <div className="border-b border-[var(--volt-border)] bg-[var(--volt-blue)] px-3 py-2 text-center text-[11px] font-bold text-white">{data.theme?.announcement?.trim()||"توصيل إلى 58 ولاية • الدفع عند الاستلام"}</div>
   <header className="sticky top-0 z-50 border-b border-[var(--volt-border)] bg-white/95 backdrop-blur-xl">

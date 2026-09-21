@@ -17,8 +17,8 @@ export function voltHomeSections(businessName: string): Section[] {
       badge: "تقنية أقوى. تجربة أسرع.",
       title: "اكتشف الجيل الجديد من التقنية",
       subtitle: "أجهزة وإكسسوارات مختارة بعناية، أسعار واضحة والدفع عند الاستلام.",
-      desktop_image: "/images/volt/hero.svg",
-      mobile_image: "/images/volt/hero.svg",
+      desktop_image: "/images/volt/hero-premium.webp",
+      mobile_image: "/images/volt/hero-premium.webp",
       button_text: "تسوّق الآن",
       button_link: "/boutique",
       alignment: "right",
@@ -38,8 +38,8 @@ export function voltHomeSections(businessName: string): Section[] {
     s("banner", {
       title: "ترقية ذكية ليومك",
       subtitle: "اكتشف أجهزة وإكسسوارات تجمع الأداء، البساطة والتصميم.",
-      desktop_image: "/images/volt/banner.svg",
-      mobile_image: "/images/volt/banner.svg",
+      desktop_image: "/images/volt/hero-premium.webp",
+      mobile_image: "/images/volt/hero-premium.webp",
       button_text: "اكتشف الجديد",
       button_link: "/boutique",
       alignment: "right",
@@ -55,7 +55,7 @@ export function voltHomeSections(businessName: string): Section[] {
 
 export function voltContentPages(businessName: string) {
   return [
-    { key: "about", title: "من نحن", content: { sections: [s("hero", { title: businessName, subtitle: "متجر تقني يركز على منتجات عملية وتجربة شراء واضحة.", image: "/images/volt/banner.svg", button_text: "تسوّق الآن", button_link: "/boutique", alignment: "right" })] } },
+    { key: "about", title: "من نحن", content: { sections: [s("hero", { title: businessName, subtitle: "متجر تقني يركز على منتجات عملية وتجربة شراء واضحة.", image: "/images/volt/hero-premium.webp", button_text: "تسوّق الآن", button_link: "/boutique", alignment: "right" })] } },
     { key: "faq", title: "الأسئلة الشائعة", content: { sections: [s("faq", { title: "الأسئلة الشائعة", subtitle: null, max_items: 12 })] } },
     { key: "contact", title: "تواصل معنا", content: { sections: [s("contact", { title: "تواصل معنا", text: "نحن هنا للإجابة عن أسئلتك.", show_phone: true, show_whatsapp: true, show_email: true })] } },
   ];

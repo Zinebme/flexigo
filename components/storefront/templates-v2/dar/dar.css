@@ -14,6 +14,8 @@
 .dar-order-form .souq-input{border-color:var(--dar-border)!important;background:#fff!important;color:var(--dar-ink)!important}
 .dar-order-form .souq-label{color:var(--dar-ink)!important}.dar-order-form button[type="submit"]{background:var(--dar-olive-dark)!important;color:white!important;font-weight:900!important}
 .dar-root .souq-price{direction:ltr;unicode-bidi:isolate;display:inline-block;color:var(--dar-terracotta-dark)}
+.dar-root main>section{animation:darEnter .75s ease both}.dar-root main>section:nth-child(2){animation-delay:.08s}.dar-paper img{transition:transform .7s ease,filter .7s ease}.dar-paper:hover img{transform:scale(1.03);filter:saturate(1.04)}
+@keyframes darEnter{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
 @media(min-width:640px){.dar-container{padding-inline:24px}.dar-section{padding-block:72px}}@media(min-width:1024px){.dar-container{padding-inline:32px}.dar-section{padding-block:84px}}
 @media(max-width:374px){.dar-container{padding-inline:12px}.dar-section{padding-block:44px}}
 @media(prefers-reduced-motion:reduce){.dar-root *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

@@ -1,4 +1,126 @@
-import type {Metadata} from "next";import {pulseCssVars} from "@/lib/storefront/pulse/tokens";import {PulseContainer} from "@/components/storefront/templates-v2/pulse/pulse-ui";import {PulseProductView} from "@/components/storefront/templates-v2/pulse/pulse-product-view";import {souqCopy} from "@/lib/storefront/souq/copy";import {SOUQ_CHECKOUT_DEFAULTS} from "@/lib/storefront/souq/checkout-settings";import {buildOptionGroups} from "@/lib/storefront/souq/variants";import type {SouqVariantInput} from "@/lib/storefront/souq/variants";import "@/components/storefront/templates-v2/pulse/pulse.css";
-export const dynamic="force-static";export const metadata:Metadata={title:"PULSE — صفحة المنتج",robots:{index:false,follow:false}};
-const variants:SouqVariantInput[]=[{id:"a1000000-0000-4000-8000-000000000001",name:"أسود / 42",options:{"اللون":"أسود","المقاس":"42"},price_cents:690000,stock:8,is_active:true},{id:"a1000000-0000-4000-8000-000000000002",name:"أبيض / 42",options:{"اللون":"أبيض","المقاس":"42"},price_cents:690000,stock:5,is_active:true},{id:"a1000000-0000-4000-8000-000000000003",name:"أسود / 43",options:{"اللون":"أسود","المقاس":"43"},price_cents:720000,stock:4,is_active:true}];const groups=buildOptionGroups(variants,null,[]);
-export default function Page(){return <div dir="rtl" className="pulse-root min-h-screen" style={pulseCssVars()}><div className="bg-[var(--pulse-dark)] px-3 py-2 text-center text-[11px] font-bold text-white">معاينة تفاعلية — لا توجد طلبات حقيقية</div><PulseContainer className="py-6"><a href="/preview/pulse" className="text-xs font-bold text-slate-500">← العودة إلى PULSE</a><div className="mt-5"><PulseProductView data={{storeSlug:"pulse-demo",base:"/preview/pulse",copy:souqCopy("ar"),lang:"ar",currency:"DZD",settings:SOUQ_CHECKOUT_DEFAULTS,product:{id:"a1000000-0000-4000-8000-000000000000",slug:"run-shoe",name:"حذاء جري خفيف PULSE",priceCents:690000,compareAtPriceCents:790000,imageUrl:"/images/pulse/shoes.svg",stock:20,ratingAverage:4.8,ratingCount:84},variants,optionGroups:groups,addOnProducts:[],offers:[{id:"a1000000-0000-4000-8000-000000000010",store_id:"a1000000-0000-4000-8000-000000000099",product_id:"a1000000-0000-4000-8000-000000000000",min_quantity:2,total_price_cents:1290000,label:"عرض زوجين",is_active:true}],zones:[{wilaya_code:0,home_fee_cents:60000,office_fee_cents:40000,is_active:true},{wilaya_code:16,home_fee_cents:50000,office_fee_cents:30000,is_active:true}],officeDeliveryEnabled:true,whatsapp:null,previewMode:true,previewOrderNumber:"DEMO-PULSE-001",anchorId:"pulse-order-form",images:["/images/pulse/shoes.svg","/images/pulse/banner.svg"],description:"حذاء رياضي خفيف للتمرين والجري اليومي مع خيارات مقاس ولون واضحة.",ratingAverage:4.8,ratingCount:84,shipping:{hasZones:true,homeFromCents:50000,officeFromCents:30000,officeEnabled:true}}}/></div></PulseContainer></div>}
+import type { Metadata } from "next";
+import Link from "next/link";
+import { pulseCssVars } from "@/lib/storefront/pulse/tokens";
+import { PulseContainer } from "@/components/storefront/templates-v2/pulse/pulse-ui";
+import { PulseProductView } from "@/components/storefront/templates-v2/pulse/pulse-product-view";
+import { souqCopy } from "@/lib/storefront/souq/copy";
+import { SOUQ_CHECKOUT_DEFAULTS } from "@/lib/storefront/souq/checkout-settings";
+import { buildOptionGroups } from "@/lib/storefront/souq/variants";
+import type { SouqVariantInput } from "@/lib/storefront/souq/variants";
+import "@/components/storefront/templates-v2/pulse/pulse.css";
+export const dynamic = "force-static";
+export const metadata: Metadata = {
+  title: "PULSE — صفحة المنتج",
+  robots: { index: false, follow: false },
+};
+const variants: SouqVariantInput[] = [
+  {
+    id: "a1000000-0000-4000-8000-000000000001",
+    name: "أسود / 42",
+    options: { اللون: "أسود", المقاس: "42" },
+    price_cents: 690000,
+    stock: 8,
+    is_active: true,
+  },
+  {
+    id: "a1000000-0000-4000-8000-000000000002",
+    name: "أبيض / 42",
+    options: { اللون: "أبيض", المقاس: "42" },
+    price_cents: 690000,
+    stock: 5,
+    is_active: true,
+  },
+  {
+    id: "a1000000-0000-4000-8000-000000000003",
+    name: "أسود / 43",
+    options: { اللون: "أسود", المقاس: "43" },
+    price_cents: 720000,
+    stock: 4,
+    is_active: true,
+  },
+];
+const groups = buildOptionGroups(variants, null, []);
+export default function Page() {
+  return (
+    <div dir="rtl" className="pulse-root min-h-screen" style={pulseCssVars()}>
+      <div className="bg-[var(--pulse-dark)] px-3 py-2 text-center text-[11px] font-bold text-white">
+        معاينة تفاعلية — لا توجد طلبات حقيقية
+      </div>
+      <PulseContainer className="py-6">
+        <Link href="/preview/pulse" className="text-xs font-bold text-slate-500">
+          ← العودة إلى PULSE
+        </Link>
+        <div className="mt-5">
+          <PulseProductView
+            data={{
+              storeSlug: "pulse-demo",
+              base: "/preview/pulse",
+              copy: souqCopy("ar"),
+              lang: "ar",
+              currency: "DZD",
+              settings: SOUQ_CHECKOUT_DEFAULTS,
+              product: {
+                id: "a1000000-0000-4000-8000-000000000000",
+                slug: "run-shoe",
+                name: "حذاء جري خفيف PULSE",
+                priceCents: 690000,
+                compareAtPriceCents: 790000,
+                imageUrl: "/images/pulse/shoes-premium.webp",
+                stock: 20,
+                ratingAverage: 4.8,
+                ratingCount: 84,
+              },
+              variants,
+              optionGroups: groups,
+              addOnProducts: [],
+              offers: [
+                {
+                  id: "a1000000-0000-4000-8000-000000000010",
+                  store_id: "a1000000-0000-4000-8000-000000000099",
+                  product_id: "a1000000-0000-4000-8000-000000000000",
+                  min_quantity: 2,
+                  total_price_cents: 1290000,
+                  label: "عرض زوجين",
+                  is_active: true,
+                },
+              ],
+              zones: [
+                {
+                  wilaya_code: 0,
+                  home_fee_cents: 60000,
+                  office_fee_cents: 40000,
+                  is_active: true,
+                },
+                {
+                  wilaya_code: 16,
+                  home_fee_cents: 50000,
+                  office_fee_cents: 30000,
+                  is_active: true,
+                },
+              ],
+              officeDeliveryEnabled: true,
+              whatsapp: null,
+              previewMode: true,
+              previewOrderNumber: "DEMO-PULSE-001",
+              anchorId: "pulse-order-form",
+              images: [
+                "/images/pulse/shoes-premium.webp",
+                "/images/pulse/hero-premium.webp",
+              ],
+              description:
+                "حذاء رياضي خفيف للتمرين والجري اليومي مع خيارات مقاس ولون واضحة.",
+              ratingAverage: 4.8,
+              ratingCount: 84,
+              shipping: {
+                hasZones: true,
+                homeFromCents: 50000,
+                officeFromCents: 30000,
+                officeEnabled: true,
+              },
+            }}
+          />
+        </div>
+      </PulseContainer>
+    </div>
+  );
+}

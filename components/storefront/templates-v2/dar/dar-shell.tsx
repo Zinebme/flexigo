@@ -7,7 +7,7 @@ import "./dar.css";
 
 export async function DarShell({data,children}:{data:StorefrontData;children:ReactNode}){
  const shop=await loadSouqShop(data.id); const base=data.base; const contact=data.settings?.contact;
- const nav=[{href:base,label:"الرئيسية"},{href:`${base}/boutique`,label:"المتجر"},{href:`${base}/boutique?sort=featured`,label:"الأكثر طلباً"},{href:`${base}/boutique?filter=offers`,label:"العروض"},{href:`${base}/faq`,label:"الأسئلة الشائعة"}];
+ const nav=[{href:base,label:"الرئيسية"},{href:`${base}/boutique`,label:"المتجر"},{href:`${base}/boutique?sort=featured`,label:"الأكثر طلباً"},{href:`${base}/a-propos`,label:"من نحن"},{href:`${base}/faq`,label:"الأسئلة الشائعة"},{href:`${base}/contact`,label:"تواصل"}];
  return <div dir="rtl" className="dar-root min-h-screen" style={darCssVars()} data-template="dar-v1">
   <div className="bg-[var(--dar-olive-dark)] px-3 py-2 text-center text-[11px] font-bold text-white">{data.theme?.announcement?.trim()||"توصيل إلى 58 ولاية • الدفع عند الاستلام"}</div>
   <header className="sticky top-0 z-50 border-b border-[var(--dar-border)] bg-[var(--dar-paper)]/95 backdrop-blur">

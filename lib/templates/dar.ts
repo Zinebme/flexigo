@@ -17,8 +17,8 @@ export function darHomeSections(businessName: string): Section[] {
       badge: "بيت أجمل، تفاصيل أدفأ",
       title: "اختيارات ذكية لبيت مرتب وأنيق",
       subtitle: "مطبخ، ترتيب، ديكور وأدوات يومية مختارة بعناية مع الدفع عند الاستلام.",
-      desktop_image: "/images/dar/hero.svg",
-      mobile_image: "/images/dar/hero-mobile.svg",
+      desktop_image: "/images/dar/hero-premium.webp",
+      mobile_image: "/images/dar/hero-premium.webp",
       button_text: "اكتشف المتجر",
       button_link: "/boutique",
       alignment: "right",
@@ -28,8 +28,8 @@ export function darHomeSections(businessName: string): Section[] {
     s("banner", {
       title: "رتّب أقل، عش أكثر",
       subtitle: "حلول عملية للتنظيم والاستعمال اليومي بتصميم بسيط ودافئ.",
-      desktop_image: "/images/dar/banner.svg",
-      mobile_image: "/images/dar/banner-mobile.svg",
+      desktop_image: "/images/dar/hero-premium.webp",
+      mobile_image: "/images/dar/hero-premium.webp",
       button_text: "شاهد المجموعة",
       button_link: "/boutique",
       alignment: "right",
@@ -47,7 +47,7 @@ export function darHomeSections(businessName: string): Section[] {
       ],
     }),
     s("products", { title: "وصل حديثاً", subtitle: "أحدث الإضافات للبيت والمطبخ", source: "latest", product_count: 8 }),
-    s("gallery", { title: "إلهام للبيت", subtitle: "أفكار دافئة للمطبخ، الترتيب وطاولة البيت", images: ["/images/dar/inspiration.svg","/images/dar/table.svg","/images/dar/organize.svg"] }),
+    s("gallery", { title: "إلهام للبيت", subtitle: "أفكار دافئة للمطبخ، الترتيب وطاولة البيت", images: ["/images/dar/hero-premium.webp","/images/dar/storage-premium.webp","/images/dar/hero-premium.webp"] }),
     s("reviews", { title: `آراء زبائن ${businessName}`, subtitle: "تجارب حقيقية منشورة من المتجر" }),
     s("faq", { title: "أسئلة شائعة", subtitle: "كل ما تحتاج معرفته قبل الطلب", max_items: 8 }),
     s("contact", { title: "تحتاج مساعدة؟", text: "تواصل معنا عبر القنوات التي أضافها المتجر.", show_phone: true, show_whatsapp: true, show_email: false }),
@@ -56,7 +56,7 @@ export function darHomeSections(businessName: string): Section[] {
 
 export function darContentPages(businessName: string) {
   return [
-    { key: "about", title: "من نحن", content: { sections: [s("hero", { title: businessName, subtitle: "اختيارات عملية وجميلة للبيت، بتجربة شراء واضحة وسريعة.", image: "/images/dar/banner.svg", button_text: "تسوّق الآن", button_link: "/boutique", alignment: "right" })] } },
+    { key: "about", title: "من نحن", content: { sections: [s("hero", { title: businessName, subtitle: "اختيارات عملية وجميلة للبيت، بتجربة شراء واضحة وسريعة.", image: "/images/dar/hero-premium.webp", button_text: "تسوّق الآن", button_link: "/boutique", alignment: "right" })] } },
     { key: "faq", title: "الأسئلة الشائعة", content: { sections: [s("faq", { title: "الأسئلة الشائعة", subtitle: null, max_items: 12 })] } },
     { key: "contact", title: "تواصل معنا", content: { sections: [s("contact", { title: "تواصل معنا", text: "نحن هنا للإجابة عن أسئلتك.", show_phone: true, show_whatsapp: true, show_email: true })] } },
   ];
