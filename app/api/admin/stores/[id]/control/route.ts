@@ -8,6 +8,7 @@ import { encryptSecret } from "@/lib/crypto/encrypt";
 import { parseServiceAccount } from "@/lib/integrations/sheets";
 import { slugify } from "@/lib/slug";
 import { SHIPPING_PROVIDER_KEYS, MARKETING_PROVIDER_KEYS } from "@/lib/types";
+import { souqCheckoutSettingsSchema } from "@/lib/storefront/souq/checkout-settings";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -82,6 +83,10 @@ const actionSchema = z.discriminatedUnion("action", [
     full_name: z.string().trim().min(2).max(120),
     dashboard_language: z.enum(["fr","ar","en"]).default("fr"),
   }),
+  z.object({
+    action: z.literal("checkout"),
+    checkout: souqCheckoutSettingsSchema,
+  }),
 ]);
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -129,6 +134,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       } as never).eq("store_id", storeId);
       if (error) throw error;
       await logAudit({ actorId: ctx.user.id, storeId, action: "store.appearance_changed", entity: "theme", entityId: storeId, metadata: { fields: ["logo","favicon","colors","typography","button_shape","announcement"] } });
+    }
+
+    if (input.action === "checkout") {
+      const currentSettings = ((store as unknown as { settings?: Record<string, unknown> }).settings ?? {});
+      const nextSettings = { ...currentSettings, checkout: input.checkout };
+      const { error } = await admin.from("stores").update({
+        settings: nextSettings,
+        updated_at: new Date().toISOString(),
+      } as never).eq("id", storeId);
+      if (error) throw error;
+      await logAudit({
+        actorId: ctx.user.id,
+        storeId,
+        action: "store.settings_changed",
+        entity: "store",
+        entityId: storeId,
+        metadata: { fields: Object.keys(input.checkout) },
+      });
     }
 
     if (input.action === "product") {

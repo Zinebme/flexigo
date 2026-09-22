@@ -6,7 +6,7 @@ import { formatDA, formatDateTimeFr, timeAgoFr } from "@/lib/utils";
 import { Badge, Card, Table, Th, Td } from "@/components/ui";
 import { SiteActions } from "./site-actions";
 import { AdvancedAdminClient } from "./advanced-admin-client";
-import { StoreSettingsEditor, ThemeEditor, ProductQuickEditor, CategoryQuickEditor, IntegrationsEditor, OwnerEditor, ContentAdminEditor, DomainControl } from "./site-control-forms";
+import { StoreSettingsEditor, AdminCheckoutSettingsEditor, ThemeEditor, ProductQuickEditor, CategoryQuickEditor, IntegrationsEditor, OwnerEditor, ContentAdminEditor, DomainControl } from "./site-control-forms";
 import { SiteAssistant } from "./site-assistant";
 
 type Tab = "overview" | "assistant" | "site" | "products" | "categories" | "orders" | "customers" | "stats" | "content" | "appearance" | "delivery" | "integrations" | "domain" | "account" | "logs" | "health";
@@ -133,11 +133,16 @@ export function SiteControlCenter(props: Props) {
       )}
 
       {tab === "site" && (
-        <Card className="p-5">
-          <h3 className="font-bold">Site — informations générales</h3>
-          <p className="mt-2 text-sm text-slate-500">Modifiez directement le nom, le slug, la langue et la devise depuis le Master.</p>
-          <div className="mt-4"><StoreSettingsEditor storeId={s.id as string} store={s} /></div>
-        </Card>
+        <div className="space-y-4">
+          <Card className="p-5">
+            <h3 className="font-bold">Site — informations générales</h3>
+            <p className="mt-2 text-sm text-slate-500">Modifiez directement le nom, le slug, la langue et la devise depuis le Master.</p>
+            <div className="mt-4"><StoreSettingsEditor storeId={s.id as string} store={s} /></div>
+          </Card>
+          <Card className="p-5">
+            <AdminCheckoutSettingsEditor storeId={s.id as string} initial={(s.settings as { checkout?: unknown } | null)?.checkout} />
+          </Card>
+        </div>
       )}
 
       {tab === "products" && (

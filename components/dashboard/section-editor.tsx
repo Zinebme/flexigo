@@ -21,7 +21,7 @@ import { shortId } from "@/lib/utils";
  * live site only serves the last published snapshot.
  */
 
-type FieldKind = "text" | "textarea" | "number" | "boolean" | "image" | "alignment" | "source" | "category" | "link" | "items";
+type FieldKind = "text" | "textarea" | "number" | "boolean" | "image" | "images" | "alignment" | "source" | "category" | "link" | "items";
 interface FieldSpec { key: string; label: string; kind: FieldKind; options?: string[]; placeholder?: string }
 
 // Approved editable fields per section type (UI only — server is the source of truth).
@@ -67,7 +67,7 @@ const FIELDS: Record<SectionType, FieldSpec[]> = {
   reviews: [{ key: "title", label: "Titre", kind: "text" }, { key: "subtitle", label: "Sous-titre", kind: "text" }],
   faq: [{ key: "title", label: "Titre", kind: "text" }, { key: "subtitle", label: "Sous-titre", kind: "text" }, { key: "max_items", label: "Nombre max", kind: "number" }],
   offer: [{ key: "title", label: "Titre", kind: "text" }, { key: "subtitle", label: "Sous-titre", kind: "text" }, { key: "text", label: "Texte", kind: "textarea" }],
-  gallery: [{ key: "title", label: "Titre", kind: "text" }, { key: "subtitle", label: "Sous-titre", kind: "text" }],
+  gallery: [{ key: "title", label: "Titre", kind: "text" }, { key: "subtitle", label: "Sous-titre", kind: "text" }, { key: "images", label: "Images de la galerie", kind: "images" }],
   before_after: [
     { key: "title", label: "Titre", kind: "text" },
     { key: "subtitle", label: "Sous-titre", kind: "text" },
@@ -188,6 +188,29 @@ export function SectionEditor({
     updateSection(idx, { [field]: data.url });
   }
 
+  async function uploadGalleryImages(idx: number, field: string, files: File[]) {
+    const current = sections[idx] as Record<string, unknown> | undefined;
+    const existing = Array.isArray(current?.[field]) ? current[field] as string[] : [];
+    const accepted = files.slice(0, Math.max(0, 12 - existing.length));
+    if (!accepted.length) return;
+    setError(null);
+    const uploaded: string[] = [];
+    for (const file of accepted) {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("purpose", "banner");
+      const res = await fetch(uploadUrl, { method: "POST", body: fd });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; url?: string; warnings?: string[]; error?: { message?: string } | string };
+      if (!res.ok || !data.ok || !data.url) {
+        setError(typeof data.error === "string" ? data.error : (data.error?.message ?? "Téléversement impossible"));
+        return;
+      }
+      uploaded.push(data.url);
+      if (data.warnings?.length) setVersionNote(`⚠️ ${data.warnings[0]}`);
+    }
+    updateSection(idx, { [field]: [...existing, ...uploaded].slice(0, 12) });
+  }
+
   async function saveDraft(e?: React.FormEvent) {
     e?.preventDefault();
     setBusy(true);
@@ -274,13 +297,14 @@ export function SectionEditor({
 
             <div className="grid gap-3 md:grid-cols-2">
               {specs.map((f) => (
-                <div key={f.key} className={f.kind === "textarea" || f.kind === "items" ? "md:col-span-2" : ""}>
+                <div key={f.key} className={f.kind === "textarea" || f.kind === "items" || f.kind === "images" ? "md:col-span-2" : ""}>
                   <FieldControl
                     spec={f}
                     section={s}
                     categories={categories}
                     onChange={(patch) => updateSection(idx, patch)}
                     onUpload={f.kind === "image" ? (file) => uploadImage(idx, f.key, file) : undefined}
+                    onUploadMany={f.kind === "images" ? (files) => uploadGalleryImages(idx, f.key, files) : undefined}
                   />
                 </div>
               ))}
@@ -321,12 +345,14 @@ function FieldControl({
   categories,
   onChange,
   onUpload,
+  onUploadMany,
 }: {
   spec: FieldSpec;
   section: Section;
   categories: Array<{ id: string; name: string }>;
   onChange: (patch: Record<string, unknown>) => void;
   onUpload?: (file: File) => void;
+  onUploadMany?: (files: File[]) => void;
 }) {
   const rec = section as Record<string, unknown>;
   const value = rec[spec.key];
@@ -422,6 +448,36 @@ function FieldControl({
           ) : null}
         </div>
         <p className="mt-1 text-xs text-slate-400">Recommandé desktop : 1600×700 · mobile : 800×1000. Une résolution trop faible est signalée.</p>
+      </div>
+    );
+  }
+  if (spec.kind === "images") {
+    const images = Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+    return (
+      <div>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <label className={label}>{spec.label} ({images.length}/12)</label>
+          <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="text-sm" onChange={(e) => {
+            const files = Array.from(e.target.files ?? []);
+            if (files.length) onUploadMany?.(files);
+            e.target.value = "";
+          }} />
+        </div>
+        {images.length ? (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            {images.map((url, index) => (
+              <div key={`${url}-${index}`} className="rounded-lg border border-slate-200 bg-slate-50 p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="h-24 w-full rounded-md object-cover" />
+                <div className="mt-2 flex items-center justify-between gap-1">
+                  <button type="button" className="rounded px-2 py-1 text-xs text-slate-600 hover:bg-white" disabled={index === 0} onClick={() => onChange({ [spec.key]: images.map((item, i) => i === index - 1 ? url : i === index ? images[index - 1] : item) })}>↑</button>
+                  <button type="button" className="rounded px-2 py-1 text-xs text-slate-600 hover:bg-white" disabled={index === images.length - 1} onClick={() => onChange({ [spec.key]: images.map((item, i) => i === index + 1 ? url : i === index ? images[index + 1] : item) })}>↓</button>
+                  <button type="button" className="rounded px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50" onClick={() => onChange({ [spec.key]: images.filter((_, i) => i !== index) })}>Retirer</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : <p className="text-sm text-slate-400">Aucune image. Ajoutez jusqu’à 12 images.</p>}
       </div>
     );
   }

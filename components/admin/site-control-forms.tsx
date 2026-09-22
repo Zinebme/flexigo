@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SectionEditor } from "@/components/dashboard/section-editor";
+import { CheckoutSettingsEditor } from "@/components/dashboard/checkout-settings-editor";
 import type { Section } from "@/lib/sections/definitions";
 import type { WebsiteType } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -48,6 +49,20 @@ export function StoreSettingsEditor({ storeId, store }: { storeId: string; store
       <label className="text-sm font-medium">Devise<input className={input} value={form.currency} onChange={(e)=>setForm({...form,currency:e.target.value.toUpperCase()})}/></label>
       <div className="md:col-span-2 flex items-center gap-3"><button className={button} disabled={busy}>{busy?"Enregistrement…":"Enregistrer le site"}</button>{message&&<span className="text-sm text-slate-500">{message}</span>}</div>
     </form>
+  );
+}
+
+export function AdminCheckoutSettingsEditor({ storeId, initial }: { storeId: string; initial: unknown }) {
+  const router = useRouter();
+  return (
+    <CheckoutSettingsEditor
+      initial={initial}
+      title="Formulaire de commande du client"
+      onSave={async (checkout) => {
+        await save(storeId, { action: "checkout", checkout });
+        router.refresh();
+      }}
+    />
   );
 }
 

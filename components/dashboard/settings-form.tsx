@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { StoreSettings } from "@/lib/supabase/database.types";
+import { CheckoutSettingsEditor } from "./checkout-settings-editor";
 
 export function SettingsForm({ initial, canManage }: { initial: StoreSettings; canManage: boolean }) {
   const router = useRouter();
@@ -63,6 +64,7 @@ export function SettingsForm({ initial, canManage }: { initial: StoreSettings; c
   const input = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm";
 
   return (
+    <div className="space-y-8">
     <form onSubmit={save} className="space-y-6">
       <section>
         <h3 className="mb-3 text-base font-bold text-slate-900">Coordonnées de contact</h3>
@@ -132,5 +134,21 @@ export function SettingsForm({ initial, canManage }: { initial: StoreSettings; c
         {okMsg && <p className="text-sm text-emerald-600">{okMsg}</p>}
       </div>
     </form>
+    <section className="border-t border-slate-200 pt-6">
+      <CheckoutSettingsEditor
+        initial={initial.checkout}
+        onSave={async (checkout) => {
+          const res = await fetch("/api/dashboard/settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ checkout }),
+          });
+          const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: { message?: string } | string };
+          if (!res.ok || !data.ok) throw new Error(typeof data.error === "string" ? data.error : (data.error?.message ?? "Enregistrement impossible"));
+          router.refresh();
+        }}
+      />
+    </section>
+    </div>
   );
 }

@@ -5,6 +5,7 @@ import { getAdminSupabase } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { toErrorResponse, err } from "@/lib/errors";
 import type { StoreSettings } from "@/lib/supabase/database.types";
+import { souqCheckoutSettingsSchema } from "@/lib/storefront/souq/checkout-settings";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -39,8 +40,9 @@ const bodySchema = z
         max_items_per_order: z.number().int().min(1).max(999).optional(),
       })
       .optional(),
+    checkout: souqCheckoutSettingsSchema.optional(),
   })
-  .refine((b) => b.contact || b.business, { message: "Rien à enregistrer" });
+  .refine((b) => b.contact || b.business || b.checkout, { message: "Rien à enregistrer" });
 
 /**
  * Update store settings (capability: settings.manage → OWNER).
@@ -79,6 +81,7 @@ export async function PUT(req: Request) {
         address: input.contact.address || null,
       } : {}) },
       business: { ...current.business, ...(input.business ?? {}) },
+      ...(input.checkout ? { checkout: input.checkout } : {}),
     };
 
     const { error } = await admin.from("stores").update({ settings: next as unknown as Record<string, unknown>, updated_at: new Date().toISOString() }).eq("id", ctx.store.id);
@@ -94,6 +97,7 @@ export async function PUT(req: Request) {
       metadata: {
         contact_fields: input.contact ? Object.keys(input.contact) : [],
         business_fields: input.business ? Object.keys(input.business) : [],
+        checkout_fields: input.checkout ? Object.keys(input.checkout) : [],
       },
     });
 

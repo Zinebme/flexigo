@@ -53,6 +53,18 @@ export interface StoreSettings {
   appearance?: {
     accent_color?: string | null;
   };
+  checkout?: {
+    fields?: Array<{
+      key: "first_name" | "last_name" | "phone" | "email" | "wilaya" | "commune" | "address" | "office";
+      enabled?: boolean;
+      required?: boolean;
+    }>;
+    show_quantity?: boolean;
+    show_quantity_offers?: boolean;
+    show_delivery_choice?: boolean;
+    variant_display?: "dynamic" | "buttons" | "dropdown";
+    show_email_field?: boolean;
+  };
 }
 
 export interface StoreRow {
