@@ -69,7 +69,10 @@ function LoginForm() {
               <input id="email" type="email" className={input} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700" htmlFor="password">Mot de passe</label>
+              <div className="mb-1.5 flex items-center justify-between gap-3">
+                <label className="block text-sm font-semibold text-slate-700" htmlFor="password">Mot de passe</label>
+                <Link href="/forgot-password" className="text-xs font-semibold text-blue-600 hover:underline">Mot de passe oublié ?</Link>
+              </div>
               <input id="password" type="password" className={input} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
             </div>
             <button
