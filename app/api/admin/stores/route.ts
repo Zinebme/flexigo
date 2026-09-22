@@ -9,6 +9,7 @@ import { getTemplate, defaultPages, defaultSettings, defaultShippingZones } from
 import { logAudit } from "@/lib/audit";
 import { encryptSecret, generateToken } from "@/lib/crypto/encrypt";
 import { parseServiceAccount } from "@/lib/integrations/sheets";
+import { getInviteRedirectUrl } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -66,6 +67,7 @@ async function resolveOrInviteOwner(args: {
 
   const { data, error } = await args.admin.auth.admin.inviteUserByEmail(email, {
     data: { full_name: args.fullName?.trim() || "" },
+    redirectTo: getInviteRedirectUrl(),
   });
   if (error || !data.user) {
     throw err("VALIDATION", `Impossible de créer/inviter le compte client : ${error?.message ?? "erreur Auth"}`);

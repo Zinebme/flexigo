@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getInviteRedirectUrl } from "@/lib/app-url";
 import { z } from "zod";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
@@ -289,7 +290,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       if (profile) {
         userId = (profile as { id: string }).id;
       } else {
-        const { data, error } = await admin.auth.admin.inviteUserByEmail(email, { data: { full_name: input.full_name } });
+        const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
+          data: { full_name: input.full_name },
+          redirectTo: getInviteRedirectUrl(),
+        });
         if (error || !data.user) throw err("VALIDATION", `Invitation impossible : ${error?.message ?? "erreur Auth"}`);
         userId = data.user.id;
         await admin.from("profiles").upsert({
