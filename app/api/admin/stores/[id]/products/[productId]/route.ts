@@ -50,7 +50,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           .select("id")
           .eq("store_id", storeId)
           .eq("slug", slug)
-          .neq("id", id)
+          .neq("id", productId)
           .maybeSingle();
         if (clash) throw err("CONFLICT", "Ce slug est déjà utilisé");
         patch.slug = slug;
