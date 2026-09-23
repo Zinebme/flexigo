@@ -1,0 +1,262 @@
+import { NextResponse } from "next/server";
+import { getAdminContext } from "@/lib/auth/admin-context";
+import { getAdminSupabase } from "@/lib/supabase/admin";
+import { logAudit } from "@/lib/audit";
+import { toErrorResponse, err } from "@/lib/errors";
+import { productSchema, quantityOfferSchema } from "@/lib/schemas";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+/**
+ * Update a product (capability: products.manage).
+ * Full re-sync of variants and images (idempotent replace).
+ * Price changes are audited as price.changed.
+ */
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string; productId: string }> }) {
+  try {
+    const { id: storeId, productId } = await params;
+    const ctx = await getAdminContext();
+
+    const body = (await req.json().catch(() => null)) as Record<string, unknown>;
+    // Strip unknown keys; use productSchema.partial() semantics.
+    const input = productSchema.partial().parse(body);
+    const offers = body.offers ? quantityOfferSchema.array().max(10).parse(body.offers) : undefined;
+    const removeVariantIds: string[] = Array.isArray(body.remove_variant_ids)
+      ? body.remove_variant_ids.filter((v) => typeof v === "string")
+      : [];
+
+    const admin = getAdminSupabase();
+    const { data: current, error: curError } = await admin
+      .from("products")
+      .select("*")
+      .eq("id", productId)
+      .eq("store_id", storeId)
+      .maybeSingle();
+    if (curError) throw curError;
+    if (!current) throw err("NOT_FOUND", "Produit introuvable");
+
+    // Build the update patch.
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    let priceChanged = false;
+    let priceCents: number | null = null;
+
+    if (input.name !== undefined) patch.name = input.name;
+    if (input.slug) {
+      const slug = input.slug.trim();
+      if (slug !== (current.slug as string)) {
+        const { data: clash } = await admin
+          .from("products")
+          .select("id")
+          .eq("store_id", storeId)
+          .eq("slug", slug)
+          .neq("id", id)
+          .maybeSingle();
+        if (clash) throw err("CONFLICT", "Ce slug est déjà utilisé");
+        patch.slug = slug;
+      }
+    }
+    if (input.description !== undefined) patch.description = input.description || null;
+    if (input.short_description !== undefined) patch.short_description = input.short_description || null;
+    if (input.cost !== undefined) patch.cost_cents = input.cost != null ? Math.round(input.cost * 100) : null;
+    if (input.is_digital !== undefined) patch.is_digital = input.is_digital;
+    if (input.gallery_mode !== undefined) patch.gallery_mode = input.gallery_mode;
+    if (input.landing_images !== undefined) patch.landing_images = input.landing_images;
+    if (input.min_order_quantity !== undefined) patch.min_order_quantity = input.min_order_quantity;
+    if (input.shipping_label !== undefined) patch.shipping_label = input.shipping_label || null;
+    if (input.stock_tracking_mode !== undefined) patch.stock_tracking_mode = input.stock_tracking_mode;
+    if (input.page_element_order !== undefined) patch.page_element_order = input.page_element_order;
+    if (input.option_groups !== undefined) patch.option_groups = input.option_groups;
+
+    const requestedLinks = [...new Set([...(input.related_product_ids ?? []), ...(input.cross_sell_product_ids ?? [])])];
+    if (requestedLinks.length > 0) {
+      const { data: ownedLinks, error: ownedErr } = await admin
+        .from("products")
+        .select("id")
+        .eq("store_id", storeId)
+        .is("deleted_at", null)
+        .in("id", requestedLinks);
+      if (ownedErr) throw ownedErr;
+      const owned = new Set((ownedLinks ?? []).map((row: { id: string }) => row.id));
+      if (requestedLinks.some((linkedId) => !owned.has(linkedId))) throw err("VALIDATION", "Produit connexe invalide pour cette boutique.");
+    }
+    if (input.related_product_ids !== undefined) patch.related_product_ids = input.related_product_ids.filter((linkedId) => linkedId !== productId);
+    if (input.cross_sell_product_ids !== undefined) patch.cross_sell_product_ids = input.cross_sell_product_ids.filter((linkedId) => linkedId !== productId);
+
+    if (input.price !== undefined) {
+      const cents = Math.round(input.price * 100);
+      if (cents !== (current.price_cents as number)) {
+        priceChanged = true;
+        priceCents = cents;
+      }
+      patch.price_cents = cents;
+    }
+    if (input.compare_at_price !== undefined) {
+      patch.compare_at_price_cents = input.compare_at_price != null ? Math.round(input.compare_at_price * 100) : null;
+    }
+    if (input.sku !== undefined) patch.sku = input.sku || null;
+    if (input.low_stock_threshold !== undefined) patch.low_stock_threshold = input.low_stock_threshold;
+    if (input.is_active !== undefined) patch.is_active = input.is_active;
+    if (input.is_featured !== undefined) patch.is_featured = input.is_featured;
+    if (input.category_id !== undefined) patch.category_id = input.category_id || null;
+    if (input.seo_title !== undefined) patch.seo_title = input.seo_title || null;
+    if (input.seo_description !== undefined) patch.seo_description = input.seo_description || null;
+    let stockDelta = 0;
+    if (input.stock !== undefined) {
+      const currentStock = Number(current.stock ?? 0);
+      stockDelta = input.stock - currentStock;
+      patch.stock = input.stock;
+    }
+
+    const { error: upError } = await admin.from("products").update(patch).eq("id", productId);
+    if (upError) throw upError;
+
+    if (stockDelta !== 0) {
+      const { error: stockError } = await admin.from("inventory_movements").insert({
+        store_id: storeId,
+        product_id: productId,
+        change: stockDelta,
+        reason: "Ajustement Super Admin — fiche produit",
+        actor_user_id: ctx.user.id,
+      });
+      if (stockError) throw stockError;
+    }
+
+    // Images: replace when provided.
+    if (input.images !== undefined) {
+      await admin.from("product_images").delete().eq("product_id", productId);
+      if (input.images.length > 0) {
+        const rows = input.images.map((url, idx) => ({
+          product_id: productId,
+          store_id: storeId,
+          url,
+          position: idx,
+        }));
+        const { error: imgError } = await admin.from("product_images").insert(rows);
+        if (imgError) throw imgError;
+      }
+    }
+
+    // Variants: remove specific, then upsert provided.
+    if (removeVariantIds.length > 0) {
+      const { error: delError } = await admin
+        .from("product_variants")
+        .delete()
+        .eq("product_id", productId)
+        .in("id", removeVariantIds);
+      if (delError) throw delError;
+    }
+    if (input.variants && input.variants.length > 0) {
+      for (const [idx, v] of input.variants.entries()) {
+        const row = {
+          product_id: productId,
+          name: v.name,
+          options: v.options,
+          price_cents: v.price_cents ?? null,
+          sku: v.sku || null,
+          stock: v.stock,
+          is_active: v.is_active,
+          position: idx,
+        };
+        const { data: existing, error: findError } = await admin
+          .from("product_variants")
+          .select("id")
+          .eq("product_id", productId)
+          .eq("name", v.name)
+          .maybeSingle();
+        if (findError) throw findError;
+        if (existing) {
+          const { error: ue } = await admin.from("product_variants").update(row).eq("id", (existing as { id: string }).id);
+          if (ue) throw ue;
+        } else {
+          const { error: ie } = await admin.from("product_variants").insert(row);
+          if (ie) throw ie;
+        }
+      }
+    }
+
+    // Quantity offers: total_price_cents is already in cents (quantityOfferSchema).
+    if (offers !== undefined) {
+      await admin.from("quantity_offers").delete().eq("product_id", productId);
+      if (offers.length > 0) {
+        const rows = offers.map((o, idx) => ({
+          store_id: storeId,
+          product_id: productId,
+          min_quantity: o.min_quantity,
+          total_price_cents: o.total_price_cents,
+          label: o.label || `Offre ${o.min_quantity}+`,
+          is_active: o.is_active,
+          position: idx,
+        }));
+        const { error: offError } = await admin.from("quantity_offers").insert(rows);
+        if (offError) throw offError;
+      }
+    }
+
+    void logAudit({
+      actorId: ctx.user.id,
+      storeId: storeId,
+      action: "product.updated",
+      entity: "product",
+      entityId: productId,
+      supportSessionId: null,
+      metadata: { name: (patch.name as string) ?? (current.name as string), price_cents: priceCents },
+    });
+    if (priceChanged) {
+      void logAudit({
+        actorId: ctx.user.id,
+        storeId: storeId,
+        action: "price.changed",
+        entity: "product",
+        entityId: productId,
+        supportSessionId: null,
+        metadata: { name: (current.name as string), from_cents: current.price_cents, to_cents: priceCents },
+      });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return toErrorResponse(e);
+  }
+}
+
+/**
+ * Soft-delete a product (capability: products.manage).
+ * Sets deleted_at; catalog queries exclude soft-deleted rows.
+ */
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string; productId: string }> }) {
+  try {
+    const { id: storeId, productId } = await params;
+    const ctx = await getAdminContext();
+
+    const admin = getAdminSupabase();
+    const { data: current, error: curError } = await admin
+      .from("products")
+      .select("id, name")
+      .eq("id", productId)
+      .eq("store_id", storeId)
+      .maybeSingle();
+    if (curError) throw curError;
+    if (!current) throw err("NOT_FOUND", "Produit introuvable");
+
+    const { error: delError } = await admin
+      .from("products")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", productId);
+    if (delError) throw delError;
+
+    void logAudit({
+      actorId: ctx.user.id,
+      storeId: storeId,
+      action: "product.deleted",
+      entity: "product",
+      entityId: productId,
+      supportSessionId: null,
+      metadata: { name: (current.name as string) ?? null },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return toErrorResponse(e);
+  }
+}
