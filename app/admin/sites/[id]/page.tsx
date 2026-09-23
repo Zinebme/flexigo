@@ -31,11 +31,11 @@ export default async function AdminSiteDetailPage({ params }: { params: Promise<
   ] = await Promise.all([
     admin.from("stores").select("*").eq("id", id).is("deleted_at", null).maybeSingle(),
     admin.from("organizations").select("id, name").limit(100),
-    admin.from("store_members").select("user_id, role, status, created_at").eq("store_id", id),
+    admin.from("store_members").select("id, user_id, role, status, created_at").eq("store_id", id).order("created_at"),
     admin.from("domains").select("*").eq("store_id", id),
     admin.from("pages").select("*").eq("store_id", id).order("key"),
     admin.from("orders").select("id, order_number, total_cents, status, created_at").eq("store_id", id).order("created_at", { ascending: false }).limit(100),
-    admin.from("products").select("id, name, price_cents, stock, is_active").eq("store_id", id).is("deleted_at", null).limit(100),
+    admin.from("products").select("id, name, price_cents, compare_at_price_cents, stock, category_id, is_active, is_featured").eq("store_id", id).is("deleted_at", null).order("created_at", { ascending: false }).limit(100),
     admin.from("categories").select("id, name, slug, is_visible, position").eq("store_id", id).is("deleted_at", null).order("position"),
     admin.from("customers").select("id, name, phone, order_count, total_spent_cents").eq("store_id", id).is("deleted_at", null).order("created_at", { ascending: false }).limit(100),
     admin.from("themes").select("*").eq("store_id", id).maybeSingle(),
@@ -53,8 +53,8 @@ export default async function AdminSiteDetailPage({ params }: { params: Promise<
   const s = store as Record<string, unknown>;
   const orgMap = new Map(((org ?? []) as Array<{ id: string; name: string }>).map((o) => [o.id, o.name]));
   const memberUserIds = ((members ?? []) as Array<{ user_id: string }>).map((m) => m.user_id);
-  const { data: profiles } = memberUserIds.length > 0 ? await admin.from("profiles").select("id, email").in("id", memberUserIds) : { data: [] };
-  const profileMap = new Map(((profiles ?? []) as Array<{ id: string; email: string | null }>).map((p) => [p.id, p.email]));
+  const { data: profiles } = memberUserIds.length > 0 ? await admin.from("profiles").select("id, email, full_name, dashboard_language").in("id", memberUserIds) : { data: [] };
+  const profileMap = new Map(((profiles ?? []) as Array<{ id: string; email: string | null; full_name: string | null; dashboard_language: "fr" | "ar" | "en" }>).map((p) => [p.id, { email: p.email, full_name: p.full_name, dashboard_language: p.dashboard_language }]));
 
   const gmv = ((orders ?? []) as Array<{ total_cents: number; status: string }>).filter((o) => !["cancelled_customer", "cancelled_store"].includes(o.status)).reduce((acc, o) => acc + o.total_cents, 0);
 

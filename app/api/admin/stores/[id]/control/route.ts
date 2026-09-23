@@ -46,12 +46,35 @@ export const adminStoreControlActionSchema = z.discriminatedUnion("action", [
     is_featured: z.boolean(),
   }),
   z.object({
+    action: z.literal("product_create"),
+    name: z.string().trim().min(2).max(120),
+    price: z.number().positive().max(10_000_000),
+    stock: z.number().int().min(0).max(1_000_000),
+    category_id: z.string().uuid().optional().nullable(),
+    is_active: z.boolean().default(true),
+  }),
+  z.object({
+    action: z.literal("product_delete"),
+    product_id: z.string().uuid(),
+  }),
+  z.object({
     action: z.literal("category"),
     category_id: z.string().uuid(),
     name: z.string().trim().min(2).max(80),
     slug: z.string().trim().max(80).optional().nullable(),
     is_visible: z.boolean(),
     position: z.number().int().min(0).max(1000),
+  }),
+  z.object({
+    action: z.literal("category_create"),
+    name: z.string().trim().min(2).max(80),
+    slug: z.string().trim().max(80).optional().nullable(),
+    is_visible: z.boolean().default(true),
+    position: z.number().int().min(0).max(1000).default(0),
+  }),
+  z.object({
+    action: z.literal("category_delete"),
+    category_id: z.string().uuid(),
   }),
   z.object({
     action: z.literal("shipping"),
@@ -84,6 +107,22 @@ export const adminStoreControlActionSchema = z.discriminatedUnion("action", [
     email: z.string().trim().email().max(120),
     full_name: z.string().trim().max(120).default(""),
     dashboard_language: z.enum(["fr","ar","en"]).default("fr"),
+  }),
+  z.object({
+    action: z.literal("member_update"),
+    member_id: z.string().uuid(),
+    full_name: z.string().trim().max(120),
+    dashboard_language: z.enum(["fr","ar","en"]),
+    role: z.enum(["OWNER","MANAGER","ORDER_MANAGER","CONTENT_EDITOR","VIEWER"]),
+  }),
+  z.object({
+    action: z.literal("member_status"),
+    member_id: z.string().uuid(),
+    status: z.enum(["active","revoked"]),
+  }),
+  z.object({
+    action: z.literal("member_remove"),
+    member_id: z.string().uuid(),
   }),
   z.object({
     action: z.literal("checkout"),
@@ -161,6 +200,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       const { data: current } = await admin.from("products").select("id, stock, price_cents").eq("id", input.product_id).eq("store_id", storeId).is("deleted_at", null).maybeSingle();
       if (!current) throw err("NOT_FOUND", "Produit introuvable.");
       const priceCents = Math.round(input.price * 100);
+      if (input.category_id) {
+        const { data: category } = await admin.from("categories").select("id").eq("id", input.category_id).eq("store_id", storeId).is("deleted_at", null).maybeSingle();
+        if (!category) throw err("VALIDATION", "Catégorie invalide pour cette boutique.");
+      }
       const { error } = await admin.from("products").update({
         name: input.name,
         price_cents: priceCents,
@@ -186,6 +229,52 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       await logAudit({ actorId: ctx.user.id, storeId, action: "product.updated", entity: "product", entityId: input.product_id, metadata: { price_cents: priceCents, stock: input.stock } });
     }
 
+    if (input.action === "product_create") {
+      if (input.category_id) {
+        const { data: category } = await admin.from("categories").select("id").eq("id", input.category_id).eq("store_id", storeId).is("deleted_at", null).maybeSingle();
+        if (!category) throw err("VALIDATION", "Catégorie invalide pour cette boutique.");
+      }
+      let productSlug = slugify(input.name) || `produit-${Date.now().toString(36)}`;
+      for (let suffix = 1; suffix <= 25; suffix += 1) {
+        const candidate = suffix === 1 ? productSlug : `${productSlug}-${suffix}`;
+        const { data: clash } = await admin.from("products").select("id").eq("store_id", storeId).eq("slug", candidate).maybeSingle();
+        if (!clash) { productSlug = candidate; break; }
+        if (suffix === 25) throw err("CONFLICT", "Impossible de générer un slug produit unique.");
+      }
+      const priceCents = Math.round(input.price * 100);
+      const { data: created, error } = await admin.from("products").insert({
+        store_id: storeId,
+        category_id: input.category_id || null,
+        name: input.name,
+        slug: productSlug,
+        price_cents: priceCents,
+        stock: input.stock,
+        is_active: input.is_active,
+        is_featured: false,
+      } as never).select("id").single();
+      if (error) throw error;
+      const productId = (created as { id: string }).id;
+      if (input.stock > 0) {
+        const { error: movementError } = await admin.from("inventory_movements").insert({
+          store_id: storeId,
+          product_id: productId,
+          change: input.stock,
+          reason: "Stock initial Super Admin",
+          actor_user_id: ctx.user.id,
+        } as never);
+        if (movementError) throw movementError;
+      }
+      await logAudit({ actorId: ctx.user.id, storeId, action: "product.created", entity: "product", entityId: productId, metadata: { name: input.name, price_cents: priceCents } });
+    }
+
+    if (input.action === "product_delete") {
+      const { data: current } = await admin.from("products").select("id, name").eq("id", input.product_id).eq("store_id", storeId).is("deleted_at", null).maybeSingle();
+      if (!current) throw err("NOT_FOUND", "Produit introuvable.");
+      const { error } = await admin.from("products").update({ deleted_at: new Date().toISOString(), is_active: false } as never).eq("id", input.product_id).eq("store_id", storeId);
+      if (error) throw error;
+      await logAudit({ actorId: ctx.user.id, storeId, action: "product.deleted", entity: "product", entityId: input.product_id, metadata: { name: (current as { name: string }).name } });
+    }
+
     if (input.action === "category") {
       const { data: current } = await admin.from("categories").select("id").eq("id", input.category_id).eq("store_id", storeId).is("deleted_at", null).maybeSingle();
       if (!current) throw err("NOT_FOUND", "Catégorie introuvable.");
@@ -198,6 +287,36 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       } as never).eq("id", input.category_id).eq("store_id", storeId);
       if (error) throw error;
       await logAudit({ actorId: ctx.user.id, storeId, action: "category.changed", entity: "category", entityId: input.category_id, metadata: { op: "admin_update" } });
+    }
+
+    if (input.action === "category_create") {
+      let categorySlug = slugify(input.slug || input.name) || `categorie-${Date.now().toString(36)}`;
+      for (let suffix = 1; suffix <= 25; suffix += 1) {
+        const candidate = suffix === 1 ? categorySlug : `${categorySlug}-${suffix}`;
+        const { data: clash } = await admin.from("categories").select("id").eq("store_id", storeId).eq("slug", candidate).maybeSingle();
+        if (!clash) { categorySlug = candidate; break; }
+        if (suffix === 25) throw err("CONFLICT", "Impossible de générer un slug catégorie unique.");
+      }
+      const { data: created, error } = await admin.from("categories").insert({
+        store_id: storeId,
+        name: input.name,
+        slug: categorySlug,
+        is_visible: input.is_visible,
+        position: input.position,
+      } as never).select("id").single();
+      if (error) throw error;
+      await logAudit({ actorId: ctx.user.id, storeId, action: "category.changed", entity: "category", entityId: (created as { id: string }).id, metadata: { name: input.name, op: "admin_create" } });
+    }
+
+    if (input.action === "category_delete") {
+      const { data: current } = await admin.from("categories").select("id, name").eq("id", input.category_id).eq("store_id", storeId).is("deleted_at", null).maybeSingle();
+      if (!current) throw err("NOT_FOUND", "Catégorie introuvable.");
+      const now = new Date().toISOString();
+      const { error } = await admin.from("categories").update({ deleted_at: now, is_visible: false } as never).eq("id", input.category_id).eq("store_id", storeId);
+      if (error) throw error;
+      const { error: productError } = await admin.from("products").update({ category_id: null, updated_at: now } as never).eq("store_id", storeId).eq("category_id", input.category_id).is("deleted_at", null);
+      if (productError) throw productError;
+      await logAudit({ actorId: ctx.user.id, storeId, action: "category.changed", entity: "category", entityId: input.category_id, metadata: { name: (current as { name: string }).name, op: "admin_delete" } });
     }
 
     if (input.action === "shipping") {
@@ -319,6 +438,44 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         await admin.from("organizations").update({ owner_user_id: userId } as never).eq("id", (store as { organization_id: string }).organization_id);
       }
       await logAudit({ actorId: ctx.user.id, storeId, action: "team.member_added", entity: "store_member", entityId: userId, metadata: { role: "OWNER", language: input.dashboard_language } });
+    }
+
+    if (input.action === "member_update") {
+      const { data: member } = await admin.from("store_members").select("id, user_id, role").eq("id", input.member_id).eq("store_id", storeId).maybeSingle();
+      if (!member) throw err("NOT_FOUND", "Membre introuvable.");
+      const userId = (member as { user_id: string }).user_id;
+      const { error: profileError } = await admin.from("profiles").update({
+        full_name: input.full_name || null,
+        dashboard_language: input.dashboard_language,
+      } as never).eq("id", userId);
+      if (profileError) throw profileError;
+      const { error: memberError } = await admin.from("store_members").update({ role: input.role } as never).eq("id", input.member_id).eq("store_id", storeId);
+      if (memberError) throw memberError;
+      const organizationId = (store as { organization_id: string | null }).organization_id;
+      if (organizationId) {
+        const { data: owner } = await admin.from("store_members").select("user_id").eq("store_id", storeId).eq("role", "OWNER").eq("status", "active").order("created_at", { ascending: true }).limit(1).maybeSingle();
+        await admin.from("organizations").update({ owner_user_id: (owner as { user_id: string } | null)?.user_id ?? null } as never).eq("id", organizationId);
+      }
+      await logAudit({ actorId: ctx.user.id, storeId, action: "team.member_role_changed", entity: "store_member", entityId: input.member_id, metadata: { user_id: userId, from: (member as { role: string }).role, to: input.role, profile_updated: true } });
+    }
+
+    if (input.action === "member_status" || input.action === "member_remove") {
+      const { data: member } = await admin.from("store_members").select("id, user_id, role, status").eq("id", input.member_id).eq("store_id", storeId).maybeSingle();
+      if (!member) throw err("NOT_FOUND", "Membre introuvable.");
+      const removing = input.action === "member_remove";
+      const nextStatus = removing ? "removed" : input.status;
+      const mutation = removing
+        ? admin.from("store_members").delete().eq("id", input.member_id).eq("store_id", storeId)
+        : admin.from("store_members").update({ status: input.status } as never).eq("id", input.member_id).eq("store_id", storeId);
+      const { error } = await mutation;
+      if (error) throw error;
+
+      const organizationId = (store as { organization_id: string | null }).organization_id;
+      if (organizationId) {
+        const { data: owner } = await admin.from("store_members").select("user_id").eq("store_id", storeId).eq("role", "OWNER").eq("status", "active").order("created_at", { ascending: true }).limit(1).maybeSingle();
+        await admin.from("organizations").update({ owner_user_id: (owner as { user_id: string } | null)?.user_id ?? null } as never).eq("id", organizationId);
+      }
+      await logAudit({ actorId: ctx.user.id, storeId, action: "team.member_removed", entity: "store_member", entityId: input.member_id, metadata: { operation: removing ? "remove" : "status_change", user_id: (member as { user_id: string }).user_id, from: (member as { status: string }).status, to: nextStatus } });
     }
 
     return NextResponse.json({ ok: true, ...(ownerAccount ? { owner_account: ownerAccount } : {}) });

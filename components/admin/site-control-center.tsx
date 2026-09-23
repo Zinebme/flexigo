@@ -34,7 +34,7 @@ interface Props {
   store: Record<string, unknown>;
   orgMap: Map<string, string>;
   members: Array<Record<string, unknown>>;
-  profileMap: Map<string, string | null>;
+  profileMap: Map<string, { email: string | null; full_name: string | null; dashboard_language: "fr" | "ar" | "en" }>;
   domains: Array<Record<string, unknown>>;
   pages: Array<Record<string, unknown>>;
   orders: Array<Record<string, unknown>>;
@@ -148,14 +148,14 @@ export function SiteControlCenter(props: Props) {
       {tab === "products" && (
         <Card className="p-5">
           <div className="mb-4"><h3 className="font-bold">Produits ({props.products.length})</h3><p className="text-xs text-slate-500">Édition rapide depuis le Master : nom, prix, ancien prix, stock, catégorie, actif et vedette.</p></div>
-          <ProductQuickEditor storeId={s.id as string} products={props.products} categories={props.categories} />
+          <ProductQuickEditor key={JSON.stringify(props.products)} storeId={s.id as string} products={props.products} categories={props.categories} />
         </Card>
       )}
 
       {tab === "categories" && (
         <Card className="p-5">
           <div className="mb-4"><h3 className="font-bold">Catégories ({props.categories.length})</h3><p className="text-xs text-slate-500">Édition directe du nom, slug, ordre et visibilité.</p></div>
-          <CategoryQuickEditor storeId={s.id as string} categories={props.categories} />
+          <CategoryQuickEditor key={JSON.stringify(props.categories)} storeId={s.id as string} categories={props.categories} />
         </Card>
       )}
 
@@ -258,13 +258,8 @@ export function SiteControlCenter(props: Props) {
       {tab === "account" && (
         <Card className="p-5">
           <h3 className="font-bold">Compte client</h3>
-          <p className="mt-2 text-sm text-slate-500">Le site peut exister sans compte client. Créez/invitez le propriétaire uniquement quand vous êtes prête à lui livrer l'accès.</p>
-          <ul className="mt-3 space-y-2 text-sm">
-            {props.members.map((m, i) => (
-              <li key={i} className="flex justify-between"><span>{props.profileMap.get(m.user_id as string) ?? (m.user_id as string).slice(0, 8)} · {m.role as string}</span><Badge tone={(m.status as string) === "active" ? "green" : "gray"}>{m.status as string}</Badge></li>
-            ))}
-          </ul>
-          <div className="mt-5 border-t pt-5"><OwnerEditor storeId={s.id as string} /></div>
+          <p className="mt-2 text-sm text-slate-500">Modifiez le nom, le rôle et la langue, suspendez temporairement un accès ou retirez-le de cette boutique. Le compte Auth et les accès aux autres boutiques restent toujours conservés.</p>
+          <div className="mt-5"><OwnerEditor key={JSON.stringify([props.members, Array.from(props.profileMap.entries())])} storeId={s.id as string} members={props.members} profileMap={props.profileMap} /></div>
         </Card>
       )}
 

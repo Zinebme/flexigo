@@ -99,40 +99,83 @@ export function ThemeEditor({ storeId, theme }: { storeId: string; theme: Record
 
 export function ProductQuickEditor({ storeId, products, categories }: { storeId:string; products:Array<Record<string,unknown>>; categories:Array<Record<string,unknown>> }) {
   const router=useRouter();
-  const [rows,setRows]=useState(products.map((p)=>({
+  const toRows = (items: Array<Record<string, unknown>>) => items.map((p)=>({
     id:String(p.id), name:String(p.name??""), price:Number(p.price_cents??0)/100,
     compare_at_price:p.compare_at_price_cents==null?"":String(Number(p.compare_at_price_cents)/100),
     stock:Number(p.stock??0), category_id:String(p.category_id??""), is_active:Boolean(p.is_active), is_featured:Boolean(p.is_featured),
-  })));
+  }));
+  const [rows,setRows]=useState(()=>toRows(products));
+  const [draft,setDraft]=useState({name:"",price:"",stock:"0",category_id:"",is_active:true});
   const [message,setMessage]=useState("");
+  const [busy,setBusy]=useState(false);
   async function persist(row:(typeof rows)[number]){
-    setMessage("");
+    setMessage(""); setBusy(true);
     try{
       await save(storeId,{action:"product",product_id:row.id,name:row.name,price:Number(row.price),compare_at_price:row.compare_at_price?Number(row.compare_at_price):null,stock:Number(row.stock),category_id:row.category_id||null,is_active:row.is_active,is_featured:row.is_featured});
       setMessage("Produit enregistré."); router.refresh();
-    }catch(err){setMessage(err instanceof Error?err.message:"Erreur");}
+    }catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}
   }
-  return <div className="space-y-3">{message&&<p className="text-sm text-slate-500">{message}</p>}{rows.map((r,i)=><div key={r.id} className="grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-8">
-    <input className={input+" md:col-span-2"} value={r.name} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,name:e.target.value}:x))}/>
-    <input className={input} type="number" value={r.price} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,price:Number(e.target.value)}:x))}/>
-    <input className={input} type="number" placeholder="Ancien prix" value={r.compare_at_price} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,compare_at_price:e.target.value}:x))}/>
-    <input className={input} type="number" value={r.stock} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,stock:Number(e.target.value)}:x))}/>
-    <select className={input} value={r.category_id} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,category_id:e.target.value}:x))}><option value="">Sans catégorie</option>{categories.map((c)=><option key={String(c.id)} value={String(c.id)}>{String(c.name)}</option>)}</select>
-    <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={r.is_active} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,is_active:e.target.checked}:x))}/>Actif</label>
-    <div className="flex items-center gap-2"><label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={r.is_featured} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,is_featured:e.target.checked}:x))}/>★</label><button className="rounded bg-slate-900 px-2 py-1 text-xs font-semibold text-white" onClick={()=>persist(r)}>Sauver</button></div>
-  </div>)}</div>;
+  async function createProduct(e:React.FormEvent){
+    e.preventDefault(); setMessage(""); setBusy(true);
+    try{
+      await save(storeId,{action:"product_create",name:draft.name,price:Number(draft.price),stock:Number(draft.stock),category_id:draft.category_id||null,is_active:draft.is_active});
+      setDraft({name:"",price:"",stock:"0",category_id:"",is_active:true}); setMessage("Produit ajouté."); router.refresh();
+    }catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}
+  }
+  async function removeProduct(id:string){
+    if(!window.confirm("Supprimer ce produit de la boutique ?")) return;
+    setBusy(true); setMessage("");
+    try{await save(storeId,{action:"product_delete",product_id:id});setRows((current)=>current.filter((row)=>row.id!==id));setMessage("Produit supprimé.");router.refresh();}
+    catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}
+  }
+  return <div className="space-y-4">
+    <form className="grid gap-2 rounded-xl border border-violet-200 bg-violet-50 p-4 md:grid-cols-6" onSubmit={createProduct}>
+      <div className="md:col-span-6 text-sm font-bold text-violet-900">Ajouter un produit</div>
+      <input className={input+" md:col-span-2"} placeholder="Nom du produit" value={draft.name} onChange={(e)=>setDraft({...draft,name:e.target.value})} required minLength={2}/>
+      <input className={input} type="number" min="0.01" step="0.01" placeholder="Prix en DA" value={draft.price} onChange={(e)=>setDraft({...draft,price:e.target.value})} required/>
+      <input className={input} type="number" min="0" step="1" placeholder="Stock" value={draft.stock} onChange={(e)=>setDraft({...draft,stock:e.target.value})} required/>
+      <select className={input} value={draft.category_id} onChange={(e)=>setDraft({...draft,category_id:e.target.value})}><option value="">Sans catégorie</option>{categories.map((c)=><option key={String(c.id)} value={String(c.id)}>{String(c.name)}</option>)}</select>
+      <div className="flex items-center justify-between gap-2"><label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={draft.is_active} onChange={(e)=>setDraft({...draft,is_active:e.target.checked})}/>Visible</label><button className={button} disabled={busy}>Ajouter</button></div>
+    </form>
+    {message&&<p className="text-sm text-slate-600" role="status">{message}</p>}
+    {rows.length===0&&<p className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-400">Aucun produit. Ajoutez le premier ci-dessus.</p>}
+    {rows.map((r,i)=><div key={r.id} className="grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-12">
+      <input className={input+" md:col-span-3"} aria-label="Nom du produit" value={r.name} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,name:e.target.value}:x))}/>
+      <input className={input+" md:col-span-2"} aria-label="Prix en DA" type="number" min="0.01" step="0.01" value={r.price} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,price:Number(e.target.value)}:x))}/>
+      <input className={input+" md:col-span-2"} aria-label="Ancien prix en DA" type="number" min="0.01" step="0.01" placeholder="Ancien prix" value={r.compare_at_price} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,compare_at_price:e.target.value}:x))}/>
+      <input className={input} aria-label="Stock" type="number" min="0" step="1" value={r.stock} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,stock:Number(e.target.value)}:x))}/>
+      <select className={input+" md:col-span-2"} aria-label="Catégorie" value={r.category_id} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,category_id:e.target.value}:x))}><option value="">Sans catégorie</option>{categories.map((c)=><option key={String(c.id)} value={String(c.id)}>{String(c.name)}</option>)}</select>
+      <div className="flex items-center gap-3 md:col-span-2"><label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={r.is_active} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,is_active:e.target.checked}:x))}/>Visible</label><label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={r.is_featured} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,is_featured:e.target.checked}:x))}/>Vedette</label></div>
+      <div className="flex gap-2 md:col-span-12 md:justify-end"><button type="button" disabled={busy} className="rounded bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50" onClick={()=>void persist(r)}>Enregistrer</button><button type="button" disabled={busy} className="rounded border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 disabled:opacity-50" onClick={()=>void removeProduct(r.id)}>Supprimer</button></div>
+    </div>)}
+  </div>;
 }
 
 export function CategoryQuickEditor({ storeId, categories }: { storeId:string; categories:Array<Record<string,unknown>> }) {
   const router=useRouter();
-  const [rows,setRows]=useState(categories.map((c)=>({id:String(c.id),name:String(c.name??""),slug:String(c.slug??""),is_visible:Boolean(c.is_visible),position:Number(c.position??0)})));
+  const toRows=(items:Array<Record<string,unknown>>)=>items.map((c)=>({id:String(c.id),name:String(c.name??""),slug:String(c.slug??""),is_visible:Boolean(c.is_visible),position:Number(c.position??0)}));
+  const [rows,setRows]=useState(()=>toRows(categories));
+  const [draft,setDraft]=useState({name:"",slug:"",is_visible:true,position:"0"});
   const [message,setMessage]=useState("");
-  async function persist(row:(typeof rows)[number]){try{await save(storeId,{action:"category",category_id:row.id,name:row.name,slug:row.slug,is_visible:row.is_visible,position:row.position});setMessage("Catégorie enregistrée.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}}
-  return <div className="space-y-3">{message&&<p className="text-sm text-slate-500">{message}</p>}{rows.map((r,i)=><div key={r.id} className="grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-6">
+  const [busy,setBusy]=useState(false);
+  async function persist(row:(typeof rows)[number]){setBusy(true);try{await save(storeId,{action:"category",category_id:row.id,name:row.name,slug:row.slug,is_visible:row.is_visible,position:row.position});setMessage("Catégorie enregistrée.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}
+  async function createCategory(e:React.FormEvent){e.preventDefault();setBusy(true);setMessage("");try{await save(storeId,{action:"category_create",name:draft.name,slug:draft.slug||null,is_visible:draft.is_visible,position:Number(draft.position)});setDraft({name:"",slug:"",is_visible:true,position:"0"});setMessage("Catégorie ajoutée.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}
+  async function removeCategory(id:string){if(!window.confirm("Supprimer cette catégorie ? Les produits seront conservés sans catégorie."))return;setBusy(true);setMessage("");try{await save(storeId,{action:"category_delete",category_id:id});setRows((current)=>current.filter((row)=>row.id!==id));setMessage("Catégorie supprimée. Les produits ont été conservés.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}
+  return <div className="space-y-3">
+    <form className="grid gap-2 rounded-xl border border-violet-200 bg-violet-50 p-4 md:grid-cols-6" onSubmit={createCategory}>
+      <div className="md:col-span-6 text-sm font-bold text-violet-900">Ajouter une catégorie</div>
+      <input className={input+" md:col-span-2"} placeholder="Nom" value={draft.name} onChange={(e)=>setDraft({...draft,name:e.target.value})} required minLength={2}/>
+      <input className={input+" md:col-span-2"} placeholder="Slug (facultatif)" value={draft.slug} onChange={(e)=>setDraft({...draft,slug:e.target.value})}/>
+      <input className={input} type="number" min="0" step="1" aria-label="Position" value={draft.position} onChange={(e)=>setDraft({...draft,position:e.target.value})}/>
+      <div className="flex items-center justify-between gap-2"><label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={draft.is_visible} onChange={(e)=>setDraft({...draft,is_visible:e.target.checked})}/>Visible</label><button className={button} disabled={busy}>Ajouter</button></div>
+    </form>
+    {message&&<p className="text-sm text-slate-600" role="status">{message}</p>}
+    {rows.length===0&&<p className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-400">Aucune catégorie.</p>}
+    {rows.map((r,i)=><div key={r.id} className="grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-6">
     <input className={input+" md:col-span-2"} value={r.name} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,name:e.target.value}:x))}/>
     <input className={input+" md:col-span-2"} value={r.slug} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,slug:e.target.value}:x))}/>
     <input className={input} type="number" value={r.position} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,position:Number(e.target.value)}:x))}/>
-    <div className="flex items-center gap-2"><label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={r.is_visible} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,is_visible:e.target.checked}:x))}/>Visible</label><button className="rounded bg-slate-900 px-2 py-1 text-xs font-semibold text-white" onClick={()=>persist(r)}>Sauver</button></div>
+    <div className="flex items-center gap-2"><label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={r.is_visible} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,is_visible:e.target.checked}:x))}/>Visible</label><button type="button" disabled={busy} className="rounded bg-slate-900 px-2 py-1 text-xs font-semibold text-white disabled:opacity-50" onClick={()=>void persist(r)}>Enregistrer</button><button type="button" disabled={busy} className="rounded border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 disabled:opacity-50" onClick={()=>void removeCategory(r.id)}>Supprimer</button></div>
   </div>)}</div>;
 }
 
@@ -155,15 +198,41 @@ export function IntegrationsEditor({ storeId, shipping, marketing, sheets, teleg
   </div>;
 }
 
-export function OwnerEditor({ storeId }: {storeId:string}) {
+type MemberProfile = { email: string | null; full_name: string | null; dashboard_language: "fr" | "ar" | "en" };
+
+export function OwnerEditor({ storeId, members, profileMap }: {storeId:string;members:Array<Record<string,unknown>>;profileMap:Map<string,MemberProfile>}) {
   const router=useRouter();
   const [form,setForm]=useState({email:"",full_name:"",dashboard_language:"fr"}); const [message,setMessage]=useState(""); const [busy,setBusy]=useState(false);
-  return <form className="grid gap-3 md:grid-cols-2" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setMessage("");try{const result=await save(storeId,{action:"owner",...form});setMessage(result.owner_account==="invited"?"Invitation envoyée au nouveau propriétaire.":"Compte FlexiGo existant attaché à cette boutique.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}}>
-    <label className="text-sm font-medium">Nom complet <span className="font-normal text-slate-400">(facultatif)</span><input className={input} value={form.full_name} onChange={(e)=>setForm({...form,full_name:e.target.value})}/></label>
-    <label className="text-sm font-medium">Email<input className={input} type="email" value={form.email} onChange={(e)=>setForm({...form,email:e.target.value})} required/></label>
-    <label className="text-sm font-medium">Langue dashboard<select className={input} value={form.dashboard_language} onChange={(e)=>setForm({...form,dashboard_language:e.target.value})}><option value="fr">Français</option><option value="ar">العربية</option><option value="en">English</option></select></label>
-    <div className="flex items-end"><button className={button} disabled={busy}>{busy?"Invitation…":"Créer / inviter et attacher"}</button></div>{message&&<p className="md:col-span-2 text-sm text-slate-500" role="status">{message}</p>}
-  </form>;
+  const makeRows=()=>members.map((member)=>{
+    const profile=profileMap.get(String(member.user_id));
+    return {id:String(member.id),user_id:String(member.user_id),email:profile?.email??"",full_name:profile?.full_name??"",dashboard_language:profile?.dashboard_language??"fr",role:String(member.role),status:String(member.status)};
+  });
+  const [rows,setRows]=useState(makeRows);
+  async function updateMember(row:(typeof rows)[number]){setBusy(true);setMessage("");try{await save(storeId,{action:"member_update",member_id:row.id,full_name:row.full_name,dashboard_language:row.dashboard_language,role:row.role});setMessage("Compte client modifié.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}
+  async function changeStatus(row:(typeof rows)[number]){const next=row.status==="active"?"revoked":"active";setBusy(true);setMessage("");try{await save(storeId,{action:"member_status",member_id:row.id,status:next});setRows((current)=>current.map((item)=>item.id===row.id?{...item,status:next}:item));setMessage(next==="revoked"?"Accès suspendu pour cette boutique.":"Accès réactivé.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}
+  async function removeMember(row:(typeof rows)[number]){if(!window.confirm(`Retirer ${row.email||"ce compte"} de cette boutique ? Son compte Supabase et ses autres boutiques seront conservés.`))return;setBusy(true);setMessage("");try{await save(storeId,{action:"member_remove",member_id:row.id});setRows((current)=>current.filter((item)=>item.id!==row.id));setMessage("Accès retiré de cette boutique.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}
+  return <div className="space-y-5">
+    <div className="space-y-3">
+      {rows.length===0&&<p className="rounded-xl border border-dashed p-5 text-center text-sm text-slate-400">Aucun compte marchand attaché.</p>}
+      {rows.map((row,index)=><div key={row.id} className="rounded-xl border border-slate-200 p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div><div className="font-semibold text-slate-900">{row.email||row.user_id}</div><div className="text-xs text-slate-400">L’email ne se modifie pas ici : retirez puis invitez la nouvelle adresse.</div></div><span className={`rounded-full px-2 py-1 text-xs font-bold ${row.status==="active"?"bg-emerald-100 text-emerald-700":"bg-slate-100 text-slate-500"}`}>{row.status==="active"?"Actif":"Suspendu"}</span></div>
+        <div className="grid gap-2 md:grid-cols-3">
+          <label className="text-xs font-semibold text-slate-600">Nom complet<input className={input} value={row.full_name} onChange={(e)=>setRows(rows.map((item,i)=>i===index?{...item,full_name:e.target.value}:item))}/></label>
+          <label className="text-xs font-semibold text-slate-600">Rôle<select className={input} value={row.role} onChange={(e)=>setRows(rows.map((item,i)=>i===index?{...item,role:e.target.value}:item))}><option value="OWNER">Propriétaire</option><option value="MANAGER">Manager</option><option value="ORDER_MANAGER">Commandes</option><option value="CONTENT_EDITOR">Contenu</option><option value="VIEWER">Lecture seule</option></select></label>
+          <label className="text-xs font-semibold text-slate-600">Langue<select className={input} value={row.dashboard_language} onChange={(e)=>setRows(rows.map((item,i)=>i===index?{...item,dashboard_language:e.target.value as "fr"|"ar"|"en"}:item))}><option value="fr">Français</option><option value="ar">العربية</option><option value="en">English</option></select></label>
+        </div>
+        <div className="mt-3 flex flex-wrap justify-end gap-2"><button type="button" disabled={busy} className="rounded bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50" onClick={()=>void updateMember(row)}>Enregistrer</button><button type="button" disabled={busy} className="rounded border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 disabled:opacity-50" onClick={()=>void changeStatus(row)}>{row.status==="active"?"Suspendre":"Réactiver"}</button><button type="button" disabled={busy} className="rounded border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 disabled:opacity-50" onClick={()=>void removeMember(row)}>Retirer</button></div>
+      </div>)}
+    </div>
+    <form className="grid gap-3 border-t pt-5 md:grid-cols-2" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setMessage("");try{const result=await save(storeId,{action:"owner",...form});setForm({email:"",full_name:"",dashboard_language:"fr"});setMessage(result.owner_account==="invited"?"Invitation envoyée au nouveau propriétaire.":"Compte FlexiGo existant attaché à cette boutique.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}}>
+      <h4 className="font-bold text-slate-900 md:col-span-2">Ajouter une personne</h4>
+      <label className="text-sm font-medium">Nom complet <span className="font-normal text-slate-400">(facultatif)</span><input className={input} value={form.full_name} onChange={(e)=>setForm({...form,full_name:e.target.value})}/></label>
+      <label className="text-sm font-medium">Email<input className={input} type="email" value={form.email} onChange={(e)=>setForm({...form,email:e.target.value})} required/></label>
+      <label className="text-sm font-medium">Langue dashboard<select className={input} value={form.dashboard_language} onChange={(e)=>setForm({...form,dashboard_language:e.target.value})}><option value="fr">Français</option><option value="ar">العربية</option><option value="en">English</option></select></label>
+      <div className="flex items-end"><button className={button} disabled={busy}>{busy?"Invitation…":"Créer / inviter et attacher"}</button></div>
+    </form>
+    {message&&<p className="text-sm text-slate-600" role="status">{message}</p>}
+  </div>;
 }
 
 
