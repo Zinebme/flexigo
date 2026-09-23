@@ -67,6 +67,7 @@ interface Props {
   editEndpoint?: string;
   uploadEndpoint?: string;
   successHref?: string;
+  allowStockEdit?: boolean;
 }
 interface VariantDraft {
   id?: string;
@@ -116,6 +117,7 @@ export function ProductForm({
   editEndpoint,
   uploadEndpoint = "/api/dashboard/upload",
   successHref,
+  allowStockEdit = false,
 }: Props) {
   const router=useRouter();
   const [name,setName]=useState(initial.name);
@@ -213,7 +215,7 @@ export function ProductForm({
     const parsed:Record<string,unknown>={
       name,slug:shownSlug,short_description:shortDescription,description,
       price:Number.parseFloat(price),compare_at_price:compareAt?Number.parseFloat(compareAt):null,cost:cost?Number.parseFloat(cost):null,
-      sku,stock:mode==="create"?(Number.parseInt(stock,10)||0):undefined,low_stock_threshold:Number.parseInt(threshold,10)||0,
+      sku,stock:(mode==="create"||allowStockEdit)?(Number.parseInt(stock,10)||0):undefined,low_stock_threshold:Number.parseInt(threshold,10)||0,
       stock_tracking_mode:stockTracking,is_active:isActive,is_featured:isFeatured,is_digital:isDigital,category_id:categoryId||null,
       images,landing_images:landingImages,gallery_mode:galleryMode,min_order_quantity:Number.parseInt(minOrderQuantity,10)||1,
       shipping_label:shippingLabel,related_product_ids:relatedIds,cross_sell_product_ids:crossSellIds,page_element_order:pageOrder,
@@ -358,7 +360,7 @@ export function ProductForm({
       <div className="grid gap-4 md:grid-cols-2">
         <div><label className={label}>Suivi du stock</label><select className={input} value={stockTracking} onChange={e=>setStockTracking(e.target.value as StockTracking)}><option value="none">Ne pas suivre</option><option value="global">Quantité globale</option><option value="variants">Quantité par variantes</option></select></div>
         <div><label className={label}>SKU produit</label><input className={input} value={sku} onChange={e=>setSku(e.target.value)}/></div>
-        {mode==="create"&&stockTracking==="global"&&<div><label className={label}>Quantité initiale</label><input type="number" min="0" className={input} value={stock} onChange={e=>setStock(e.target.value)}/></div>}
+        {(mode==="create"||allowStockEdit)&&stockTracking==="global"&&<div><label className={label}>{mode==="create"?"Quantité initiale":"Quantité en stock"}</label><input type="number" min="0" className={input} value={stock} onChange={e=>setStock(e.target.value)}/></div>}
         <div><label className={label}>Alerte stock faible</label><input type="number" min="0" className={input} value={threshold} onChange={e=>setThreshold(e.target.value)}/></div>
       </div>
     </section>
