@@ -243,30 +243,95 @@ export function ProductQuickEditor({ storeId, products, categories }: { storeId:
 
 export function CategoryQuickEditor({ storeId, categories }: { storeId:string; categories:Array<Record<string,unknown>> }) {
   const router=useRouter();
-  const toRows=(items:Array<Record<string,unknown>>)=>items.map((c)=>({id:String(c.id),name:String(c.name??""),slug:String(c.slug??""),is_visible:Boolean(c.is_visible),position:Number(c.position??0)}));
-  const [rows,setRows]=useState(()=>toRows(categories));
-  const [draft,setDraft]=useState({name:"",slug:"",is_visible:true,position:"0"});
-  const [message,setMessage]=useState("");
+  const makeRows=(items:Array<Record<string,unknown>>)=>items.map((category)=>({
+    id:String(category.id),
+    name:String(category.name??""),
+    slug:String(category.slug??""),
+    description:String(category.description??""),
+    image_url:String(category.image_url??""),
+    is_visible:Boolean(category.is_visible),
+    position:Number(category.position??0),
+  }));
+  const [rows,setRows]=useState(()=>makeRows(categories));
+  const [draft,setDraft]=useState({name:"",slug:"",description:"",image_url:"",is_visible:true,position:"0"});
+  const [editingId,setEditingId]=useState<string|null>(null);
   const [busy,setBusy]=useState(false);
-  async function persist(row:(typeof rows)[number]){setBusy(true);try{await save(storeId,{action:"category",category_id:row.id,name:row.name,slug:row.slug,is_visible:row.is_visible,position:row.position});setMessage("Catégorie enregistrée.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}
-  async function createCategory(e:React.FormEvent){e.preventDefault();setBusy(true);setMessage("");try{await save(storeId,{action:"category_create",name:draft.name,slug:draft.slug||null,is_visible:draft.is_visible,position:Number(draft.position)});setDraft({name:"",slug:"",is_visible:true,position:"0"});setMessage("Catégorie ajoutée.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}
-  async function removeCategory(id:string){if(!window.confirm("Supprimer cette catégorie ? Les produits seront conservés sans catégorie."))return;setBusy(true);setMessage("");try{await save(storeId,{action:"category_delete",category_id:id});setRows((current)=>current.filter((row)=>row.id!==id));setMessage("Catégorie supprimée. Les produits ont été conservés.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}
-  return <div className="space-y-3">
-    <form className="grid gap-2 rounded-xl border border-violet-200 bg-violet-50 p-4 md:grid-cols-6" onSubmit={createCategory}>
-      <div className="md:col-span-6 text-sm font-bold text-violet-900">Ajouter une catégorie</div>
-      <input className={input+" md:col-span-2"} placeholder="Nom" value={draft.name} onChange={(e)=>setDraft({...draft,name:e.target.value})} required minLength={2}/>
-      <input className={input+" md:col-span-2"} placeholder="Slug (facultatif)" value={draft.slug} onChange={(e)=>setDraft({...draft,slug:e.target.value})}/>
-      <input className={input} type="number" min="0" step="1" aria-label="Position" value={draft.position} onChange={(e)=>setDraft({...draft,position:e.target.value})}/>
-      <div className="flex items-center justify-between gap-2"><label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={draft.is_visible} onChange={(e)=>setDraft({...draft,is_visible:e.target.checked})}/>Visible</label><button className={button} disabled={busy}>Ajouter</button></div>
+  const [uploading,setUploading]=useState<string|null>(null);
+  const [message,setMessage]=useState("");
+
+  async function uploadImage(file:File,target:"draft"|string){
+    setUploading(target);setMessage("");
+    try{
+      const fd=new FormData();fd.append("file",file);fd.append("purpose","category");
+      const res=await fetch(`/api/admin/stores/${storeId}/upload`,{method:"POST",body:fd});
+      const data=(await res.json().catch(()=>({}))) as {ok?:boolean;url?:string;error?:{message?:string}|string};
+      if(!res.ok||!data.ok||!data.url) throw new Error(typeof data.error==="string"?data.error:(data.error?.message??"Téléversement impossible"));
+      if(target==="draft") setDraft((current)=>({...current,image_url:data.url as string}));
+      else setRows((current)=>current.map((row)=>row.id===target?{...row,image_url:data.url as string}:row));
+    }catch(err){setMessage(err instanceof Error?err.message:"Téléversement impossible");}
+    finally{setUploading(null);}
+  }
+
+  async function createCategory(event:React.FormEvent){
+    event.preventDefault();setBusy(true);setMessage("");
+    try{
+      await save(storeId,{action:"category_create",name:draft.name,slug:draft.slug||null,description:draft.description||null,image_url:draft.image_url||null,is_visible:draft.is_visible,position:Number(draft.position)});
+      setDraft({name:"",slug:"",description:"",image_url:"",is_visible:true,position:"0"});
+      setMessage("Catégorie ajoutée.");router.refresh();
+    }catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}
+  }
+  async function persist(row:(typeof rows)[number]){
+    setBusy(true);setMessage("");
+    try{
+      await save(storeId,{action:"category",category_id:row.id,name:row.name,slug:row.slug,description:row.description||null,image_url:row.image_url||null,is_visible:row.is_visible,position:row.position});
+      setMessage("Catégorie enregistrée.");router.refresh();
+    }catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}
+  }
+  async function removeCategory(row:(typeof rows)[number]){
+    if(!window.confirm(`Supprimer la catégorie « ${row.name} » ? Les produits seront conservés sans catégorie.`))return;
+    setBusy(true);setMessage("");
+    try{await save(storeId,{action:"category_delete",category_id:row.id});setRows((current)=>current.filter((item)=>item.id!==row.id));if(editingId===row.id)setEditingId(null);setMessage("Catégorie supprimée. Les produits ont été conservés.");router.refresh();}
+    catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}
+  }
+
+  return <div className="space-y-5">
+    <form className="space-y-4 rounded-2xl border border-violet-200 bg-violet-50/50 p-5" onSubmit={createCategory}>
+      <div><h4 className="font-bold text-violet-950">Ajouter une catégorie complète</h4><p className="mt-1 text-xs text-violet-700">Nom, URL, description, image, visibilité et ordre d’affichage.</p></div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="text-xs font-semibold text-slate-600">Nom *<input className={input} value={draft.name} onChange={(e)=>setDraft({...draft,name:e.target.value})} required minLength={2}/></label>
+        <label className="text-xs font-semibold text-slate-600">Slug / URL<input className={input} value={draft.slug} onChange={(e)=>setDraft({...draft,slug:e.target.value})} placeholder="Généré depuis le nom si vide"/></label>
+        <label className="text-xs font-semibold text-slate-600 md:col-span-2">Description<textarea className={input} rows={3} value={draft.description} onChange={(e)=>setDraft({...draft,description:e.target.value})}/></label>
+        <div><div className="mb-1 text-xs font-semibold text-slate-600">Image</div><div className="flex items-center gap-3"><input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" className="text-sm" disabled={uploading!==null} onChange={(e)=>{const file=e.target.files?.[0];if(file)void uploadImage(file,"draft");}}/>{draft.image_url&&/* eslint-disable-next-line @next/next/no-img-element */<img src={draft.image_url} alt="" className="h-12 w-12 rounded-lg border object-cover"/>}</div></div>
+        <label className="text-xs font-semibold text-slate-600">Ordre<input className={input} type="number" min="0" value={draft.position} onChange={(e)=>setDraft({...draft,position:e.target.value})}/></label>
+      </div>
+      <div className="flex flex-wrap items-center gap-4"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.is_visible} onChange={(e)=>setDraft({...draft,is_visible:e.target.checked})}/> Visible sur le site</label><button className={button} disabled={busy||uploading!==null}>{busy?"Ajout…":"Ajouter la catégorie"}</button></div>
     </form>
-    {message&&<p className="text-sm text-slate-600" role="status">{message}</p>}
+
+    {message&&<p className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700" role="status">{message}</p>}
     {rows.length===0&&<p className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-400">Aucune catégorie.</p>}
-    {rows.map((r,i)=><div key={r.id} className="grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-6">
-    <input className={input+" md:col-span-2"} value={r.name} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,name:e.target.value}:x))}/>
-    <input className={input+" md:col-span-2"} value={r.slug} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,slug:e.target.value}:x))}/>
-    <input className={input} type="number" value={r.position} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,position:Number(e.target.value)}:x))}/>
-    <div className="flex items-center gap-2"><label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={r.is_visible} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,is_visible:e.target.checked}:x))}/>Visible</label><button type="button" disabled={busy} className="rounded bg-slate-900 px-2 py-1 text-xs font-semibold text-white disabled:opacity-50" onClick={()=>void persist(r)}>Enregistrer</button><button type="button" disabled={busy} className="rounded border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 disabled:opacity-50" onClick={()=>void removeCategory(r.id)}>Supprimer</button></div>
-  </div>)}</div>;
+
+    <div className="space-y-3">
+      {rows.map((row,index)=>{
+        const open=editingId===row.id;
+        return <section key={row.id} className={`rounded-2xl border bg-white ${open?"border-violet-300 ring-2 ring-violet-100":"border-slate-200"}`}>
+          <button type="button" className="flex w-full items-center justify-between gap-3 p-4 text-left" onClick={()=>setEditingId(open?null:row.id)}>
+            <div className="flex min-w-0 items-center gap-3">{row.image_url?/* eslint-disable-next-line @next/next/no-img-element */<img src={row.image_url} alt="" className="h-12 w-12 shrink-0 rounded-xl border object-cover"/>:<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border bg-slate-50">🗂️</div>}<div className="min-w-0"><div className="truncate font-semibold text-slate-900">{row.name}</div><div className="text-xs text-slate-500">/{row.slug} · ordre {row.position}{!row.is_visible?" · masquée":""}</div></div></div>
+            <span className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-violet-700">{open?"Fermer":"Modifier"}</span>
+          </button>
+          {open&&<div className="space-y-4 border-t border-slate-100 p-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="text-xs font-semibold text-slate-600">Nom *<input className={input} value={row.name} onChange={(e)=>setRows(rows.map((item,i)=>i===index?{...item,name:e.target.value}:item))}/></label>
+              <label className="text-xs font-semibold text-slate-600">Slug / URL<input className={input} value={row.slug} onChange={(e)=>setRows(rows.map((item,i)=>i===index?{...item,slug:e.target.value}:item))}/></label>
+              <label className="text-xs font-semibold text-slate-600 md:col-span-2">Description<textarea className={input} rows={3} value={row.description} onChange={(e)=>setRows(rows.map((item,i)=>i===index?{...item,description:e.target.value}:item))}/></label>
+              <div><div className="mb-1 text-xs font-semibold text-slate-600">Image</div><div className="flex items-center gap-3"><input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" className="text-sm" disabled={uploading!==null} onChange={(e)=>{const file=e.target.files?.[0];if(file)void uploadImage(file,row.id);}}/>{row.image_url&&/* eslint-disable-next-line @next/next/no-img-element */<img src={row.image_url} alt="" className="h-12 w-12 rounded-lg border object-cover"/>}</div></div>
+              <label className="text-xs font-semibold text-slate-600">Ordre<input className={input} type="number" min="0" value={row.position} onChange={(e)=>setRows(rows.map((item,i)=>i===index?{...item,position:Number(e.target.value)}:item))}/></label>
+            </div>
+            <div className="flex flex-wrap items-center gap-3"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={row.is_visible} onChange={(e)=>setRows(rows.map((item,i)=>i===index?{...item,is_visible:e.target.checked}:item))}/> Visible sur le site</label><button type="button" disabled={busy||uploading!==null} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50" onClick={()=>void persist(row)}>Enregistrer toute la catégorie</button><button type="button" disabled={busy} className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 disabled:opacity-50" onClick={()=>void removeCategory(row)}>Supprimer</button></div>
+          </div>}
+        </section>;
+      })}
+    </div>
+  </div>;
 }
 
 export function IntegrationsEditor({ storeId, shipping, marketing, sheets, telegram }: {storeId:string;shipping:Array<Record<string,unknown>>;marketing:Array<Record<string,unknown>>;sheets:Record<string,unknown>|null;telegram:Record<string,unknown>|null}) {
