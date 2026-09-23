@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { SectionEditor } from "@/components/dashboard/section-editor";
 import { CheckoutSettingsEditor } from "@/components/dashboard/checkout-settings-editor";
+import { ProductForm } from "@/components/dashboard/product-form";
 import type { Section } from "@/lib/sections/definitions";
 import type { WebsiteType } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -16,7 +17,7 @@ async function save(storeId: string, payload: Record<string, unknown>) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  const data = (await res.json().catch(() => ({}))) as { ok?: boolean; owner_account?: "invited" | "attached"; error?: { message?: string } | string };
+  const data = (await res.json().catch(() => ({}))) as { ok?: boolean; owner_account?: "invited" | "attached" | "resent"; access_link?: string; error?: { message?: string } | string };
   if (!res.ok || !data.ok) {
     const message = typeof data.error === "string" ? data.error : data.error?.message;
     throw new Error(message || "Enregistrement impossible");
@@ -97,6 +98,25 @@ export function ThemeEditor({ storeId, theme }: { storeId: string; theme: Record
   );
 }
 
+export function AdminProductCreateForm({ storeId, products, categories }: { storeId:string; products:Array<Record<string,unknown>>; categories:Array<Record<string,unknown>> }) {
+  return <ProductForm
+    mode="create"
+    createEndpoint={`/api/admin/stores/${storeId}/products`}
+    uploadEndpoint={`/api/admin/stores/${storeId}/upload`}
+    successHref={`/admin/sites/${storeId}?tab=products`}
+    categories={categories.map((category)=>({id:String(category.id),name:String(category.name)}))}
+    productChoices={products.map((product)=>({id:String(product.id),name:String(product.name)}))}
+    initial={{
+      name:"",slug:"",description:"",short_description:"",price:0,cost:null,is_digital:false,
+      gallery_mode:"slideshow",landing_images:[],min_order_quantity:1,shipping_label:"",
+      stock_tracking_mode:"global",related_product_ids:[],cross_sell_product_ids:[],
+      page_element_order:["gallery","title","price","variants","offers","description","order_form","landing","reviews","related"],
+      option_groups:[],compare_at_price:null,sku:"",stock:0,low_stock_threshold:5,
+      is_active:true,is_featured:false,category_id:null,images:[],seo_title:"",seo_description:"",variants:[],offers:[],
+    }}
+  />;
+}
+
 export function ProductQuickEditor({ storeId, products, categories }: { storeId:string; products:Array<Record<string,unknown>>; categories:Array<Record<string,unknown>> }) {
   const router=useRouter();
   const toRows = (items: Array<Record<string, unknown>>) => items.map((p)=>({
@@ -105,7 +125,6 @@ export function ProductQuickEditor({ storeId, products, categories }: { storeId:
     stock:Number(p.stock??0), category_id:String(p.category_id??""), is_active:Boolean(p.is_active), is_featured:Boolean(p.is_featured),
   }));
   const [rows,setRows]=useState(()=>toRows(products));
-  const [draft,setDraft]=useState({name:"",price:"",stock:"0",category_id:"",is_active:true});
   const [message,setMessage]=useState("");
   const [busy,setBusy]=useState(false);
   async function persist(row:(typeof rows)[number]){
@@ -115,13 +134,6 @@ export function ProductQuickEditor({ storeId, products, categories }: { storeId:
       setMessage("Produit enregistré."); router.refresh();
     }catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}
   }
-  async function createProduct(e:React.FormEvent){
-    e.preventDefault(); setMessage(""); setBusy(true);
-    try{
-      await save(storeId,{action:"product_create",name:draft.name,price:Number(draft.price),stock:Number(draft.stock),category_id:draft.category_id||null,is_active:draft.is_active});
-      setDraft({name:"",price:"",stock:"0",category_id:"",is_active:true}); setMessage("Produit ajouté."); router.refresh();
-    }catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}
-  }
   async function removeProduct(id:string){
     if(!window.confirm("Supprimer ce produit de la boutique ?")) return;
     setBusy(true); setMessage("");
@@ -129,14 +141,7 @@ export function ProductQuickEditor({ storeId, products, categories }: { storeId:
     catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}
   }
   return <div className="space-y-4">
-    <form className="grid gap-2 rounded-xl border border-violet-200 bg-violet-50 p-4 md:grid-cols-6" onSubmit={createProduct}>
-      <div className="md:col-span-6 text-sm font-bold text-violet-900">Ajouter un produit</div>
-      <input className={input+" md:col-span-2"} placeholder="Nom du produit" value={draft.name} onChange={(e)=>setDraft({...draft,name:e.target.value})} required minLength={2}/>
-      <input className={input} type="number" min="0.01" step="0.01" placeholder="Prix en DA" value={draft.price} onChange={(e)=>setDraft({...draft,price:e.target.value})} required/>
-      <input className={input} type="number" min="0" step="1" placeholder="Stock" value={draft.stock} onChange={(e)=>setDraft({...draft,stock:e.target.value})} required/>
-      <select className={input} value={draft.category_id} onChange={(e)=>setDraft({...draft,category_id:e.target.value})}><option value="">Sans catégorie</option>{categories.map((c)=><option key={String(c.id)} value={String(c.id)}>{String(c.name)}</option>)}</select>
-      <div className="flex items-center justify-between gap-2"><label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={draft.is_active} onChange={(e)=>setDraft({...draft,is_active:e.target.checked})}/>Visible</label><button className={button} disabled={busy}>Ajouter</button></div>
-    </form>
+
     {message&&<p className="text-sm text-slate-600" role="status">{message}</p>}
     {rows.length===0&&<p className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-400">Aucun produit. Ajoutez le premier ci-dessus.</p>}
     {rows.map((r,i)=><div key={r.id} className="grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-12">
@@ -211,6 +216,8 @@ export function OwnerEditor({ storeId, members, profileMap }: {storeId:string;me
   async function updateMember(row:(typeof rows)[number]){setBusy(true);setMessage("");try{await save(storeId,{action:"member_update",member_id:row.id,full_name:row.full_name,dashboard_language:row.dashboard_language,role:row.role});setMessage("Compte client modifié.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}
   async function changeStatus(row:(typeof rows)[number]){const next=row.status==="active"?"revoked":"active";setBusy(true);setMessage("");try{await save(storeId,{action:"member_status",member_id:row.id,status:next});setRows((current)=>current.map((item)=>item.id===row.id?{...item,status:next}:item));setMessage(next==="revoked"?"Accès suspendu pour cette boutique.":"Accès réactivé.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}
   async function removeMember(row:(typeof rows)[number]){if(!window.confirm(`Retirer ${row.email||"ce compte"} de cette boutique ? Son compte Supabase et ses autres boutiques seront conservés.`))return;setBusy(true);setMessage("");try{await save(storeId,{action:"member_remove",member_id:row.id});setRows((current)=>current.filter((item)=>item.id!==row.id));setMessage("Accès retiré de cette boutique.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}
+  async function sendAccessEmail(row:(typeof rows)[number]){setBusy(true);setMessage("");try{await save(storeId,{action:"member_send_access_email",member_id:row.id});setMessage(`Email d’accès demandé pour ${row.email}. Vérifiez aussi les spams.`);}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}
+  async function copyAccessLink(row:(typeof rows)[number]){setBusy(true);setMessage("");try{const result=await save(storeId,{action:"member_access_link",member_id:row.id});if(!result.access_link)throw new Error("Lien indisponible");await navigator.clipboard.writeText(result.access_link);setMessage("Lien d’accès copié. Envoyez-le directement au marchand.");}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}
   return <div className="space-y-5">
     <div className="space-y-3">
       {rows.length===0&&<p className="rounded-xl border border-dashed p-5 text-center text-sm text-slate-400">Aucun compte marchand attaché.</p>}
@@ -221,10 +228,10 @@ export function OwnerEditor({ storeId, members, profileMap }: {storeId:string;me
           <label className="text-xs font-semibold text-slate-600">Rôle<select className={input} value={row.role} onChange={(e)=>setRows(rows.map((item,i)=>i===index?{...item,role:e.target.value}:item))}><option value="OWNER">Propriétaire</option><option value="MANAGER">Manager</option><option value="ORDER_MANAGER">Commandes</option><option value="CONTENT_EDITOR">Contenu</option><option value="VIEWER">Lecture seule</option></select></label>
           <label className="text-xs font-semibold text-slate-600">Langue<select className={input} value={row.dashboard_language} onChange={(e)=>setRows(rows.map((item,i)=>i===index?{...item,dashboard_language:e.target.value as "fr"|"ar"|"en"}:item))}><option value="fr">Français</option><option value="ar">العربية</option><option value="en">English</option></select></label>
         </div>
-        <div className="mt-3 flex flex-wrap justify-end gap-2"><button type="button" disabled={busy} className="rounded bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50" onClick={()=>void updateMember(row)}>Enregistrer</button><button type="button" disabled={busy} className="rounded border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 disabled:opacity-50" onClick={()=>void changeStatus(row)}>{row.status==="active"?"Suspendre":"Réactiver"}</button><button type="button" disabled={busy} className="rounded border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 disabled:opacity-50" onClick={()=>void removeMember(row)}>Retirer</button></div>
+        <div className="mt-3 flex flex-wrap justify-end gap-2"><button type="button" disabled={busy} className="rounded border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 disabled:opacity-50" onClick={()=>void sendAccessEmail(row)}>Renvoyer l’email d’accès</button><button type="button" disabled={busy} className="rounded border border-violet-200 px-3 py-1.5 text-xs font-semibold text-violet-700 disabled:opacity-50" onClick={()=>void copyAccessLink(row)}>Copier le lien d’accès</button><button type="button" disabled={busy} className="rounded bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50" onClick={()=>void updateMember(row)}>Enregistrer</button><button type="button" disabled={busy} className="rounded border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 disabled:opacity-50" onClick={()=>void changeStatus(row)}>{row.status==="active"?"Suspendre":"Réactiver"}</button><button type="button" disabled={busy} className="rounded border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 disabled:opacity-50" onClick={()=>void removeMember(row)}>Retirer</button></div>
       </div>)}
     </div>
-    <form className="grid gap-3 border-t pt-5 md:grid-cols-2" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setMessage("");try{const result=await save(storeId,{action:"owner",...form});setForm({email:"",full_name:"",dashboard_language:"fr"});setMessage(result.owner_account==="invited"?"Invitation envoyée au nouveau propriétaire.":"Compte FlexiGo existant attaché à cette boutique.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}}>
+    <form className="grid gap-3 border-t pt-5 md:grid-cols-2" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setMessage("");try{const result=await save(storeId,{action:"owner",...form});setForm({email:"",full_name:"",dashboard_language:"fr"});setMessage(result.owner_account==="invited"?"Invitation envoyée au nouveau propriétaire.":result.owner_account==="resent"?"Compte existant attaché et email d’accès renvoyé.":"Compte FlexiGo existant attaché à cette boutique.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}}>
       <h4 className="font-bold text-slate-900 md:col-span-2">Ajouter une personne</h4>
       <label className="text-sm font-medium">Nom complet <span className="font-normal text-slate-400">(facultatif)</span><input className={input} value={form.full_name} onChange={(e)=>setForm({...form,full_name:e.target.value})}/></label>
       <label className="text-sm font-medium">Email<input className={input} type="email" value={form.email} onChange={(e)=>setForm({...form,email:e.target.value})} required/></label>
@@ -232,6 +239,145 @@ export function OwnerEditor({ storeId, members, profileMap }: {storeId:string;me
       <div className="flex items-end"><button className={button} disabled={busy}>{busy?"Invitation…":"Créer / inviter et attacher"}</button></div>
     </form>
     {message&&<p className="text-sm text-slate-600" role="status">{message}</p>}
+  </div>;
+}
+
+
+type CustomerDraft = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  notes: string;
+  status: "active" | "suspended";
+  order_count: number;
+  total_spent_cents: number;
+};
+
+export function CustomerAdminEditor({ storeId, customers }: { storeId: string; customers: Array<Record<string, unknown>> }) {
+  const router = useRouter();
+  const [rows, setRows] = useState<CustomerDraft[]>(() => customers.map((customer) => ({
+    id: String(customer.id),
+    name: String(customer.name ?? ""),
+    phone: String(customer.phone ?? ""),
+    email: String(customer.email ?? ""),
+    notes: String(customer.notes ?? ""),
+    status: customer.status === "suspended" ? "suspended" : "active",
+    order_count: Number(customer.order_count ?? 0),
+    total_spent_cents: Number(customer.total_spent_cents ?? 0),
+  })));
+  const [form, setForm] = useState({ name: "", phone: "", email: "", notes: "" });
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+
+  function patchRow(id: string, patch: Partial<CustomerDraft>) {
+    setRows((current) => current.map((row) => row.id === id ? { ...row, ...patch } : row));
+  }
+
+  async function createCustomer(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusyId("create");
+    setMessage("");
+    try {
+      await save(storeId, { action: "customer_create", ...form });
+      setForm({ name: "", phone: "", email: "", notes: "" });
+      setMessage("Client ajouté.");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Erreur");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function updateCustomer(row: CustomerDraft) {
+    setBusyId(row.id);
+    setMessage("");
+    try {
+      await save(storeId, {
+        action: "customer_update",
+        customer_id: row.id,
+        name: row.name,
+        phone: row.phone,
+        email: row.email,
+        notes: row.notes,
+      });
+      setMessage("Client modifié.");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Erreur");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function toggleCustomer(row: CustomerDraft) {
+    const status = row.status === "active" ? "suspended" : "active";
+    setBusyId(row.id);
+    setMessage("");
+    try {
+      await save(storeId, { action: "customer_status", customer_id: row.id, status });
+      patchRow(row.id, { status });
+      setMessage(status === "suspended" ? "Client suspendu : les nouvelles commandes avec ce numéro sont bloquées." : "Client réactivé.");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Erreur");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function deleteCustomer(row: CustomerDraft) {
+    if (!window.confirm(`Supprimer le client ${row.name} ? Son historique de commandes sera conservé.`)) return;
+    setBusyId(row.id);
+    setMessage("");
+    try {
+      await save(storeId, { action: "customer_delete", customer_id: row.id });
+      setRows((current) => current.filter((customer) => customer.id !== row.id));
+      setMessage("Client supprimé de la liste. Ses commandes restent conservées.");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Erreur");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return <div className="space-y-5">
+    <form className="grid gap-3 rounded-xl border border-violet-100 bg-violet-50/40 p-4 md:grid-cols-2" onSubmit={createCustomer}>
+      <div className="md:col-span-2">
+        <h4 className="font-bold text-slate-900">Ajouter un client acheteur</h4>
+        <p className="text-xs text-slate-500">Le numéro algérien est normalisé pour éviter les doublons.</p>
+      </div>
+      <label className="text-sm font-medium">Nom<input className={input} value={form.name} onChange={(event)=>setForm({...form,name:event.target.value})} required minLength={2}/></label>
+      <label className="text-sm font-medium">Téléphone<input className={input} value={form.phone} onChange={(event)=>setForm({...form,phone:event.target.value})} required placeholder="0550 00 00 00"/></label>
+      <label className="text-sm font-medium">Email <span className="font-normal text-slate-400">(facultatif)</span><input className={input} type="email" value={form.email} onChange={(event)=>setForm({...form,email:event.target.value})}/></label>
+      <label className="text-sm font-medium">Notes <span className="font-normal text-slate-400">(facultatif)</span><input className={input} value={form.notes} onChange={(event)=>setForm({...form,notes:event.target.value})}/></label>
+      <div className="md:col-span-2"><button className={button} disabled={busyId==="create"}>{busyId==="create"?"Ajout…":"Ajouter le client"}</button></div>
+    </form>
+
+    {message&&<p className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700" role="status">{message}</p>}
+
+    <div className="space-y-3">
+      {rows.length===0&&<p className="text-sm text-slate-400">Aucun client acheteur pour cette boutique.</p>}
+      {rows.map((row)=><div key={row.id} className="rounded-xl border p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="text-xs text-slate-500">{row.order_count} commande(s) · {(row.total_spent_cents / 100).toLocaleString("fr-DZ")} DA dépensés</div>
+          <span className={row.status==="active"?"rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700":"rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700"}>{row.status==="active"?"Actif":"Suspendu"}</span>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="text-xs font-medium">Nom<input className={input} value={row.name} onChange={(event)=>patchRow(row.id,{name:event.target.value})}/></label>
+          <label className="text-xs font-medium">Téléphone<input className={input} value={row.phone} onChange={(event)=>patchRow(row.id,{phone:event.target.value})}/></label>
+          <label className="text-xs font-medium">Email<input className={input} type="email" value={row.email} onChange={(event)=>patchRow(row.id,{email:event.target.value})}/></label>
+          <label className="text-xs font-medium">Notes<input className={input} value={row.notes} onChange={(event)=>patchRow(row.id,{notes:event.target.value})}/></label>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button type="button" className="rounded border border-violet-300 px-3 py-1.5 text-xs font-semibold text-violet-700 disabled:opacity-50" disabled={busyId===row.id} onClick={()=>void updateCustomer(row)}>Enregistrer</button>
+          <button type="button" className="rounded border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 disabled:opacity-50" disabled={busyId===row.id} onClick={()=>void toggleCustomer(row)}>{row.status==="active"?"Suspendre":"Réactiver"}</button>
+          <button type="button" className="rounded border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 disabled:opacity-50" disabled={busyId===row.id} onClick={()=>void deleteCustomer(row)}>Supprimer</button>
+        </div>
+      </div>)}
+    </div>
   </div>;
 }
 

@@ -76,3 +76,43 @@ describe("admin store member controls", () => {
     expect(adminStoreControlActionSchema.safeParse({ action: "member_status", member_id: memberId, status: "deleted" }).success).toBe(false);
   });
 });
+
+
+describe("admin merchant access recovery", () => {
+  const memberId = "ef456307-359e-4c30-b2b8-50a8a7c7187f";
+
+  it("accepts email resend and secure-link actions", () => {
+    expect(adminStoreControlActionSchema.safeParse({ action: "member_send_access_email", member_id: memberId }).success).toBe(true);
+    expect(adminStoreControlActionSchema.safeParse({ action: "member_access_link", member_id: memberId }).success).toBe(true);
+  });
+});
+
+
+describe("admin store customer controls", () => {
+  const customerId = "ef456307-359e-4c30-b2b8-50a8a7c7187f";
+
+  it("accepts creating and editing an Algerian customer", () => {
+    expect(adminStoreControlActionSchema.safeParse({
+      action: "customer_create",
+      name: "Client Test",
+      phone: "0550123456",
+      email: "client@example.com",
+      notes: "Client fidèle",
+    }).success).toBe(true);
+
+    expect(adminStoreControlActionSchema.safeParse({
+      action: "customer_update",
+      customer_id: customerId,
+      name: "Client Modifié",
+      phone: "0550123456",
+      email: "",
+      notes: "",
+    }).success).toBe(true);
+  });
+
+  it("accepts suspension, reactivation and deletion", () => {
+    expect(adminStoreControlActionSchema.safeParse({ action: "customer_status", customer_id: customerId, status: "suspended" }).success).toBe(true);
+    expect(adminStoreControlActionSchema.safeParse({ action: "customer_status", customer_id: customerId, status: "active" }).success).toBe(true);
+    expect(adminStoreControlActionSchema.safeParse({ action: "customer_delete", customer_id: customerId }).success).toBe(true);
+  });
+});

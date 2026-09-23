@@ -56,6 +56,7 @@ const MESSAGES: Record<string, string> = {
   INVALID_COMMUNE: "Veuillez indiquer votre commune.",
   INVALID_PHONE: "Numéro de téléphone invalide.",
   INVALID_MOBILE: "Merci d'indiquer un numéro de mobile algérien.",
+  CUSTOMER_SUSPENDED: "Ce numéro ne peut pas passer de nouvelle commande. Contactez la boutique si vous pensez qu’il s’agit d’une erreur.",
   INVALID_QUANTITY: "Quantité invalide.",
   PRODUCT_NOT_FOUND: "Un article n'est plus disponible.",
   VARIANT_NOT_FOUND: "Cette variante n'est plus disponible.",
@@ -73,6 +74,7 @@ const MESSAGES_AR: Record<string, string> = {
   INVALID_COMMUNE: "يرجى إدخال البلدية.",
   INVALID_PHONE: "يرجى إدخال رقم هاتف صحيح",
   INVALID_MOBILE: "يرجى إدخال رقم هاتف محمول جزائري صحيح (05/06/07)",
+  CUSTOMER_SUSPENDED: "لا يمكن لهذا الرقم إرسال طلب جديد. تواصل مع المتجر إذا كنت تعتقد أن هناك خطأ.",
   INVALID_QUANTITY: "الكمية غير صحيحة.",
   PRODUCT_NOT_FOUND: "هذا المنتج لم يعد متوفراً.",
   VARIANT_NOT_FOUND: "هذه المواصفات لم تعد متوفرة.",
@@ -151,10 +153,24 @@ export async function POST(req: NextRequest) {
       return Response.json({ ok: false, error: messageFor("STORE_NOT_ACTIVE", locale) }, { status: 400 });
     }
 
+    const service = getAdminSupabase();
+    const { data: suspendedCustomer, error: customerStatusError } = await service
+      .from("customers")
+      .select("id")
+      .eq("store_id", store.id)
+      .eq("normalized_phone", normalized)
+      .eq("status", "suspended")
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (customerStatusError) throw customerStatusError;
+    if (suspendedCustomer) {
+      return Response.json({ ok: false, error: messageFor("CUSTOMER_SUSPENDED", locale) }, { status: 403 });
+    }
+
     const anon = getAnonSupabase();
 
     // Duplicate detection (same phone + same lines within 10 minutes).
-    const dup = await detectDuplicate(getAdminSupabase(), store.id, normalized, body.lines);
+    const dup = await detectDuplicate(service, store.id, normalized, body.lines);
     if (dup) {
       return Response.json(
         {

@@ -6,7 +6,7 @@ import { formatDA, formatDateTimeFr, timeAgoFr } from "@/lib/utils";
 import { Badge, Card, Table, Th, Td } from "@/components/ui";
 import { SiteActions } from "./site-actions";
 import { AdvancedAdminClient } from "./advanced-admin-client";
-import { StoreSettingsEditor, AdminCheckoutSettingsEditor, ThemeEditor, ProductQuickEditor, CategoryQuickEditor, IntegrationsEditor, OwnerEditor, ContentAdminEditor, DomainControl } from "./site-control-forms";
+import { StoreSettingsEditor, AdminCheckoutSettingsEditor, ThemeEditor, AdminProductCreateForm, ProductQuickEditor, CategoryQuickEditor, CustomerAdminEditor, IntegrationsEditor, OwnerEditor, ContentAdminEditor, DomainControl } from "./site-control-forms";
 import { SiteAssistant } from "./site-assistant";
 
 type Tab = "overview" | "assistant" | "site" | "products" | "categories" | "orders" | "customers" | "stats" | "content" | "appearance" | "delivery" | "integrations" | "domain" | "account" | "logs" | "health";
@@ -54,7 +54,11 @@ interface Props {
 
 export function SiteControlCenter(props: Props) {
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<Tab>(() => searchParams.get("assistant") === "1" ? "assistant" : "overview");
+  const [tab, setTab] = useState<Tab>(() => {
+    const requested = searchParams.get("tab") as Tab | null;
+    if (requested && TABS.some((item) => item.key === requested)) return requested;
+    return searchParams.get("assistant") === "1" ? "assistant" : "overview";
+  });
   const s = props.store;
 
   return (
@@ -146,10 +150,16 @@ export function SiteControlCenter(props: Props) {
       )}
 
       {tab === "products" && (
-        <Card className="p-5">
-          <div className="mb-4"><h3 className="font-bold">Produits ({props.products.length})</h3><p className="text-xs text-slate-500">Édition rapide depuis le Master : nom, prix, ancien prix, stock, catégorie, actif et vedette.</p></div>
-          <ProductQuickEditor key={JSON.stringify(props.products)} storeId={s.id as string} products={props.products} categories={props.categories} />
-        </Card>
+        <div className="space-y-5">
+          <Card className="p-5">
+            <div className="mb-4"><h3 className="font-bold">Ajouter un produit complet</h3><p className="text-sm text-slate-500">Photos, descriptions, prix, coût, options, variantes, offres, stock, produits connexes, ordre de page et SEO.</p></div>
+            <AdminProductCreateForm storeId={s.id as string} products={props.products} categories={props.categories} />
+          </Card>
+          <Card className="p-5">
+            <div className="mb-4"><h3 className="font-bold">Produits existants ({props.products.length})</h3><p className="text-xs text-slate-500">Édition rapide : nom, prix, ancien prix, stock, catégorie, visibilité et mise en avant.</p></div>
+            <ProductQuickEditor key={JSON.stringify(props.products)} storeId={s.id as string} products={props.products} categories={props.categories} />
+          </Card>
+        </div>
       )}
 
       {tab === "categories" && (
@@ -171,13 +181,12 @@ export function SiteControlCenter(props: Props) {
       )}
 
       {tab === "customers" && (
-        <Card>
-          <div className="border-b border-slate-100 px-5 py-3"><h3 className="font-bold">Clients ({props.customers.length})</h3></div>
-          <Table head={<><Th>Nom</Th><Th>Téléphone</Th><Th>Commandes</Th><Th>Total dépensé</Th></>}>
-            {props.customers.map((c) => (
-              <tr key={c.id as string} className="hover:bg-slate-50"><Td>{c.name as string}</Td><Td className="font-mono text-xs">{c.phone as string}</Td><Td>{c.order_count as number}</Td><Td>{formatDA(c.total_spent_cents as number)}</Td></tr>
-            ))}
-          </Table>
+        <Card className="p-5">
+          <div className="mb-4">
+            <h3 className="font-bold">Clients acheteurs ({props.customers.length})</h3>
+            <p className="text-sm text-slate-500">Ajoutez, modifiez, suspendez, réactivez ou supprimez les clients de cette boutique. La suspension bloque les nouvelles commandes avec leur numéro sans effacer l’historique.</p>
+          </div>
+          <CustomerAdminEditor key={JSON.stringify(props.customers)} storeId={s.id as string} customers={props.customers} />
         </Card>
       )}
 

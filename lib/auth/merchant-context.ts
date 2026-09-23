@@ -136,6 +136,17 @@ export async function getMerchantContext(): Promise<MerchantContext> {
     .is("deleted_at", null)
     .maybeSingle();
   if (!store) throw err("NOT_FOUND", "Ce site n'existe pas.");
+  if (!supportSession && store.organization_id) {
+    const { data: organization } = await admin
+      .from("organizations")
+      .select("status")
+      .eq("id", store.organization_id)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (!organization || organization.status === "suspended") {
+      throw err("STORE_SUSPENDED", "Ce compte client est suspendu. Contactez votre administrateur.");
+    }
+  }
   if (store.status === "archived") {
     throw err("FORBIDDEN", "Ce site est archivé. Contactez votre administrateur.");
   }

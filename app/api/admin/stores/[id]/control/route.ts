@@ -8,6 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { encryptSecret } from "@/lib/crypto/encrypt";
 import { parseServiceAccount } from "@/lib/integrations/sheets";
 import { slugify } from "@/lib/slug";
+import { normalizeDZPhone } from "@/lib/phone";
 import { SHIPPING_PROVIDER_KEYS, MARKETING_PROVIDER_KEYS } from "@/lib/types";
 import { souqCheckoutSettingsSchema } from "@/lib/storefront/souq/checkout-settings";
 import { parseBody } from "@/lib/schemas";
@@ -77,6 +78,30 @@ export const adminStoreControlActionSchema = z.discriminatedUnion("action", [
     category_id: z.string().uuid(),
   }),
   z.object({
+    action: z.literal("customer_create"),
+    name: z.string().trim().min(2).max(120),
+    phone: z.string().trim().min(8).max(20),
+    email: z.string().trim().email().max(120).optional().or(z.literal("")).nullable(),
+    notes: z.string().trim().max(2000).optional().or(z.literal("")).nullable(),
+  }),
+  z.object({
+    action: z.literal("customer_update"),
+    customer_id: z.string().uuid(),
+    name: z.string().trim().min(2).max(120),
+    phone: z.string().trim().min(8).max(20),
+    email: z.string().trim().email().max(120).optional().or(z.literal("")).nullable(),
+    notes: z.string().trim().max(2000).optional().or(z.literal("")).nullable(),
+  }),
+  z.object({
+    action: z.literal("customer_status"),
+    customer_id: z.string().uuid(),
+    status: z.enum(["active","suspended"]),
+  }),
+  z.object({
+    action: z.literal("customer_delete"),
+    customer_id: z.string().uuid(),
+  }),
+  z.object({
     action: z.literal("shipping"),
     provider_key: z.enum(SHIPPING_PROVIDER_KEYS),
     is_active: z.boolean(),
@@ -125,6 +150,14 @@ export const adminStoreControlActionSchema = z.discriminatedUnion("action", [
     member_id: z.string().uuid(),
   }),
   z.object({
+    action: z.literal("member_send_access_email"),
+    member_id: z.string().uuid(),
+  }),
+  z.object({
+    action: z.literal("member_access_link"),
+    member_id: z.string().uuid(),
+  }),
+  z.object({
     action: z.literal("checkout"),
     checkout: souqCheckoutSettingsSchema,
   }),
@@ -136,7 +169,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const ctx = await getAdminContext();
     const input = parseBody(adminStoreControlActionSchema, await req.json().catch(() => null));
     const admin = getAdminSupabase();
-    let ownerAccount: "invited" | "attached" | undefined;
+    let ownerAccount: "invited" | "attached" | "resent" | undefined;
+    let accessLink: string | undefined;
 
     const { data: store } = await admin
       .from("stores")
@@ -319,6 +353,52 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       await logAudit({ actorId: ctx.user.id, storeId, action: "category.changed", entity: "category", entityId: input.category_id, metadata: { name: (current as { name: string }).name, op: "admin_delete" } });
     }
 
+    if (input.action === "customer_create") {
+      const normalizedPhone = normalizeDZPhone(input.phone);
+      if (!normalizedPhone) throw err("VALIDATION", "Numéro de téléphone algérien invalide.");
+      const { data: existing } = await admin.from("customers").select("id, deleted_at").eq("store_id", storeId).eq("normalized_phone", normalizedPhone).maybeSingle();
+      if (existing && !(existing as { deleted_at: string | null }).deleted_at) throw err("CONFLICT", "Ce client existe déjà dans cette boutique.");
+      let customerId: string;
+      if (existing) {
+        customerId = (existing as { id: string }).id;
+        const { error } = await admin.from("customers").update({name:input.name,phone:input.phone,normalized_phone:normalizedPhone,email:input.email||null,notes:input.notes||null,status:"active",deleted_at:null,updated_at:new Date().toISOString()} as never).eq("id", customerId).eq("store_id", storeId);
+        if (error) throw error;
+      } else {
+        const { data: created, error } = await admin.from("customers").insert({store_id:storeId,name:input.name,phone:input.phone,normalized_phone:normalizedPhone,email:input.email||null,notes:input.notes||null,status:"active"} as never).select("id").single();
+        if (error) throw error;
+        customerId = (created as { id: string }).id;
+      }
+      await logAudit({actorId:ctx.user.id,storeId,action:"customer.updated",entity:"customer",entityId:customerId,metadata:{operation:"admin_create"}});
+    }
+
+    if (input.action === "customer_update") {
+      const normalizedPhone = normalizeDZPhone(input.phone);
+      if (!normalizedPhone) throw err("VALIDATION", "Numéro de téléphone algérien invalide.");
+      const { data: current } = await admin.from("customers").select("id").eq("id",input.customer_id).eq("store_id",storeId).is("deleted_at",null).maybeSingle();
+      if (!current) throw err("NOT_FOUND", "Client introuvable.");
+      const { data: clash } = await admin.from("customers").select("id").eq("store_id",storeId).eq("normalized_phone",normalizedPhone).neq("id",input.customer_id).is("deleted_at",null).maybeSingle();
+      if (clash) throw err("CONFLICT", "Ce numéro appartient déjà à un autre client.");
+      const { error } = await admin.from("customers").update({name:input.name,phone:input.phone,normalized_phone:normalizedPhone,email:input.email||null,notes:input.notes||null,updated_at:new Date().toISOString()} as never).eq("id",input.customer_id).eq("store_id",storeId);
+      if (error) throw error;
+      await logAudit({actorId:ctx.user.id,storeId,action:"customer.updated",entity:"customer",entityId:input.customer_id,metadata:{operation:"admin_update"}});
+    }
+
+    if (input.action === "customer_status") {
+      const { data: current } = await admin.from("customers").select("id, status").eq("id",input.customer_id).eq("store_id",storeId).is("deleted_at",null).maybeSingle();
+      if (!current) throw err("NOT_FOUND", "Client introuvable.");
+      const { error } = await admin.from("customers").update({status:input.status,updated_at:new Date().toISOString()} as never).eq("id",input.customer_id).eq("store_id",storeId);
+      if (error) throw error;
+      await logAudit({actorId:ctx.user.id,storeId,action:"customer.updated",entity:"customer",entityId:input.customer_id,metadata:{operation:"status_change",from:(current as {status:string}).status,to:input.status}});
+    }
+
+    if (input.action === "customer_delete") {
+      const { data: current } = await admin.from("customers").select("id").eq("id",input.customer_id).eq("store_id",storeId).is("deleted_at",null).maybeSingle();
+      if (!current) throw err("NOT_FOUND", "Client introuvable.");
+      const { error } = await admin.from("customers").update({status:"suspended",deleted_at:new Date().toISOString(),updated_at:new Date().toISOString()} as never).eq("id",input.customer_id).eq("store_id",storeId);
+      if (error) throw error;
+      await logAudit({actorId:ctx.user.id,storeId,action:"customer.updated",entity:"customer",entityId:input.customer_id,metadata:{operation:"admin_delete",soft_delete:true}});
+    }
+
     if (input.action === "shipping") {
       const { data: currentShipping } = await admin
         .from("shipping_integrations")
@@ -411,6 +491,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       if (profile) {
         userId = (profile as { id: string }).id;
         ownerAccount = "attached";
+        const { data: authUser } = await admin.auth.admin.getUserById(userId);
+        if (!authUser.user?.email_confirmed_at) {
+          const { error: resendError } = await admin.auth.resetPasswordForEmail(email, { redirectTo: getInviteRedirectUrl() });
+          if (resendError) throw err("UPSTREAM_ERROR", `Email d’accès impossible : ${resendError.message}`);
+          ownerAccount = "resent";
+        }
       } else {
         const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
           data: { full_name: input.full_name },
@@ -459,6 +545,29 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       await logAudit({ actorId: ctx.user.id, storeId, action: "team.member_role_changed", entity: "store_member", entityId: input.member_id, metadata: { user_id: userId, from: (member as { role: string }).role, to: input.role, profile_updated: true } });
     }
 
+    if (input.action === "member_send_access_email" || input.action === "member_access_link") {
+      const { data: member } = await admin.from("store_members").select("id, user_id").eq("id", input.member_id).eq("store_id", storeId).maybeSingle();
+      if (!member) throw err("NOT_FOUND", "Membre introuvable.");
+      const userId = (member as { user_id: string }).user_id;
+      const { data: profile } = await admin.from("profiles").select("email").eq("id", userId).maybeSingle();
+      const email = (profile as { email: string | null } | null)?.email?.trim().toLowerCase();
+      if (!email) throw err("VALIDATION", "Ce compte ne possède pas d’adresse email.");
+
+      if (input.action === "member_send_access_email") {
+        const { error: emailError } = await admin.auth.resetPasswordForEmail(email, { redirectTo: getInviteRedirectUrl() });
+        if (emailError) throw err("UPSTREAM_ERROR", `Email d’accès impossible : ${emailError.message}`);
+      } else {
+        const { data: authUser } = await admin.auth.admin.getUserById(userId);
+        const params = authUser.user?.email_confirmed_at
+          ? { type: "recovery" as const, email, options: { redirectTo: getInviteRedirectUrl() } }
+          : { type: "invite" as const, email, options: { redirectTo: getInviteRedirectUrl() } };
+        const { data: linkData, error: linkError } = await admin.auth.admin.generateLink(params);
+        if (linkError || !linkData.properties?.action_link) throw err("UPSTREAM_ERROR", `Lien d’accès impossible : ${linkError?.message ?? "erreur Auth"}`);
+        accessLink = linkData.properties.action_link;
+        await logAudit({ actorId: ctx.user.id, storeId, action: "team.access_link_generated", entity: "store_member", entityId: input.member_id, metadata: { user_id: userId } });
+      }
+    }
+
     if (input.action === "member_status" || input.action === "member_remove") {
       const { data: member } = await admin.from("store_members").select("id, user_id, role, status").eq("id", input.member_id).eq("store_id", storeId).maybeSingle();
       if (!member) throw err("NOT_FOUND", "Membre introuvable.");
@@ -478,7 +587,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       await logAudit({ actorId: ctx.user.id, storeId, action: "team.member_removed", entity: "store_member", entityId: input.member_id, metadata: { operation: removing ? "remove" : "status_change", user_id: (member as { user_id: string }).user_id, from: (member as { status: string }).status, to: nextStatus } });
     }
 
-    return NextResponse.json({ ok: true, ...(ownerAccount ? { owner_account: ownerAccount } : {}) });
+    return NextResponse.json({ ok: true, ...(ownerAccount ? { owner_account: ownerAccount } : {}), ...(accessLink ? { access_link: accessLink } : {}) });
   } catch (e) {
     return toErrorResponse(e);
   }

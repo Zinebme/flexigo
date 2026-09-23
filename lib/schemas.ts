@@ -112,7 +112,7 @@ export const productSchema = z.object({
   is_active: z.boolean().default(true),
   is_featured: z.boolean().default(false),
   category_id: uuid.optional().nullable(),
-  images: z.array(imageUrl).max(8).optional().default([]),
+  images: z.array(imageUrl).max(12).optional().default([]),
   variants: z.array(variantSchema).max(12).optional().default([]),
   seo_title: z.string().max(160).optional().or(z.literal("")).nullable(),
   seo_description: z.string().max(300).optional().or(z.literal("")).nullable(),

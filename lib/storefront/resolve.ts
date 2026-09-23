@@ -58,11 +58,16 @@ export async function resolveStoreBySlug(slug: string): Promise<ResolvedStore | 
     const admin = getAdminSupabase();
     const { data } = await admin
       .from("stores")
-      .select("id, slug, name, status, website_type, template_key, language, currency, deleted_at")
+      .select("id, organization_id, slug, name, status, website_type, template_key, language, currency, deleted_at")
       .eq("slug", slug)
       .is("deleted_at", null)
       .maybeSingle();
-    return data ? mapStore(data as unknown as StoreRow) : null;
+    if (!data) return null;
+    if (data.organization_id) {
+      const { data: organization } = await admin.from("organizations").select("status").eq("id", data.organization_id).is("deleted_at", null).maybeSingle();
+      if (!organization || organization.status !== "active") return null;
+    }
+    return mapStore(data as unknown as StoreRow);
   });
 }
 
@@ -82,11 +87,16 @@ export async function resolveStoreByHost(host: string): Promise<ResolvedStore | 
     if (!domain) return null;
     const { data: store } = await admin
       .from("stores")
-      .select("id, slug, name, status, website_type, template_key, language, currency, deleted_at")
+      .select("id, organization_id, slug, name, status, website_type, template_key, language, currency, deleted_at")
       .eq("id", domain.store_id)
       .is("deleted_at", null)
       .maybeSingle();
-    return store ? mapStore(store as unknown as StoreRow) : null;
+    if (!store) return null;
+    if (store.organization_id) {
+      const { data: organization } = await admin.from("organizations").select("status").eq("id", store.organization_id).is("deleted_at", null).maybeSingle();
+      if (!organization || organization.status !== "active") return null;
+    }
+    return mapStore(store as unknown as StoreRow);
   });
 }
 

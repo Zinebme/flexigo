@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getMerchantContext, requireCapability } from "@/lib/auth/merchant-context";
+import { getAdminContext } from "@/lib/auth/admin-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { toErrorResponse, err } from "@/lib/errors";
@@ -14,15 +14,16 @@ export const runtime = "nodejs";
  * Prices are submitted in DA and stored as integer cents. Variants and
  * images are inserted server-side; nothing price-related is trusted blindly.
  */
-export async function POST(req: Request) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const ctx = await getMerchantContext();
-    requireCapability(ctx, "products.manage");
-
+    const { id: storeId } = await params;
+    const ctx = await getAdminContext();
     const body = await req.json().catch(() => null) as Record<string, unknown> | null;
     const input = parseBody(productSchema, body);
     const offers = body?.offers ? quantityOfferSchema.array().max(10).parse(body.offers) : [];
     const admin = getAdminSupabase();
+    const { data: store } = await admin.from("stores").select("id").eq("id", storeId).is("deleted_at", null).maybeSingle();
+    if (!store) throw err("NOT_FOUND", "Site introuvable.");
 
     // Unique slug within the store.
     let slug = input.slug ? slugify(input.slug) : slugify(input.name);
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
       const { data: existing } = await admin
         .from("products")
         .select("id")
-        .eq("store_id", ctx.store.id)
+        .eq("store_id", storeId)
         .eq("slug", candidate)
         .maybeSingle();
       if (!existing) {
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
       const { data: ownedLinks, error: ownedErr } = await admin
         .from("products")
         .select("id")
-        .eq("store_id", ctx.store.id)
+        .eq("store_id", storeId)
         .is("deleted_at", null)
         .in("id", requestedLinks);
       if (ownedErr) throw ownedErr;
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
     const { data: product, error: prodError } = await admin
       .from("products")
       .insert({
-        store_id: ctx.store.id,
+        store_id: storeId,
         category_id: input.category_id || null,
         name: input.name,
         slug,
@@ -113,7 +114,7 @@ export async function POST(req: Request) {
 
     if (offers.length > 0) {
       const rows = offers.map((offer, index) => ({
-        store_id: ctx.store.id,
+        store_id: storeId,
         product_id: productId,
         min_quantity: offer.min_quantity,
         total_price_cents: offer.total_price_cents,
@@ -129,7 +130,7 @@ export async function POST(req: Request) {
     if (input.images.length > 0) {
       const rows = input.images.map((url, idx) => ({
         product_id: productId,
-        store_id: ctx.store.id,
+        store_id: storeId,
         url,
         position: idx,
       }));
@@ -140,7 +141,7 @@ export async function POST(req: Request) {
     // Initial stock movement (audited).
     if (input.stock > 0) {
       const { error: mvError } = await admin.from("inventory_movements").insert({
-        store_id: ctx.store.id,
+        store_id: storeId,
         product_id: productId,
         change: input.stock,
         reason: "Stock initial",
@@ -151,11 +152,11 @@ export async function POST(req: Request) {
 
     void logAudit({
       actorId: ctx.user.id,
-      storeId: ctx.store.id,
+      storeId: storeId,
       action: "product.created",
       entity: "product",
       entityId: productId,
-      supportSessionId: ctx.supportSession?.id ?? null,
+      supportSessionId: null,
       metadata: { name: input.name, price_cents: priceCents },
     });
 

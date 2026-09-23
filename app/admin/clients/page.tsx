@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
-import { PageHeader, Card, Table, Th, Td, EmptyState } from "@/components/ui";
-import { formatDateTimeFr } from "@/lib/utils";
+import { PageHeader } from "@/components/ui";
+import { ClientsManager, type AdminClientRow } from "@/components/admin/clients-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -11,41 +10,25 @@ export default async function AdminClientsPage() {
   const admin = getAdminSupabase();
 
   const [{ data: orgs }, { data: stores }] = await Promise.all([
-    admin.from("organizations").select("id, name, created_at").order("created_at", { ascending: false }),
-    admin.from("stores").select("id, organization_id, name, slug, status").is("deleted_at", null),
+    admin.from("organizations").select("id, name, status, internal_notes, created_at").is("deleted_at", null).order("created_at", { ascending: false }),
+    admin.from("stores").select("organization_id").is("deleted_at", null),
   ]);
 
   const storeCount = new Map<string, number>();
-  for (const s of (stores ?? []) as Array<{ organization_id: string | null }>) {
-    if (!s.organization_id) continue;
-    storeCount.set(s.organization_id, (storeCount.get(s.organization_id) ?? 0) + 1);
+  for (const store of (stores ?? []) as Array<{ organization_id: string | null }>) {
+    if (!store.organization_id) continue;
+    storeCount.set(store.organization_id, (storeCount.get(store.organization_id) ?? 0) + 1);
   }
 
-  const rows = (orgs ?? []) as Array<{ id: string; name: string; created_at: string }>;
+  const clients = ((orgs ?? []) as Array<Omit<AdminClientRow, "store_count">>).map((organization) => ({
+    ...organization,
+    store_count: storeCount.get(organization.id) ?? 0,
+  }));
 
   return (
     <>
-      <PageHeader title="Clients" subtitle={`${rows.length} organisations clientes`} />
-      <Card>
-        {rows.length === 0 ? (
-          <EmptyState icon="🏢" title="Aucun client" text="Les organisations créées via le wizard apparaîtront ici." />
-        ) : (
-          <Table head={<><Th>Organisation</Th><Th>Sites</Th><Th>Créée le</Th><Th /></>}>
-            {rows.map((o) => (
-              <tr key={o.id} className="hover:bg-slate-50">
-                <Td className="font-medium text-slate-900">{o.name}</Td>
-                <Td>{storeCount.get(o.id) ?? 0} site(s)</Td>
-                <Td className="text-slate-500">{formatDateTimeFr(o.created_at)}</Td>
-                <Td>
-                  <Link href={`/admin/sites?q=${encodeURIComponent(o.name)}`} className="text-sm font-semibold text-blue-600 hover:underline">
-                    Voir sites →
-                  </Link>
-                </Td>
-              </tr>
-            ))}
-          </Table>
-        )}
-      </Card>
+      <PageHeader title="Clients" subtitle={`${clients.length} organisations clientes · ajout, modification, suspension et suppression`} />
+      <ClientsManager key={JSON.stringify(clients)} clients={clients} />
     </>
   );
 }

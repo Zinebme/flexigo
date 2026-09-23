@@ -308,6 +308,7 @@ export interface CustomerRow {
   normalized_phone: string;
   email: string | null;
   notes: string | null;
+  status: "active" | "suspended";
   order_count: number;
   total_spent_cents: number;
   last_order_at: string | null;

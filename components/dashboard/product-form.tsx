@@ -63,6 +63,10 @@ interface Props {
   categories: Array<{ id: string; name: string }>;
   productChoices?: Array<{ id: string; name: string }>;
   mode: "create" | "edit";
+  createEndpoint?: string;
+  editEndpoint?: string;
+  uploadEndpoint?: string;
+  successHref?: string;
 }
 interface VariantDraft {
   id?: string;
@@ -103,7 +107,16 @@ function emptyOptionValue():OptionValueDraft {
   return { value:"",label:"",color:"",image:"",addon_product_id:"" };
 }
 
-export function ProductForm({ initial, categories, productChoices = [], mode }: Props) {
+export function ProductForm({
+  initial,
+  categories,
+  productChoices = [],
+  mode,
+  createEndpoint = "/api/dashboard/products",
+  editEndpoint,
+  uploadEndpoint = "/api/dashboard/upload",
+  successHref,
+}: Props) {
   const router=useRouter();
   const [name,setName]=useState(initial.name);
   const [slug,setSlug]=useState(initial.slug);
@@ -159,7 +172,7 @@ export function ProductForm({ initial, categories, productChoices = [], mode }: 
       const collected:string[]=[];
       for(const file of accepted){
         const fd=new FormData(); fd.append("file",file); fd.append("purpose","product");
-        const res=await fetch("/api/dashboard/upload",{method:"POST",body:fd});
+        const res=await fetch(uploadEndpoint,{method:"POST",body:fd});
         const data=(await res.json().catch(()=>({}))) as {ok?:boolean;url?:string;error?:{message?:string}|string;warnings?:string[]};
         if(!res.ok||!data.ok||!data.url) throw new Error(typeof data.error==="string"?data.error:(data.error?.message??"Téléversement impossible"));
         collected.push(data.url);
@@ -217,13 +230,14 @@ export function ProductForm({ initial, categories, productChoices = [], mode }: 
     parsed.offers=cleanOffers;
     if(mode==="edit"&&initial.id) parsed.remove_variant_ids=initial.variants.filter(v=>!variants.some(x=>x.id===v.id)).map(v=>v.id).filter(Boolean);
 
-    const res=await fetch(mode==="create"?"/api/dashboard/products":`/api/dashboard/products/${initial.id}`,{
+    const endpoint=mode==="create"?createEndpoint:(editEndpoint??`/api/dashboard/products/${initial.id}`);
+    const res=await fetch(endpoint,{
       method:mode==="create"?"POST":"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(parsed),
     });
     const data=(await res.json().catch(()=>({}))) as {ok?:boolean;id?:string;error?:{message?:string}|string};
     setBusy(false);
     if(!res.ok||!data.ok){setError(typeof data.error==="string"?data.error:(data.error?.message??"Enregistrement impossible"));return;}
-    if(mode==="create"&&data.id){router.push(`/dashboard/produits/${data.id}`);router.refresh();}
+    if(mode==="create"&&data.id){router.push(successHref??`/dashboard/produits/${data.id}`);router.refresh();}
     else {setOkMsg("Produit enregistré.");router.refresh();}
   }
 
