@@ -36,7 +36,7 @@ export default async function AdminSiteDetailPage({ params }: { params: Promise<
     admin.from("pages").select("*").eq("store_id", id).order("key"),
     admin.from("orders").select("id, order_number, total_cents, status, created_at").eq("store_id", id).order("created_at", { ascending: false }).limit(100),
     admin.from("products").select("*, product_images(id, url, position), product_variants(id, name, options, price_cents, sku, stock, is_active, position), quantity_offers(id, min_quantity, total_price_cents, label, is_active, position)").eq("store_id", id).is("deleted_at", null).order("created_at", { ascending: false }).limit(100),
-    admin.from("categories").select("id, name, slug, is_visible, position").eq("store_id", id).is("deleted_at", null).order("position"),
+    admin.from("categories").select("*").eq("store_id", id).is("deleted_at", null).order("position"),
     admin.from("customers").select("id, name, phone, normalized_phone, email, notes, status, order_count, total_spent_cents, last_order_at").eq("store_id", id).is("deleted_at", null).order("created_at", { ascending: false }).limit(100),
     admin.from("themes").select("*").eq("store_id", id).maybeSingle(),
     admin.from("audit_logs").select("*").eq("store_id", id).order("created_at", { ascending: false }).limit(50),
