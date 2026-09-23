@@ -156,12 +156,12 @@ export function IntegrationsEditor({ storeId, shipping, marketing, sheets, teleg
 
 export function OwnerEditor({ storeId }: {storeId:string}) {
   const router=useRouter();
-  const [form,setForm]=useState({email:"",full_name:"",dashboard_language:"fr"}); const [message,setMessage]=useState("");
-  return <form className="grid gap-3 md:grid-cols-2" onSubmit={async(e)=>{e.preventDefault();try{await save(storeId,{action:"owner",...form});setMessage("Compte propriétaire attaché/invité.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}}}>
-    <label className="text-sm font-medium">Nom complet<input className={input} value={form.full_name} onChange={(e)=>setForm({...form,full_name:e.target.value})}/></label>
-    <label className="text-sm font-medium">Email<input className={input} type="email" value={form.email} onChange={(e)=>setForm({...form,email:e.target.value})}/></label>
+  const [form,setForm]=useState({email:"",full_name:"",dashboard_language:"fr"}); const [message,setMessage]=useState(""); const [busy,setBusy]=useState(false);
+  return <form className="grid gap-3 md:grid-cols-2" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setMessage("");try{await save(storeId,{action:"owner",...form});setMessage("Compte propriétaire attaché ou invitation envoyée.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}}>
+    <label className="text-sm font-medium">Nom complet <span className="font-normal text-slate-400">(facultatif)</span><input className={input} value={form.full_name} onChange={(e)=>setForm({...form,full_name:e.target.value})}/></label>
+    <label className="text-sm font-medium">Email<input className={input} type="email" value={form.email} onChange={(e)=>setForm({...form,email:e.target.value})} required/></label>
     <label className="text-sm font-medium">Langue dashboard<select className={input} value={form.dashboard_language} onChange={(e)=>setForm({...form,dashboard_language:e.target.value})}><option value="fr">Français</option><option value="ar">العربية</option><option value="en">English</option></select></label>
-    <div className="flex items-end"><button className={button}>Créer / inviter et attacher</button></div>{message&&<p className="md:col-span-2 text-sm text-slate-500">{message}</p>}
+    <div className="flex items-end"><button className={button} disabled={busy}>{busy?"Invitation…":"Créer / inviter et attacher"}</button></div>{message&&<p className="md:col-span-2 text-sm text-slate-500" role="status">{message}</p>}
   </form>;
 }
 

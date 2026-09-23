@@ -10,11 +10,12 @@ import { parseServiceAccount } from "@/lib/integrations/sheets";
 import { slugify } from "@/lib/slug";
 import { SHIPPING_PROVIDER_KEYS, MARKETING_PROVIDER_KEYS } from "@/lib/types";
 import { souqCheckoutSettingsSchema } from "@/lib/storefront/souq/checkout-settings";
+import { parseBody } from "@/lib/schemas";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const actionSchema = z.discriminatedUnion("action", [
+export const adminStoreControlActionSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("store"),
     name: z.string().trim().min(2).max(80),
@@ -81,7 +82,7 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("owner"),
     email: z.string().trim().email().max(120),
-    full_name: z.string().trim().min(2).max(120),
+    full_name: z.string().trim().max(120).default(""),
     dashboard_language: z.enum(["fr","ar","en"]).default("fr"),
   }),
   z.object({
@@ -94,7 +95,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const { id: storeId } = await params;
     const ctx = await getAdminContext();
-    const input = actionSchema.parse(await req.json().catch(() => null));
+    const input = parseBody(adminStoreControlActionSchema, await req.json().catch(() => null));
     const admin = getAdminSupabase();
 
     const { data: store } = await admin
@@ -298,7 +299,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         userId = data.user.id;
         await admin.from("profiles").upsert({
           id: userId,
-          full_name: input.full_name,
+          full_name: input.full_name || null,
           email,
           dashboard_language: input.dashboard_language,
         } as never);
