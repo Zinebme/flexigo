@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { SectionEditor } from "@/components/dashboard/section-editor";
 import { CheckoutSettingsEditor } from "@/components/dashboard/checkout-settings-editor";
-import { ProductForm } from "@/components/dashboard/product-form";
+import { ProductForm, type ProductFormInitial } from "@/components/dashboard/product-form";
 import type { Section } from "@/lib/sections/definitions";
 import type { WebsiteType } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -119,40 +119,125 @@ export function AdminProductCreateForm({ storeId, products, categories }: { stor
 
 export function ProductQuickEditor({ storeId, products, categories }: { storeId:string; products:Array<Record<string,unknown>>; categories:Array<Record<string,unknown>> }) {
   const router=useRouter();
-  const toRows = (items: Array<Record<string, unknown>>) => items.map((p)=>({
-    id:String(p.id), name:String(p.name??""), price:Number(p.price_cents??0)/100,
-    compare_at_price:p.compare_at_price_cents==null?"":String(Number(p.compare_at_price_cents)/100),
-    stock:Number(p.stock??0), category_id:String(p.category_id??""), is_active:Boolean(p.is_active), is_featured:Boolean(p.is_featured),
-  }));
-  const [rows,setRows]=useState(()=>toRows(products));
-  const [message,setMessage]=useState("");
+  const [editingId,setEditingId]=useState<string|null>(null);
   const [busy,setBusy]=useState(false);
-  async function persist(row:(typeof rows)[number]){
-    setMessage(""); setBusy(true);
-    try{
-      await save(storeId,{action:"product",product_id:row.id,name:row.name,price:Number(row.price),compare_at_price:row.compare_at_price?Number(row.compare_at_price):null,stock:Number(row.stock),category_id:row.category_id||null,is_active:row.is_active,is_featured:row.is_featured});
-      setMessage("Produit enregistré."); router.refresh();
-    }catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}
-  }
-  async function removeProduct(id:string){
-    if(!window.confirm("Supprimer ce produit de la boutique ?")) return;
-    setBusy(true); setMessage("");
-    try{await save(storeId,{action:"product_delete",product_id:id});setRows((current)=>current.filter((row)=>row.id!==id));setMessage("Produit supprimé.");router.refresh();}
-    catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}
-  }
-  return <div className="space-y-4">
+  const [message,setMessage]=useState("");
 
-    {message&&<p className="text-sm text-slate-600" role="status">{message}</p>}
-    {rows.length===0&&<p className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-400">Aucun produit. Ajoutez le premier ci-dessus.</p>}
-    {rows.map((r,i)=><div key={r.id} className="grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-12">
-      <input className={input+" md:col-span-3"} aria-label="Nom du produit" value={r.name} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,name:e.target.value}:x))}/>
-      <input className={input+" md:col-span-2"} aria-label="Prix en DA" type="number" min="0.01" step="0.01" value={r.price} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,price:Number(e.target.value)}:x))}/>
-      <input className={input+" md:col-span-2"} aria-label="Ancien prix en DA" type="number" min="0.01" step="0.01" placeholder="Ancien prix" value={r.compare_at_price} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,compare_at_price:e.target.value}:x))}/>
-      <input className={input} aria-label="Stock" type="number" min="0" step="1" value={r.stock} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,stock:Number(e.target.value)}:x))}/>
-      <select className={input+" md:col-span-2"} aria-label="Catégorie" value={r.category_id} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,category_id:e.target.value}:x))}><option value="">Sans catégorie</option>{categories.map((c)=><option key={String(c.id)} value={String(c.id)}>{String(c.name)}</option>)}</select>
-      <div className="flex items-center gap-3 md:col-span-2"><label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={r.is_active} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,is_active:e.target.checked}:x))}/>Visible</label><label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={r.is_featured} onChange={(e)=>setRows(rows.map((x,j)=>j===i?{...x,is_featured:e.target.checked}:x))}/>Vedette</label></div>
-      <div className="flex gap-2 md:col-span-12 md:justify-end"><button type="button" disabled={busy} className="rounded bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50" onClick={()=>void persist(r)}>Enregistrer</button><button type="button" disabled={busy} className="rounded border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 disabled:opacity-50" onClick={()=>void removeProduct(r.id)}>Supprimer</button></div>
-    </div>)}
+  function stringArray(value:unknown):string[]{
+    return Array.isArray(value)?value.filter((item):item is string=>typeof item==="string"):[];
+  }
+
+  function optionsText(value:unknown):string {
+    if(!value||typeof value!=="object"||Array.isArray(value)) return "";
+    return Object.entries(value as Record<string,unknown>).map(([key,val])=>`${key}: ${String(val)}`).join(", ");
+  }
+
+  function toInitial(product:Record<string,unknown>):ProductFormInitial {
+    const images=Array.isArray(product.product_images)?[...(product.product_images as Array<Record<string,unknown>>)].sort((a,b)=>Number(a.position??0)-Number(b.position??0)).map((row)=>String(row.url??"")).filter(Boolean):[];
+    const variants=Array.isArray(product.product_variants)?[...(product.product_variants as Array<Record<string,unknown>>)].sort((a,b)=>Number(a.position??0)-Number(b.position??0)).map((row)=>({
+      id:String(row.id??""),
+      name:String(row.name??""),
+      options_text:optionsText(row.options),
+      price:row.price_cents==null?null:Number(row.price_cents)/100,
+      sku:String(row.sku??""),
+      stock:Number(row.stock??0),
+      is_active:Boolean(row.is_active),
+    })):[];
+    const offers=Array.isArray(product.quantity_offers)?[...(product.quantity_offers as Array<Record<string,unknown>>)].sort((a,b)=>Number(a.position??0)-Number(b.position??0)).map((row)=>({
+      min_quantity:Number(row.min_quantity??2),
+      total_price:Number(row.total_price_cents??0)/100,
+      label:String(row.label??""),
+    })):[];
+    return {
+      id:String(product.id),
+      name:String(product.name??""),
+      slug:String(product.slug??""),
+      description:String(product.description??""),
+      short_description:String(product.short_description??""),
+      price:Number(product.price_cents??0)/100,
+      compare_at_price:product.compare_at_price_cents==null?null:Number(product.compare_at_price_cents)/100,
+      cost:product.cost_cents==null?null:Number(product.cost_cents)/100,
+      sku:String(product.sku??""),
+      stock:Number(product.stock??0),
+      low_stock_threshold:Number(product.low_stock_threshold??5),
+      is_active:Boolean(product.is_active),
+      is_featured:Boolean(product.is_featured),
+      is_digital:Boolean(product.is_digital),
+      category_id:product.category_id?String(product.category_id):null,
+      images,
+      landing_images:stringArray(product.landing_images),
+      gallery_mode:product.gallery_mode==="stacked"?"stacked":"slideshow",
+      stock_tracking_mode:product.stock_tracking_mode==="none"||product.stock_tracking_mode==="variants"?product.stock_tracking_mode:"global",
+      min_order_quantity:Number(product.min_order_quantity??1),
+      shipping_label:String(product.shipping_label??""),
+      seo_title:String(product.seo_title??""),
+      seo_description:String(product.seo_description??""),
+      related_product_ids:stringArray(product.related_product_ids),
+      cross_sell_product_ids:stringArray(product.cross_sell_product_ids),
+      page_element_order:stringArray(product.page_element_order),
+      option_groups:(Array.isArray(product.option_groups)?product.option_groups:[]) as ProductFormInitial["option_groups"],
+      variants,
+      offers,
+    };
+  }
+
+  async function removeProduct(product:Record<string,unknown>){
+    if(!window.confirm(`Supprimer « ${String(product.name??"ce produit")} » de la boutique ?`)) return;
+    setBusy(true);setMessage("");
+    try{
+      await save(storeId,{action:"product_delete",product_id:String(product.id)});
+      setMessage("Produit supprimé.");
+      if(editingId===String(product.id)) setEditingId(null);
+      router.refresh();
+    }catch(err){setMessage(err instanceof Error?err.message:"Erreur");}
+    finally{setBusy(false);}
+  }
+
+  const categoryRows=categories.map((category)=>({id:String(category.id),name:String(category.name)}));
+  const productChoices=products.map((product)=>({id:String(product.id),name:String(product.name)}));
+  const selected=products.find((product)=>String(product.id)===editingId)??null;
+
+  return <div className="space-y-4">
+    {message&&<p className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700" role="status">{message}</p>}
+    {products.length===0&&<p className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-400">Aucun produit. Ajoutez le premier ci-dessus.</p>}
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {products.map((product)=>{
+        const image=Array.isArray(product.product_images)?[...(product.product_images as Array<Record<string,unknown>>)].sort((a,b)=>Number(a.position??0)-Number(b.position??0))[0]?.url:null;
+        const active=Boolean(product.is_active);
+        return <div key={String(product.id)} className={`rounded-2xl border p-4 transition ${editingId===String(product.id)?"border-violet-400 ring-2 ring-violet-100":"border-slate-200"}`}>
+          <div className="flex gap-3">
+            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border bg-slate-50">{image?/* eslint-disable-next-line @next/next/no-img-element */<img src={String(image)} alt="" className="h-full w-full object-cover"/>:<div className="flex h-full items-center justify-center text-xl">📦</div>}</div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-bold text-slate-900">{String(product.name??"Produit")}</div>
+              <div className="mt-1 text-sm font-semibold text-slate-700">{(Number(product.price_cents??0)/100).toLocaleString("fr-DZ")} DA</div>
+              <div className="mt-1 flex flex-wrap gap-1 text-[11px]"><span className={active?"rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700":"rounded-full bg-slate-100 px-2 py-0.5 text-slate-500"}>{active?"Visible":"Masqué"}</span><span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">Stock {Number(product.stock??0)}</span></div>
+            </div>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <button type="button" className="flex-1 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white" onClick={()=>setEditingId(editingId===String(product.id)?null:String(product.id))}>{editingId===String(product.id)?"Fermer":"Modifier toute la fiche"}</button>
+            <button type="button" disabled={busy} className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 disabled:opacity-50" onClick={()=>void removeProduct(product)}>Supprimer</button>
+          </div>
+        </div>;
+      })}
+    </div>
+
+    {selected&&<div className="rounded-2xl border-2 border-violet-200 bg-violet-50/30 p-4 md:p-5">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div><h4 className="text-lg font-bold text-slate-900">Modifier toute la fiche — {String(selected.name??"Produit")}</h4><p className="mt-1 text-sm text-slate-500">Même formulaire complet que lors de la création : photos, variantes, options, offres, stock, produits connexes, ordre de page, SEO et paramètres avancés.</p></div>
+        <button type="button" className="rounded-lg border bg-white px-3 py-2 text-xs font-semibold" onClick={()=>setEditingId(null)}>Fermer</button>
+      </div>
+      <ProductForm
+        key={String(selected.id)}
+        mode="edit"
+        initial={toInitial(selected)}
+        editEndpoint={`/api/admin/stores/${storeId}/products/${String(selected.id)}`}
+        uploadEndpoint={`/api/admin/stores/${storeId}/upload`}
+        successHref={`/admin/sites/${storeId}?tab=products`}
+        categories={categoryRows}
+        productChoices={productChoices}
+        allowStockEdit
+      />
+    </div>}
   </div>;
 }
 
