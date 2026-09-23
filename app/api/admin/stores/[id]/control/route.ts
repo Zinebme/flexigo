@@ -97,6 +97,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const ctx = await getAdminContext();
     const input = parseBody(adminStoreControlActionSchema, await req.json().catch(() => null));
     const admin = getAdminSupabase();
+    let ownerAccount: "invited" | "attached" | undefined;
 
     const { data: store } = await admin
       .from("stores")
@@ -290,6 +291,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       const { data: profile } = await admin.from("profiles").select("id").ilike("email", email).maybeSingle();
       if (profile) {
         userId = (profile as { id: string }).id;
+        ownerAccount = "attached";
       } else {
         const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
           data: { full_name: input.full_name },
@@ -297,6 +299,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         });
         if (error || !data.user) throw err("VALIDATION", `Invitation impossible : ${error?.message ?? "erreur Auth"}`);
         userId = data.user.id;
+        ownerAccount = "invited";
         await admin.from("profiles").upsert({
           id: userId,
           full_name: input.full_name || null,
@@ -318,7 +321,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       await logAudit({ actorId: ctx.user.id, storeId, action: "team.member_added", entity: "store_member", entityId: userId, metadata: { role: "OWNER", language: input.dashboard_language } });
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, ...(ownerAccount ? { owner_account: ownerAccount } : {}) });
   } catch (e) {
     return toErrorResponse(e);
   }

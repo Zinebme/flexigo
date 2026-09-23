@@ -16,11 +16,12 @@ async function save(storeId: string, payload: Record<string, unknown>) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: { message?: string } | string };
+  const data = (await res.json().catch(() => ({}))) as { ok?: boolean; owner_account?: "invited" | "attached"; error?: { message?: string } | string };
   if (!res.ok || !data.ok) {
     const message = typeof data.error === "string" ? data.error : data.error?.message;
     throw new Error(message || "Enregistrement impossible");
   }
+  return data;
 }
 
 export function StoreSettingsEditor({ storeId, store }: { storeId: string; store: Record<string, unknown> }) {
@@ -157,7 +158,7 @@ export function IntegrationsEditor({ storeId, shipping, marketing, sheets, teleg
 export function OwnerEditor({ storeId }: {storeId:string}) {
   const router=useRouter();
   const [form,setForm]=useState({email:"",full_name:"",dashboard_language:"fr"}); const [message,setMessage]=useState(""); const [busy,setBusy]=useState(false);
-  return <form className="grid gap-3 md:grid-cols-2" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setMessage("");try{await save(storeId,{action:"owner",...form});setMessage("Compte propriétaire attaché ou invitation envoyée.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}}>
+  return <form className="grid gap-3 md:grid-cols-2" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setMessage("");try{const result=await save(storeId,{action:"owner",...form});setMessage(result.owner_account==="invited"?"Invitation envoyée au nouveau propriétaire.":"Compte FlexiGo existant attaché à cette boutique.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}finally{setBusy(false);}}}>
     <label className="text-sm font-medium">Nom complet <span className="font-normal text-slate-400">(facultatif)</span><input className={input} value={form.full_name} onChange={(e)=>setForm({...form,full_name:e.target.value})}/></label>
     <label className="text-sm font-medium">Email<input className={input} type="email" value={form.email} onChange={(e)=>setForm({...form,email:e.target.value})} required/></label>
     <label className="text-sm font-medium">Langue dashboard<select className={input} value={form.dashboard_language} onChange={(e)=>setForm({...form,dashboard_language:e.target.value})}><option value="fr">Français</option><option value="ar">العربية</option><option value="en">English</option></select></label>
