@@ -156,7 +156,7 @@ export function SiteControlCenter(props: Props) {
             <AdminProductCreateForm storeId={s.id as string} products={props.products} categories={props.categories} />
           </Card>
           <Card className="p-5">
-            <div className="mb-4"><h3 className="font-bold">Produits existants ({props.products.length})</h3><p className="text-xs text-slate-500">Édition rapide : nom, prix, ancien prix, stock, catégorie, visibilité et mise en avant.</p></div>
+            <div className="mb-4"><h3 className="font-bold">Produits existants ({props.products.length})</h3><p className="text-xs text-slate-500">Ouvrez n’importe quel produit pour retrouver la fiche complète : photos, descriptions, prix, coût, options, variantes, offres, stock, produits connexes, ordre de page et SEO.</p></div>
             <ProductQuickEditor key={JSON.stringify(props.products)} storeId={s.id as string} products={props.products} categories={props.categories} />
           </Card>
         </div>
@@ -164,7 +164,7 @@ export function SiteControlCenter(props: Props) {
 
       {tab === "categories" && (
         <Card className="p-5">
-          <div className="mb-4"><h3 className="font-bold">Catégories ({props.categories.length})</h3><p className="text-xs text-slate-500">Édition directe du nom, slug, ordre et visibilité.</p></div>
+          <div className="mb-4"><h3 className="font-bold">Catégories ({props.categories.length})</h3><p className="text-xs text-slate-500">Gestion complète : nom, slug, description, image, ordre, visibilité, modification et suppression.</p></div>
           <CategoryQuickEditor key={JSON.stringify(props.categories)} storeId={s.id as string} categories={props.categories} />
         </Card>
       )}
