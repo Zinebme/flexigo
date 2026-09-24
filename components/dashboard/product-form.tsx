@@ -155,6 +155,7 @@ export function ProductForm({
   );
 
   const [uploading,setUploading]=useState<"gallery"|"landing"|null>(null);
+  const [uploadProgress,setUploadProgress]=useState<{done:number;total:number}|null>(null);
   const [draggedImageIndex,setDraggedImageIndex]=useState<number|null>(null);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState<string|null>(null);
@@ -170,21 +171,21 @@ export function ProductForm({
     const current=target==="gallery"?images:landingImages;
     const accepted=files.slice(0,Math.max(0,limit-current.length));
     if(!accepted.length) return;
-    setUploading(target); setError(null);
+    setUploading(target); setUploadProgress({done:0,total:accepted.length}); setError(null);
     try{
-      const collected:string[]=[];
-      for(const file of accepted){
+      for(const [index,file] of accepted.entries()){
         const fd=new FormData(); fd.append("file",file); fd.append("purpose","product");
         const res=await fetch(uploadEndpoint,{method:"POST",body:fd});
         const data=(await res.json().catch(()=>({}))) as {ok?:boolean;url?:string;error?:{message?:string}|string;warnings?:string[]};
         if(!res.ok||!data.ok||!data.url) throw new Error(typeof data.error==="string"?data.error:(data.error?.message??"Téléversement impossible"));
-        collected.push(data.url);
+        if(target==="gallery") setImages(prev=>[...prev,data.url!].slice(0,limit));
+        else setLandingImages(prev=>[...prev,data.url!].slice(0,limit));
+        setUploadProgress({done:index+1,total:accepted.length});
       }
-      if(target==="gallery") setImages(prev=>[...prev,...collected].slice(0,limit));
-      else setLandingImages(prev=>[...prev,...collected].slice(0,limit));
     }catch(e){setError(e instanceof Error?e.message:"Téléversement impossible");}
     finally{
       setUploading(null);
+      setUploadProgress(null);
       if(galleryRef.current) galleryRef.current.value="";
       if(landingRef.current) landingRef.current.value="";
     }
@@ -200,7 +201,9 @@ export function ProductForm({
   }
 
   async function submit(e:React.FormEvent) {
-    e.preventDefault(); setBusy(true); setError(null); setOkMsg(null);
+    e.preventDefault();
+    if(uploading!==null){setError("Attendez que toutes les images soient visibles avant d’enregistrer le produit.");return;}
+    setBusy(true); setError(null); setOkMsg(null);
     const cleanGroups=optionGroups
       .filter(g=>g.key.trim()&&g.label.trim())
       .map((g,index)=>({
@@ -280,7 +283,7 @@ export function ProductForm({
             onDrop={(event)=>{event.preventDefault();if(uploading===null)void upload(Array.from(event.dataTransfer.files),"gallery");}}
           >
             <label className="block cursor-pointer text-sm font-semibold text-slate-800">
-              {uploading==="gallery"?"Téléversement en cours…":"Choisir des photos ou les déposer ici"}
+              {uploading==="gallery"&&uploadProgress?`Téléversement ${uploadProgress.done}/${uploadProgress.total}…`:"Choisir des photos ou les déposer ici"}
               <input
                 ref={galleryRef}
                 type="file"
@@ -417,7 +420,7 @@ export function ProductForm({
     </section>
 
     <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
-      <button type="submit" className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50" disabled={busy}>{busy?"Enregistrement…":mode==="create"?"Créer le produit":"Enregistrer les modifications"}</button>
+      <button type="submit" className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-50" disabled={busy||uploading!==null}>{uploading!==null?"Attendez la fin des images…":busy?"Enregistrement…":mode==="create"?"Créer le produit":"Enregistrer les modifications"}</button>
       {error&&<p className="text-sm text-red-600">{error}</p>}{okMsg&&<p className="text-sm text-emerald-600">{okMsg}</p>}
     </div>
   </form>;

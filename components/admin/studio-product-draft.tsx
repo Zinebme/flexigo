@@ -48,8 +48,8 @@ export function StudioProductDraftEditor({
         const data=(await res.json().catch(()=>({}))) as {ok?:boolean;url?:string;error?:{message?:string}|string};
         if(!res.ok||!data.ok||!data.url) throw new Error(typeof data.error==="string"?data.error:(data.error?.message??"Upload impossible"));
         urls.push(data.url);
+        onChange({...value,images:[...value.images,...urls].slice(0,12)});
       }
-      set("images",[...value.images,...urls].slice(0,12));
     }catch(e){setError(e instanceof Error?e.message:"Upload impossible");}
     finally{setUploading(false);onUploadingChange?.(false);if(fileRef.current)fileRef.current.value="";}
   }
