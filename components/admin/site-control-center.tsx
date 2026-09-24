@@ -59,6 +59,7 @@ export function SiteControlCenter(props: Props) {
     if (requested && TABS.some((item) => item.key === requested)) return requested;
     return searchParams.get("assistant") === "1" ? "assistant" : "overview";
   });
+  const [productView, setProductView] = useState<"list" | "create">(() => props.products.length > 0 ? "list" : "create");
   const s = props.store;
 
   return (
@@ -151,14 +152,21 @@ export function SiteControlCenter(props: Props) {
 
       {tab === "products" && (
         <div className="space-y-5">
-          <Card className="p-5">
-            <div className="mb-4"><h3 className="font-bold">Ajouter un produit complet</h3><p className="text-sm text-slate-500">Photos, descriptions, prix, coût, options, variantes, offres, stock, produits connexes, ordre de page et SEO.</p></div>
-            <AdminProductCreateForm storeId={s.id as string} products={props.products} categories={props.categories} />
-          </Card>
-          <Card className="p-5">
-            <div className="mb-4"><h3 className="font-bold">Produits existants ({props.products.length})</h3><p className="text-xs text-slate-500">Ouvrez n’importe quel produit pour retrouver la fiche complète : photos, descriptions, prix, coût, options, variantes, offres, stock, produits connexes, ordre de page et SEO.</p></div>
-            <ProductQuickEditor key={JSON.stringify(props.products)} storeId={s.id as string} products={props.products} categories={props.categories} />
-          </Card>
+          <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+            <button type="button" onClick={()=>setProductView("list")} className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${productView==="list"?"bg-slate-900 text-white":"text-slate-600 hover:bg-slate-50"}`}>Produits existants ({props.products.length})</button>
+            <button type="button" onClick={()=>setProductView("create")} className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${productView==="create"?"bg-violet-600 text-white":"text-slate-600 hover:bg-slate-50"}`}>+ Ajouter un produit</button>
+          </div>
+          {productView === "list" ? (
+            <Card className="p-5">
+              <div className="mb-4"><h3 className="font-bold">Produits existants ({props.products.length})</h3><p className="text-xs text-slate-500">Sélectionnez un produit pour ouvrir sa fiche complète. Le formulaire de création reste dans l’onglet séparé « Ajouter un produit ».</p></div>
+              <ProductQuickEditor key={JSON.stringify(props.products)} storeId={s.id as string} products={props.products} categories={props.categories} />
+            </Card>
+          ) : (
+            <Card className="p-5">
+              <div className="mb-4"><h3 className="font-bold">Ajouter un produit complet</h3><p className="text-sm text-slate-500">Photos, descriptions, prix, coût, options, variantes, offres, stock, produits connexes, ordre de page et SEO.</p></div>
+              <AdminProductCreateForm storeId={s.id as string} products={props.products} categories={props.categories} />
+            </Card>
+          )}
         </div>
       )}
 

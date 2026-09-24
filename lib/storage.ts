@@ -12,11 +12,11 @@
 export type UploadPurpose = "product" | "banner" | "logo" | "favicon" | "category" | "review";
 
 export const UPLOAD_LIMITS: Record<UploadPurpose, { maxBytes: number; mimes: string[]; recommended?: { w: number; h: number } }> = {
-  product: { maxBytes: 2 * 1024 * 1024, mimes: ["image/jpeg", "image/png", "image/webp"], recommended: { w: 800, h: 800 } },
+  product: { maxBytes: 6 * 1024 * 1024, mimes: ["image/jpeg", "image/png", "image/webp"], recommended: { w: 800, h: 800 } },
   banner: { maxBytes: 4 * 1024 * 1024, mimes: ["image/jpeg", "image/png", "image/webp"], recommended: { w: 1600, h: 700 } },
   logo: { maxBytes: 1 * 1024 * 1024, mimes: ["image/png", "image/jpeg", "image/webp", "image/svg+xml"], recommended: { w: 400, h: 400 } },
   favicon: { maxBytes: 256 * 1024, mimes: ["image/png", "image/svg+xml"], recommended: { w: 64, h: 64 } },
-  category: { maxBytes: 2 * 1024 * 1024, mimes: ["image/jpeg", "image/png", "image/webp"], recommended: { w: 600, h: 400 } },
+  category: { maxBytes: 6 * 1024 * 1024, mimes: ["image/jpeg", "image/png", "image/webp"], recommended: { w: 600, h: 400 } },
   review: { maxBytes: 1 * 1024 * 1024, mimes: ["image/jpeg", "image/png", "image/webp"], recommended: { w: 600, h: 400 } },
 };
 

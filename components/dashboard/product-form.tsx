@@ -155,6 +155,7 @@ export function ProductForm({
   );
 
   const [uploading,setUploading]=useState<"gallery"|"landing"|null>(null);
+  const [draggedImageIndex,setDraggedImageIndex]=useState<number|null>(null);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState<string|null>(null);
   const [okMsg,setOkMsg]=useState<string|null>(null);
@@ -187,6 +188,11 @@ export function ProductForm({
       if(galleryRef.current) galleryRef.current.value="";
       if(landingRef.current) landingRef.current.value="";
     }
+  }
+
+  function reorderGallery(from:number,to:number) {
+    if(from===to) return;
+    setImages((current)=>move(current,from,to));
   }
 
   function toggleId(list:string[], id:string, setter:(v:string[])=>void) {
@@ -268,15 +274,38 @@ export function ProductForm({
       <div className="mb-4"><h3 className="text-base font-bold text-slate-900">Photos & ordre d'affichage</h3><p className="mt-1 text-xs text-slate-500">La première image est la photo principale. Réordonnez sans réupload.</p></div>
       <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
         <div>
-          <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-5">
-            <input ref={galleryRef} type="file" multiple accept="image/jpeg,image/png,image/webp" className="block w-full text-sm"/>
-            <button type="button" className="mt-3 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" onClick={()=>upload(Array.from(galleryRef.current?.files??[]),"gallery")} disabled={uploading!==null||images.length>=12}>{uploading==="gallery"?"Téléversement…":"Ajouter les photos"}</button>
+          <div
+            className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-5 transition hover:border-slate-400"
+            onDragOver={(event)=>event.preventDefault()}
+            onDrop={(event)=>{event.preventDefault();if(uploading===null)void upload(Array.from(event.dataTransfer.files),"gallery");}}
+          >
+            <label className="block cursor-pointer text-sm font-semibold text-slate-800">
+              {uploading==="gallery"?"Téléversement en cours…":"Choisir des photos ou les déposer ici"}
+              <input
+                ref={galleryRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp"
+                className="mt-2 block w-full text-sm font-normal"
+                disabled={uploading!==null||images.length>=12}
+                onChange={(event)=>void upload(Array.from(event.target.files??[]),"gallery")}
+              />
+            </label>
+            <p className="mt-2 text-xs text-slate-500">Jusqu’à 12 images, 6 Mo maximum chacune. L’aperçu apparaît dès que le fichier est enregistré.</p>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {images.map((url,idx)=><div key={url+idx} className="rounded-xl border border-slate-200 bg-white p-2">
+            {images.map((url,idx)=><div
+              key={url+idx}
+              draggable
+              onDragStart={(event)=>{setDraggedImageIndex(idx);event.dataTransfer.effectAllowed="move";}}
+              onDragOver={(event)=>{event.preventDefault();event.stopPropagation();event.dataTransfer.dropEffect="move";}}
+              onDrop={(event)=>{event.preventDefault();event.stopPropagation();if(draggedImageIndex!==null)reorderGallery(draggedImageIndex,idx);setDraggedImageIndex(null);}}
+              onDragEnd={()=>setDraggedImageIndex(null)}
+              className={`cursor-grab rounded-xl border bg-white p-2 transition active:cursor-grabbing ${draggedImageIndex===idx?"border-blue-400 opacity-60 ring-2 ring-blue-100":"border-slate-200"}`}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}<img src={url} alt="" className="aspect-square w-full rounded-lg object-cover"/>
               <div className="mt-2 flex items-center justify-between gap-1">
-                <span className="text-[10px] font-bold text-slate-500">{idx===0?"PRINCIPALE":`#${idx+1}`}</span>
+                <span className="text-[10px] font-bold text-slate-500">{idx===0?"PRINCIPALE":`#${idx+1}`} · glisser</span>
                 <div className="flex gap-1"><button type="button" className={subtleBtn} disabled={idx===0} onClick={()=>setImages(move(images,idx,idx-1))}>↑</button><button type="button" className={subtleBtn} disabled={idx===images.length-1} onClick={()=>setImages(move(images,idx,idx+1))}>↓</button><button type="button" className="rounded-lg px-2 py-1 text-xs font-bold text-red-500 hover:bg-red-50" onClick={()=>setImages(images.filter((_,i)=>i!==idx))}>×</button></div>
               </div>
             </div>)}

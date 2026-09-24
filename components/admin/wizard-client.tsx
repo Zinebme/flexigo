@@ -119,6 +119,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
   const [result, setResult] = useState<{ store_id: string; slug: string; preview_url: string } | null>(null);
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const [pendingProductUploads, setPendingProductUploads] = useState(0);
 
   const [form, setForm] = useState<FormState>({
     create_new_client: true,
@@ -220,6 +221,10 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
   };
 
   async function submit(mode: "draft" | "publish" | "deliver" = "draft") {
+    if (uploadingKey || pendingProductUploads > 0) {
+      setError("Attendez la fin du téléversement des images avant de créer le site.");
+      return;
+    }
     setBusy(true);
     update("publish_mode", mode);
     setError(null);
@@ -395,8 +400,9 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
           {STEPS.map((s, i) => (
             <button
               key={s.key}
+              disabled={Boolean(uploadingKey) || pendingProductUploads > 0}
               onClick={() => setStep(i)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${i === step ? "bg-violet-600 text-white shadow" : i < step ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-60 ${i === step ? "bg-violet-600 text-white shadow" : i < step ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
             >
               {i + 1}. {s.label}
             </button>
@@ -629,6 +635,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
                     list.splice(i+1,0,{...product,images:[...product.images],variants:product.variants.map(v=>({...v})),offers:product.offers.map(o=>({...o})),option_groups:product.option_groups.map(g=>({...g}))});
                     update("initial_products",list);
                   }}
+                  onUploadingChange={(isUploading)=>setPendingProductUploads((count)=>Math.max(0,count+(isUploading?1:-1)))}
                 />
               ))}
               <button type="button" onClick={() => update("initial_products", [...form.initial_products, { ...EMPTY_STUDIO_PRODUCT, images:[], variants:[], offers:[], option_groups:[] }])} className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-violet-700">+ Ajouter un produit complet</button>
@@ -868,15 +875,15 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
       </div>
 
       <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4">
-        <button disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))} className={btnSecondary}>← Précédent</button>
+        <button disabled={step === 0 || Boolean(uploadingKey) || pendingProductUploads > 0} onClick={() => setStep((s) => Math.max(0, s - 1))} className={btnSecondary}>← Précédent</button>
         <div className="flex gap-2">
           {step < STEPS.length - 1 ? (
-            <button onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))} className={btnPrimary}>Suivant →</button>
+            <button disabled={Boolean(uploadingKey) || pendingProductUploads > 0} onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))} className={btnPrimary}>{uploadingKey || pendingProductUploads > 0 ? "Téléversement…" : "Suivant →"}</button>
           ) : (
             <div className="flex gap-2">
-              <button onClick={() => submit("draft")} disabled={busy || !form.business_name || !form.owner_email} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{busy ? "Création…" : "Enregistrer brouillon"}</button>
-              <button onClick={() => submit("publish")} disabled={busy || !form.business_name || !form.owner_email} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">{busy ? "Publication…" : "Publier"}</button>
-              <button onClick={() => submit("deliver")} disabled={busy || !form.business_name || !form.owner_email} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">{busy ? "Livraison…" : "Terminer et livrer"}</button>
+              <button onClick={() => submit("draft")} disabled={busy || Boolean(uploadingKey) || pendingProductUploads > 0 || !form.business_name || !form.owner_email} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{busy ? "Création…" : "Enregistrer brouillon"}</button>
+              <button onClick={() => submit("publish")} disabled={busy || Boolean(uploadingKey) || pendingProductUploads > 0 || !form.business_name || !form.owner_email} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">{busy ? "Publication…" : "Publier"}</button>
+              <button onClick={() => submit("deliver")} disabled={busy || Boolean(uploadingKey) || pendingProductUploads > 0 || !form.business_name || !form.owner_email} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">{busy ? "Livraison…" : "Terminer et livrer"}</button>
             </div>
           )}
         </div>

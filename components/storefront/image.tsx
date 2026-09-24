@@ -14,11 +14,13 @@ export function StorefrontImage(props: {
   height?: number;
   className?: string;
 }) {
+  const bypassWorkerOptimizer = /^(?:https?:|data:)/.test(props.src);
   return (
     <Image
       {...props}
       alt={props.alt}
       sizes={props.sizes ?? "100vw"}
+      unoptimized={bypassWorkerOptimizer}
       style={props.fill ? { objectFit: "cover" } : undefined}
     />
   );
