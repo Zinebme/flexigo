@@ -1,16 +1,21 @@
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { PageHeader, Card } from "@/components/ui";
+import { AdminPasswordChange } from "@/components/admin/admin-password-change";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminParametresPage() {
-  await getAdminContext();
+  const ctx = await getAdminContext();
 
   return (
     <>
       <PageHeader title="Paramètres plateforme" subtitle="Configuration globale, variables d'environnement, sécurité." />
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="p-5 lg:col-span-2">
+          <AdminPasswordChange email={ctx.user.email ?? ""} />
+        </Card>
+
         <Card className="p-5">
           <h3 className="font-bold text-slate-900">Variables d'environnement requises</h3>
           <ul className="mt-3 space-y-2 text-sm text-slate-600">
