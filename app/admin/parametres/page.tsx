@@ -4,8 +4,13 @@ import { AdminPasswordChange } from "@/components/admin/admin-password-change";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminParametresPage() {
+export default async function AdminParametresPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ security?: string }>;
+}) {
   const ctx = await getAdminContext();
+  const { security } = await searchParams;
 
   return (
     <>
@@ -13,7 +18,7 @@ export default async function AdminParametresPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-5 lg:col-span-2">
-          <AdminPasswordChange email={ctx.user.email ?? ""} />
+          <AdminPasswordChange email={ctx.user.email ?? ""} status={security} />
         </Card>
 
         <Card className="p-5">

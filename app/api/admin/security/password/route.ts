@@ -27,16 +27,16 @@ export async function POST(request: Request) {
   try {
     const ctx = await getAdminContext();
     const rate = hit(`admin-password-change:${ctx.user.id}`, 5, 15 * 60 * 1000);
-    if (!rate.ok) {
-      return NextResponse.json({ error: "Trop de tentatives. Réessayez plus tard." }, { status: 429 });
-    }
+    if (!rate.ok) return NextResponse.redirect(new URL("/admin/parametres?security=too-many-attempts", request.url), 303);
 
-    const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+    const formData = await request.formData();
+    const parsed = bodySchema.safeParse({
+      nonce: formData.get("nonce"),
+      password: formData.get("password"),
+      confirmation: formData.get("confirmation"),
+    });
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Vérifiez le code et les critères du nouveau mot de passe." },
-        { status: 400 },
-      );
+      return NextResponse.redirect(new URL("/admin/parametres?security=invalid-password", request.url), 303);
     }
 
     const supabase = await getServerSupabase();
@@ -47,10 +47,7 @@ export async function POST(request: Request) {
     });
     if (error) {
       console.error("[flexigo:auth] password update failed:", error.message);
-      return NextResponse.json(
-        { error: "Le code est invalide ou a expiré. Demandez un nouveau code." },
-        { status: 400 },
-      );
+      return NextResponse.redirect(new URL("/admin/parametres?security=invalid-code", request.url), 303);
     }
 
     await logAudit({
@@ -65,7 +62,7 @@ export async function POST(request: Request) {
     const { error: signOutError } = await supabase.auth.signOut({ scope: "global" });
     if (signOutError) console.error("[flexigo:auth] global sign-out failed:", signOutError.message);
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.redirect(new URL("/login?passwordChanged=1", request.url), 303);
   } catch (error) {
     return toErrorResponse(error);
   }
