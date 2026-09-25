@@ -21,7 +21,7 @@ export default async function ParametresPage() {
       <PageHeader title="Paramètres" subtitle="Identité, coordonnées et options commerciales du site." />
       <div className="space-y-4">
         <Card>
-          <CardHeader title="Identité du site" subtitle="Le nom et le type de site sont gérés par la plateforme (FlexiGo) — contactez votre administrateur pour toute modification." />
+          <CardHeader title="Identité du site" subtitle="Le nom et le type de site sont gérés par la plateforme Marqova — contactez votre administrateur pour toute modification." />
           <dl className="grid gap-4 sm:grid-cols-3">
             <div>
               <dt className="text-sm text-slate-400">Nom du site</dt>

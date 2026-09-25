@@ -790,8 +790,8 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
             <div className="md:col-span-2 rounded-lg border border-slate-200 bg-white p-4 text-xs text-slate-600">
               <strong>Instructions DNS (après création) :</strong>
               <ul className="mt-2 list-disc pl-4 space-y-1">
-                <li>Ajoutez un enregistrement CNAME pointant vers <code>cname.flexigo.dz</code> (ou IP fournie)</li>
-                <li>Ajoutez TXT <code>flexigo-verification=TOKEN</code> (token généré automatiquement)</li>
+                <li>Ajoutez l’enregistrement CNAME ou A fourni par l’hébergeur de la boutique</li>
+                <li>Ajoutez TXT <code>marqova-verify=TOKEN</code> (token généré automatiquement)</li>
                 <li>La vérification DNS est automatique toutes les heures — ne marquez jamais vérifié manuellement sans succès DNS</li>
               </ul>
               <div className="mt-3 rounded bg-amber-50 p-2 text-amber-800">Aperçu actuel : <code>/s/{form.slug || slugify(form.business_name) || "votre-slug"}</code></div>

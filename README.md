@@ -1,4 +1,4 @@
-# FlexiGo — Multi-tenant SaaS COD E-commerce (Algérie)
+# Marqova — Multi-tenant SaaS COD E-commerce (Algérie)
 
 Plateforme SaaS multi-tenant pour créer et gérer des boutiques e-commerce COD (paiement à la livraison) en Algérie. Architecture générique/portable, pensée pour Vercel, Hostinger VPS et Docker.
 

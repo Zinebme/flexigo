@@ -12,7 +12,7 @@ export function createUndocumentedProvider(key: string, label: string): Shipping
       { key: "account", label: "Compte / référence client", secret: false, placeholder: "Optionnel" },
     ],
     statusNote:
-      "Adaptateur prêt côté FlexiGo, mais les endpoints officiels ne sont pas intégrés sans documentation API vérifiée. Le mode manuel reste disponible.",
+      "Adaptateur prêt côté Marqova, mais les endpoints officiels ne sont pas intégrés sans documentation API vérifiée. Le mode manuel reste disponible.",
 
     async testConnection(config) {
       if (!config.api_base_url) {
@@ -45,7 +45,7 @@ export function createUndocumentedProvider(key: string, label: string): Shipping
       return { ok: false, offices: [], message: `${label} : liste des bureaux non intégrée sans documentation officielle.` };
     },
     async validateDestination() {
-      return { ok: true, message: "Destination acceptée côté FlexiGo; validation transporteur non disponible." };
+      return { ok: true, message: "Destination acceptée côté Marqova; validation transporteur non disponible." };
     },
   };
 }

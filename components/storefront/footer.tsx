@@ -44,7 +44,7 @@ export function StorefrontFooter({ data }: { data: StorefrontData }) {
         </div>
       </div>
       <div className="border-t border-slate-100 py-4 text-center text-xs text-slate-400">
-        © {new Date().getFullYear()} {name} — {dict.footer.rights}. Propulsé par <span className="font-semibold">FlexiGo</span>.
+        © {new Date().getFullYear()} {name} — {dict.footer.rights}. Propulsé par <span className="font-semibold">Marqova</span>.
       </div>
     </footer>
   );

@@ -4,8 +4,8 @@ import { StorefrontImage } from "@/components/storefront/image";
 
 export const dynamic = "force-static";
 export const metadata: Metadata = {
-  title: "FlexiGo — Template Preview Library",
-  description: "Preview the current FlexiGo storefront templates.",
+  title: "Marqova — Bibliothèque de templates",
+  description: "Prévisualisation des templates de boutiques Marqova.",
   robots: { index: false, follow: false },
 };
 
@@ -80,7 +80,7 @@ export default function PreviewHubPage() {
     <main className="min-h-screen bg-[#f5f5f3] px-4 py-8 text-[#1f2328] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <header className="mb-8 rounded-3xl border border-black/5 bg-white p-6 shadow-sm sm:p-8">
-          <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">FlexiGo Preview Library</div>
+          <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Marqova — Bibliothèque de templates</div>
           <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">معاينة القوالب</h1>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
             هذه الصفحات للمعاينة فقط. بياناتها تجريبية، ولا يتم إنشاء طلب حقيقي من صفحات المعاينة.
@@ -128,7 +128,7 @@ export default function PreviewHubPage() {
         </section>
 
         <footer className="mt-8 text-center text-xs text-slate-500">
-          FlexiGo — internal template QA
+          Marqova — prévisualisation interne
         </footer>
       </div>
     </main>

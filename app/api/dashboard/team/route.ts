@@ -51,7 +51,7 @@ export async function GET() {
 
 /**
  * Invite a user by email (capability: team.manage → OWNER only).
- * The invitee must already have a FlexiGo account with that email (no
+ * The invitee must already have a Marqova account with that email (no
  * account-creation email sending is wired yet); the membership is created
  * with status `invited`, which the dashboard already resolves to an active
  * access as soon as the person logs in with their own credentials.
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
       .maybeSingle();
     if (profError) throw profError;
     if (!profile) {
-      throw err("NOT_FOUND", "Aucun compte FlexiGo avec cet email. La personne doit d'abord créer un compte, puis être invitée.");
+      throw err("NOT_FOUND", "Aucun compte Marqova avec cet email. La personne doit d'abord créer un compte, puis être invitée.");
     }
 
     const { data: existing } = await admin

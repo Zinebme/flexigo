@@ -9,9 +9,9 @@ afterEach(() => {
 
 describe("platform auth URLs", () => {
   it("uses the configured platform origin and strips paths", () => {
-    process.env.NEXT_PUBLIC_APP_URL = "https://flexigo.eurekayw1234.chatgpt.site/some/path/";
-    expect(getPlatformAppUrl()).toBe("https://flexigo.eurekayw1234.chatgpt.site");
-    expect(getInviteRedirectUrl()).toBe("https://flexigo.eurekayw1234.chatgpt.site/auth/finish");
+    process.env.NEXT_PUBLIC_APP_URL = "https://marqova.shop/some/path/";
+    expect(getPlatformAppUrl()).toBe("https://marqova.shop");
+    expect(getInviteRedirectUrl()).toBe("https://marqova.shop/auth/finish");
   });
 
   it("rejects insecure non-local URLs", () => {

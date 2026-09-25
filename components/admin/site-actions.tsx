@@ -182,7 +182,7 @@ export function SiteActions({ store, onChanged }: { store: AdminStoreRow; onChan
                   onClick={() =>
                     ask(
                       "Supprimer le site",
-                      `Retirer « ${store.name} » de FlexiGo ? La boutique sera immédiatement inaccessible. Les données restent conservées en base pour récupération/audit.`,
+                      `Retirer « ${store.name} » de Marqova ? La boutique sera immédiatement inaccessible. Les données restent conservées en base pour récupération/audit.`,
                       () => post(`/api/admin/stores/${store.id}/delete`, { confirm_name: store.name }),
                     )
                   }

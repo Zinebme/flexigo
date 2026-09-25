@@ -35,8 +35,8 @@ export default function ForgotPasswordPage() {
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
       <div className="w-full max-w-md">
         <Link href="/" className="mb-8 flex items-center justify-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-sm font-black text-white">F</span>
-          <span className="text-xl font-extrabold text-slate-900">FlexiGo</span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-sm font-black text-white">M</span>
+          <span className="text-xl font-extrabold text-slate-900">Marqova</span>
         </Link>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">

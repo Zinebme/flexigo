@@ -51,14 +51,14 @@ export function RegisterClient({ allowPublic = false }: { allowPublic?: boolean 
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
       <div className="w-full max-w-md">
         <Link href="/" className="mb-8 flex items-center justify-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-sm font-black text-white">F</span>
-          <span className="text-xl font-extrabold text-slate-900">FlexiGo</span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-sm font-black text-white">M</span>
+          <span className="text-xl font-extrabold text-slate-900">Marqova</span>
         </Link>
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
           <h1 className="text-xl font-bold text-slate-900">Créer un compte marchand</h1>
           <p className="mt-1 text-sm text-slate-500">
             {allowPublic
-              ? "Votre compte vous donne accès à votre espace de gestion. Un site FlexiGo vous est ensuite livré et configuré."
+              ? "Votre compte vous donne accès à votre espace de gestion. Un site Marqova vous est ensuite livré et configuré."
               : "Outil interne — création de comptes marchands par le super admin. L'inscription publique est désactivée pour le moment."}
           </p>
 

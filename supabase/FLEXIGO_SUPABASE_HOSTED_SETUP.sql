@@ -123,7 +123,7 @@ create table public.platform_settings (
 );
 
 insert into public.platform_settings (key, value) values
-  ('platform_name', '{"value": "FlexiGo"}'),
+  ('platform_name', '{"value": "Marqova"}'),
   ('maintenance_mode', '{"value": false, "message": null}')
 on conflict (key) do nothing;
 -- <<< END 20260918000002_core_tenancy.sql <<<

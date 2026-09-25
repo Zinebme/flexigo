@@ -62,7 +62,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }));
 
     const parts = [
-      `# EXPORT FLEXIGO — ${store.name} (${store.slug}) — ${new Date().toISOString()}`,
+      `# EXPORT MARQOVA — ${store.name} (${store.slug}) — ${new Date().toISOString()}`,
       "",
       "# COMMANDES",
       toCsv(orderRows, [
@@ -110,7 +110,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       metadata: { rows: { orders: orderRows.length, products: productRows.length, customers: customerRows.length }, by: "platform_admin" },
     });
 
-    return csvResponse(parts, `flexigo-${store.slug}-export-${new Date().toISOString().slice(0, 10)}.csv`);
+    return csvResponse(parts, `marqova-${store.slug}-export-${new Date().toISOString().slice(0, 10)}.csv`);
   } catch (e) {
     return toErrorResponse(e);
   }

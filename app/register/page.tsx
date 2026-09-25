@@ -22,7 +22,7 @@ export default async function RegisterPage() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-2xl">🔒</div>
           <h1 className="text-lg font-bold text-slate-900">Inscription publique désactivée</h1>
           <p className="mt-2 text-sm text-slate-500">
-            FlexiGo est actuellement une plateforme interne de production de sites. Les comptes marchands sont créés par l&apos;administrateur.
+            Marqova est actuellement une plateforme interne de production de sites. Les comptes marchands sont créés par l&apos;administrateur.
           </p>
           <p className="mt-2 text-xs text-slate-400">Si vous êtes client, votre accès vous sera communiqué après livraison de votre site.</p>
           <div className="mt-6 flex flex-col gap-2">

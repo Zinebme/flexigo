@@ -6,11 +6,12 @@ export const metadata: Metadata = {
     ? new URL(process.env.NEXT_PUBLIC_APP_URL)
     : undefined,
   title: {
-    default: "FlexiGo — Plateforme de création et de gestion de sites",
-    template: "%s — FlexiGo",
+    default: "Marqova — Plateforme de création et de gestion de sites",
+    template: "%s — Marqova",
   },
   description:
-    "FlexiGo aide les commerçants algériens à lancer et gérer leurs sites e-commerce (paiement à la livraison), pages de vente et portfolios. Multi-tenant, sécurisé, en français.",
+    "Marqova aide les commerçants algériens à lancer et gérer leurs sites e-commerce (paiement à la livraison), pages de vente et portfolios. Multi-tenant, sécurisé, en français.",
+  icons: { icon: "/icon.svg" },
 };
 
 export const viewport: Viewport = {

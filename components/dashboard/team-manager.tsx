@@ -112,7 +112,7 @@ export function TeamManager({ members, canManage }: { members: Member[]; canMana
             </button>
           </div>
           <p className="mt-2 text-xs text-slate-500">
-            La personne doit déjà avoir un compte FlexiGo avec cet email. {ROLE_INFO[inviteRole]?.description}
+            La personne doit déjà avoir un compte Marqova avec cet email. {ROLE_INFO[inviteRole]?.description}
           </p>
         </form>
       )}

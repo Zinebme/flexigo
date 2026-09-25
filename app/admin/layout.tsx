@@ -5,7 +5,7 @@ import { isAppError } from "@/lib/errors";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 
-export const metadata = { title: "Administration — FlexiGo" };
+export const metadata = { title: "Administration — Marqova" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

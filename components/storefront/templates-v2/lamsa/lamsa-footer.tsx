@@ -68,7 +68,7 @@ export function LamsaFooter({ storeName, base, logoUrl, copy, categories, contac
       <div className="border-t border-white/10">
         <LamsaContainer className="flex flex-col items-center justify-between gap-2 py-4 text-center text-[11px] text-white/45 sm:flex-row sm:text-start">
           <span>© {new Date().getFullYear()} {storeName} — {copy.footer.copyright}</span>
-          <span>{copy.footer.poweredBy} FlexiGo</span>
+          <span>{copy.footer.poweredBy} Marqova</span>
         </LamsaContainer>
       </div>
     </footer>

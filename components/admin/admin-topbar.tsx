@@ -22,7 +22,7 @@ export function AdminTopbar({ userEmail }: { userEmail: string }) {
 
   return (
     <div className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b border-slate-800 bg-slate-950/95 px-4 backdrop-blur sm:px-6">
-      <div className="lg:hidden text-sm font-bold text-white">FlexiGo Admin</div>
+      <div className="lg:hidden text-sm font-bold text-white">Marqova Admin</div>
       <div className="hidden text-xs text-slate-500 lg:block">
         Accès plateforme — toutes les actions sont journalisées
       </div>

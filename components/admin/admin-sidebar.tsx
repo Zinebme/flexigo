@@ -54,9 +54,9 @@ export function AdminSidebar() {
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-slate-800 bg-slate-950 lg:flex">
       <div className="border-b border-slate-800 px-4 py-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-sm font-black text-white">F</span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-sm font-black text-white">M</span>
           <div className="min-w-0">
-            <div className="truncate text-sm font-bold text-white">FlexiGo</div>
+            <div className="truncate text-sm font-bold text-white">Marqova</div>
             <div className="text-[11px] text-slate-500">Mon espace de production</div>
           </div>
         </div>

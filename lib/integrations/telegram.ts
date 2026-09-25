@@ -78,7 +78,7 @@ export async function testTelegramConnection(args: {
     const sendRes = await sendTelegramMessage({
       botTokenEncrypted: args.botTokenEncrypted,
       chatId: args.chatId,
-      text: `✅ <b>FlexiGo — Test Telegram</b>\n\nBot connecté avec succès : @${meData.result.username}\nChat ID : <code>${args.chatId}</code>\n\nVous recevrez les notifications de commandes ici.`,
+      text: `✅ <b>Marqova — Test Telegram</b>\n\nBot connecté avec succès : @${meData.result.username}\nChat ID : <code>${args.chatId}</code>\n\nVous recevrez les notifications de commandes ici.`,
       parseMode: "HTML",
     });
 
@@ -124,7 +124,7 @@ export async function notifyTelegramEvent(args: {
         `👤 ${args.payload.customerName ?? "Client"}\n` +
         `📍 ${args.payload.wilaya ?? ""}\n` +
         `💰 ${args.payload.totalCents ? (args.payload.totalCents / 100).toFixed(2) + " DA" : ""}\n\n` +
-        `<i>FlexiGo — vérifiez votre dashboard</i>`;
+        `<i>Marqova — vérifiez votre dashboard</i>`;
       break;
     case "cancelled":
       text = `❌ <b>Commande annulée #${args.payload.orderNumber ?? "?"}</b>\n\n${args.payload.customerName ?? ""}`;

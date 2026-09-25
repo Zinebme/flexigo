@@ -192,7 +192,7 @@ export function SouqFooter({
             </span>
             <span className="flex items-center gap-1.5">
               {copy.footer.poweredBy}
-              <span className="font-extrabold text-white/80">FlexiGo</span>
+              <span className="font-extrabold text-white/80">Marqova</span>
             </span>
           </SouqContainer>
         </div>
