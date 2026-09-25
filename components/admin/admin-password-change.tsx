@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getBrowserSupabase } from "@/lib/supabase/browser";
 
-type Step = "request" | "verify" | "saving" | "done";
+type Step = "request" | "sending" | "verify" | "saving" | "done";
 
 export function AdminPasswordChange({ email }: { email: string }) {
   const [step, setStep] = useState<Step>("request");
@@ -21,9 +20,15 @@ export function AdminPasswordChange({ email }: { email: string }) {
 
   async function sendCode() {
     setError(null);
-    const { error: reauthError } = await getBrowserSupabase().auth.reauthenticate();
-    if (reauthError) {
-      setError("Le code n’a pas pu être envoyé. Réessayez dans quelques minutes.");
+    setStep("sending");
+    const response = await fetch("/api/admin/security/reauthenticate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+    }).catch(() => null);
+    if (!response?.ok) {
+      const result = response ? await response.json().catch(() => null) as { error?: string } | null : null;
+      setError(result?.error ?? "Le code n’a pas pu être envoyé. Réessayez dans quelques minutes.");
+      setStep("request");
       return;
     }
     setNonce("");
@@ -49,15 +54,14 @@ export function AdminPasswordChange({ email }: { email: string }) {
     }
 
     setStep("saving");
-    const { error: updateError } = await getBrowserSupabase().auth.updateUser({
-      email,
-      password,
-      nonce,
-    });
-    if (updateError) {
-      setError(updateError.message.toLowerCase().includes("nonce")
-        ? "Le code est invalide ou a expiré. Demandez un nouveau code."
-        : "Le mot de passe n’a pas pu être modifié. Vérifiez les critères puis réessayez.");
+    const response = await fetch("/api/admin/security/password", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ password, confirmation, nonce }),
+    }).catch(() => null);
+    if (!response?.ok) {
+      const result = response ? await response.json().catch(() => null) as { error?: string } | null : null;
+      setError(result?.error ?? "Le mot de passe n’a pas pu être modifié. Réessayez.");
       setStep("verify");
       return;
     }
@@ -66,7 +70,6 @@ export function AdminPasswordChange({ email }: { email: string }) {
     setConfirmation("");
     setNonce("");
     setStep("done");
-    await getBrowserSupabase().auth.signOut({ scope: "global" });
     window.setTimeout(() => window.location.assign("/login"), 1200);
   }
 
@@ -84,9 +87,9 @@ export function AdminPasswordChange({ email }: { email: string }) {
 
       {error ? <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">{error}</div> : null}
 
-      {step === "request" ? (
-        <button type="button" onClick={() => void sendCode()} className="mt-5 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700">
-          Recevoir le code de vérification
+      {step === "request" || step === "sending" ? (
+        <button type="button" disabled={step === "sending"} onClick={() => void sendCode()} className="mt-5 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:cursor-wait disabled:opacity-60">
+          {step === "sending" ? "Envoi du code…" : "Recevoir le code de vérification"}
         </button>
       ) : null}
 

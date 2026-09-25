@@ -64,6 +64,7 @@ export type AuditAction =
   | "admin.user_viewed"
   | "platform_admin.added"
   | "platform_admin.removed"
+  | "security.password_changed"
   | "export.data";
 
 /** Recursively redact values that look like credentials. */
