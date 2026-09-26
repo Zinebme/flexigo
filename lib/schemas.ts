@@ -376,6 +376,13 @@ export const wizardSchema = z.object({
   custom_domain: z.string().trim().toLowerCase().max(253).optional().or(z.literal("")).nullable(),
   dashboard_language: z.enum(["fr","ar","en"]).default("fr"),
   publish_mode: z.enum(["draft","publish","deliver"]).default("draft"),
+}).superRefine((input, ctx) => {
+  const categories = new Set(input.initial_categories.map((category) => category.name.trim().toLowerCase()));
+  input.initial_products.forEach((product, index) => {
+    if (!product.category || !categories.has(product.category.trim().toLowerCase())) {
+      ctx.addIssue({ code: "custom", message: "Choisissez une catégorie créée pour ce produit.", path: ["initial_products", index, "category"] });
+    }
+  });
 });
 export type WizardInput = z.infer<typeof wizardSchema>;
 
