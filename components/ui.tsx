@@ -17,7 +17,7 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-[1.75rem]">{title}</h1>
         {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
       </div>
       {children ? <div className="flex flex-wrap items-center gap-2">{children}</div> : null}
@@ -26,7 +26,7 @@ export function PageHeader({
 }
 
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("rounded-xl border border-slate-200 bg-white shadow-sm", className)}>{children}</div>;
+  return <div className={cn("rounded-2xl border border-slate-200 bg-white shadow-sm", className)}>{children}</div>;
 }
 
 export function CardHeader({ title, subtitle, children }: { title: string; subtitle?: string; children?: React.ReactNode }) {
@@ -50,10 +50,11 @@ export function Stat({ label, value, hint, tone = "default" }: { label: string; 
     primary: "text-blue-600",
   };
   return (
-    <Card className="p-5">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
-      <div className={cn("mt-2 text-2xl font-extrabold", tones[tone])}>{value}</div>
-      {hint ? <div className="mt-1 text-xs text-slate-400">{hint}</div> : null}
+    <Card className="stat-card relative overflow-hidden p-5">
+      <div className="absolute inset-x-5 top-0 h-[3px] rounded-b-full bg-slate-200" aria-hidden="true" />
+      <div className="text-sm font-semibold text-slate-600">{label}</div>
+      <div className={cn("mt-3 text-[1.7rem] font-extrabold tracking-tight", tones[tone])}>{value}</div>
+      {hint ? <div className="mt-1 text-sm text-slate-500">{hint}</div> : null}
     </Card>
   );
 }
@@ -90,12 +91,12 @@ export function Table({ head, children }: { head: React.ReactNode; children: Rea
 }
 
 export function Th({ children, className = "" }: { children?: React.ReactNode; className?: string }) {
-  return <th className={cn("px-5 py-3", className)}>{children}</th>;
+  return <th scope="col" className={cn("whitespace-nowrap bg-slate-50/70 px-5 py-3", className)}>{children}</th>;
 }
 
 export function Td({ children, className = "", colSpan, title }: { children?: React.ReactNode; className?: string; colSpan?: number; title?: string }) {
   return (
-    <td className={cn("px-5 py-3 align-middle", className)} colSpan={colSpan} title={title}>
+    <td className={cn("px-5 py-4 align-middle", className)} colSpan={colSpan} title={title}>
       {children}
     </td>
   );
@@ -105,8 +106,8 @@ export function EmptyState({ icon = "📭", title, text }: { icon?: string; titl
   return (
     <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
       <div className="text-4xl">{icon}</div>
-      <div className="mt-3 font-semibold text-slate-700">{title}</div>
-      {text ? <div className="mt-1 max-w-sm text-sm text-slate-400">{text}</div> : null}
+      <div className="mt-3 font-semibold text-slate-800">{title}</div>
+      {text ? <div className="mt-1 max-w-sm text-sm text-slate-600">{text}</div> : null}
     </div>
   );
 }

@@ -43,7 +43,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   return (
     <>
       <PageHeader title="Produits" subtitle={`${list.length} produits · ${lowCount} stock faible · ${outCount} en rupture`}>
-        <Link href="/dashboard/produits/nouveau" className={btnPrimary}>
+        <Link href="/dashboard/produits/nouveau" className={`${btnPrimary} !bg-rose-600 hover:!bg-rose-700`}>
           + Nouveau produit
         </Link>
       </PageHeader>
@@ -56,6 +56,32 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         {list.length === 0 ? (
           <EmptyState icon="🛍️" title="Aucun produit" text="Créez votre premier produit pour l'afficher sur votre site." />
         ) : (
+          <>
+          <div className="divide-y divide-slate-100 md:hidden">
+            {list.map((p) => {
+              const low = p.stock <= p.low_stock_threshold && p.stock > 0;
+              return (
+                <article key={p.id} className="flex gap-3 p-4">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                    {imgMap.get(p.id) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={imgMap.get(p.id)} alt="" className="h-full w-full object-cover" />
+                    ) : <span className="flex h-full items-center justify-center text-xl" aria-hidden="true">📦</span>}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <Link href={`/dashboard/produits/${p.id}`} className="block truncate font-bold text-slate-900 hover:text-rose-700">{p.name}</Link>
+                    <p className="mt-1 text-sm text-slate-500">{p.category_id ? (catMap.get(p.category_id) ?? "Sans catégorie") : "Sans catégorie"}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-slate-900">{formatDA(p.price_cents)}</span>
+                      <Badge tone={p.stock === 0 ? "red" : low ? "amber" : "green"}>{p.stock === 0 ? "Rupture" : low ? `Stock faible · ${p.stock}` : `Stock · ${p.stock}`}</Badge>
+                      <Badge tone={p.is_active ? "green" : "gray"}>{p.is_active ? "Visible" : "Masqué"}</Badge>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <div className="hidden md:block">
           <Table
             head={
               <>
@@ -107,7 +133,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                     </div>
                   </Td>
                   <Td>
-                    <Link href={`/dashboard/produits/${p.id}`} className="text-sm font-semibold text-blue-600 hover:underline">
+                    <Link href={`/dashboard/produits/${p.id}`} className="text-sm font-semibold text-rose-700 hover:underline">
                       Modifier
                     </Link>
                   </Td>
@@ -115,6 +141,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               );
             })}
           </Table>
+          </div>
+          </>
         )}
       </Card>
     </>

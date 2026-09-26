@@ -15,22 +15,24 @@ export function ProductFilters({ categories }: { categories: Array<{ id: string;
     router.replace(`${pathname}?${p.toString()}`, { scroll: false });
   }
 
-  const inputCls = "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm";
+  const inputCls = "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-100";
 
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="grid items-end gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-[minmax(220px,2fr)_repeat(2,minmax(150px,1fr))_auto]">
       <div>
-        <label className="mb-1 block text-xs font-semibold text-slate-500">Recherche</label>
+        <label htmlFor="product-search" className="mb-1 block text-sm font-semibold text-slate-600">Recherche</label>
         <input
-          className={`${inputCls} w-56`}
+          id="product-search"
+          className={inputCls}
           placeholder="Nom, slug, SKU…"
           defaultValue={params.get("q") ?? ""}
+          onBlur={(e) => update("q", e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && update("q", (e.target as HTMLInputElement).value)}
         />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-semibold text-slate-500">Catégorie</label>
-        <select className={`${inputCls} w-44`} value={params.get("cat") ?? ""} onChange={(e) => update("cat", e.target.value)}>
+        <label htmlFor="product-category" className="mb-1 block text-sm font-semibold text-slate-600">Catégorie</label>
+        <select id="product-category" className={inputCls} value={params.get("cat") ?? ""} onChange={(e) => update("cat", e.target.value)}>
           <option value="">Toutes</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
@@ -38,15 +40,15 @@ export function ProductFilters({ categories }: { categories: Array<{ id: string;
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-xs font-semibold text-slate-500">Stock</label>
-        <select className={`${inputCls} w-44`} value={params.get("stock") ?? ""} onChange={(e) => update("stock", e.target.value)}>
+        <label htmlFor="product-stock" className="mb-1 block text-sm font-semibold text-slate-600">Stock</label>
+        <select id="product-stock" className={inputCls} value={params.get("stock") ?? ""} onChange={(e) => update("stock", e.target.value)}>
           <option value="">Tous</option>
           <option value="low">Stock faible</option>
           <option value="out">Rupture</option>
           <option value="in">En stock</option>
         </select>
       </div>
-      <button className={btnSecondary} onClick={() => router.replace(pathname, { scroll: false })}>
+      <button type="button" className={btnSecondary} onClick={() => router.replace(pathname, { scroll: false })}>
         Réinitialiser
       </button>
     </div>

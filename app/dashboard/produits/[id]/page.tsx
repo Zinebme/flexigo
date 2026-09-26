@@ -7,6 +7,7 @@ import { PageHeader, Card, CardHeader, EmptyState, Badge } from "@/components/ui
 import { ProductForm } from "@/components/dashboard/product-form";
 import { StockAdjustForm } from "@/components/dashboard/stock-adjust-form";
 import { DeleteProductButton } from "@/components/dashboard/delete-product-button";
+import { formatDA } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -91,7 +92,7 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
     <>
       <PageHeader
         title={p.name}
-        subtitle={`/${p.slug} · Stock : ${p.stock}${low ? " (faible)" : p.stock === 0 ? " (rupture)" : ""}`}
+        subtitle={`/${p.slug}`}
       >
         <div className="flex flex-wrap items-center gap-2">
           <Link
@@ -107,15 +108,21 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
         </div>
       </PageHeader>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
+      <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <span className="text-xl font-extrabold text-slate-900">{formatDA(p.price_cents)}</span>
+        <Badge tone={p.is_active ? "green" : "gray"}>{p.is_active ? "Visible" : "Masqué"}</Badge>
+        <Badge tone={p.stock === 0 ? "red" : low ? "amber" : "green"}>{p.stock === 0 ? "Rupture" : low ? `Stock faible · ${p.stock}` : `Stock · ${p.stock}`}</Badge>
+        {p.is_featured && <Badge tone="purple">★ Vedette</Badge>}
+      </div>
+
+      <div className="max-w-5xl space-y-5">
           {canManage ? (
             <ProductForm mode="edit" initial={initial} categories={(categories ?? []) as Array<{ id: string; name: string }>} productChoices={(productChoices ?? []) as Array<{ id: string; name: string }>} />
           ) : (
             <Card><EmptyState icon="🔒" title="Accès en lecture seule" text="Votre rôle permet de consulter mais pas de modifier les produits." /></Card>
           )}
 
-          <Card>
+          <Card className="overflow-hidden">
             <CardHeader title="Ajustement de stock" subtitle="Chaque mouvement est justifié et journalisé (audit).">
               <div className="flex gap-2">
                 <Badge tone={p.stock === 0 ? "red" : low ? "amber" : "green"}>
@@ -124,22 +131,18 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
                 {p.is_featured && <Badge tone="purple">★ Vedette</Badge>}
               </div>
             </CardHeader>
-            <StockAdjustForm productId={p.id} currentStock={p.stock} canAdjust={canManage} />
+            <div className="p-5"><StockAdjustForm productId={p.id} currentStock={p.stock} canAdjust={canManage} /></div>
           </Card>
-        </div>
-
-        <div className="space-y-4">
           {canManage && (
-            <Card>
+            <Card className="overflow-hidden border-red-100">
               <CardHeader title="Zone dangereuse" />
-              <p className="mb-3 text-sm text-slate-500">
+              <div className="p-5"><p className="mb-3 text-sm text-slate-500">
                 La suppression est <span className="font-semibold text-slate-700">douce</span> : le produit devient invisible
                 mais les commandes passées conservent leurs articles (snapshot).
               </p>
-              <DeleteProductButton productId={p.id} productName={p.name} />
+              <DeleteProductButton productId={p.id} productName={p.name} /></div>
             </Card>
           )}
-        </div>
       </div>
     </>
   );

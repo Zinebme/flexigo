@@ -255,13 +255,23 @@ export function ProductForm({
 
   const label="mb-1.5 block text-sm font-semibold text-slate-700";
   const input="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100";
-  const section="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm";
-  const subtleBtn="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50";
+  const section="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6";
+  const subtleBtn="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-40";
   const choiceRows=productChoices.filter(p=>p.id!==initial.id);
 
-  return <form onSubmit={submit} className="space-y-5">
-    <section className={section}>
-      <div className="mb-5"><h3 className="text-base font-bold text-slate-900">Général</h3><p className="mt-1 text-xs text-slate-500">Identité, descriptions, visibilité et type de produit.</p></div>
+  return <form onSubmit={submit} className="product-editor space-y-5">
+    <nav aria-label="Sections de la fiche produit" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="mb-3 text-sm font-bold text-slate-900">Aller à une section</p>
+      <div className="flex gap-2 overflow-x-auto pb-1 fx-scroll">
+        {[
+          ["Informations", "product-general"], ["Photos", "product-images"], ["Prix", "product-price"],
+          ["Variantes", "product-variants"], ["Choix client", "product-options"], ["Offres", "product-offers"],
+          ["Stock", "product-stock"], ["Page produit", "product-page"], ["Référencement", "product-seo"],
+        ].map(([title, id])=><a key={id} href={`#${id}`} className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700">{title}</a>)}
+      </div>
+    </nav>
+    <section id="product-general" className={section}>
+      <div className="mb-5"><h3 className="text-lg font-bold tracking-tight text-slate-900">Informations du produit</h3><p className="mt-1 text-sm text-slate-500">Nom, catégorie, description et visibilité.</p></div>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="md:col-span-2"><label className={label}>Nom du produit *</label><input className={input} value={name} onChange={e=>setName(e.target.value)} required maxLength={120}/></div>
         <div><label className={label}>Slug (URL)</label><input className={input} value={shownSlug} onChange={e=>{setSlugTouched(true);setSlug(e.target.value)}}/></div>
@@ -274,8 +284,8 @@ export function ProductForm({
       </div>
     </section>
 
-    <section className={section}>
-      <div className="mb-4"><h3 className="text-base font-bold text-slate-900">Photos & ordre d'affichage</h3><p className="mt-1 text-xs text-slate-500">La première image est la photo principale. Réordonnez sans réupload.</p></div>
+    <section id="product-images" className={section}>
+      <div className="mb-4"><h3 className="text-lg font-bold tracking-tight text-slate-900">Photos & ordre d'affichage <span className="ml-1 text-sm font-medium text-slate-500">({images.length}/12)</span></h3><p className="mt-1 text-sm text-slate-500">La première image est la photo principale. Réordonnez sans réupload.</p></div>
       <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
         <div>
           <div
@@ -323,15 +333,15 @@ export function ProductForm({
       </div>
     </section>
 
-    <section className={section}>
-      <div className="mb-4"><h3 className="text-base font-bold text-slate-900">Landing images (optionnel)</h3><p className="mt-1 text-xs text-slate-500">Images longues affichées dans la fiche produit après le formulaire/description selon l'ordre choisi.</p></div>
+    <section id="product-landing" className={section}>
+      <div className="mb-4"><h3 className="text-lg font-bold tracking-tight text-slate-900">Images de la page produit (optionnel)</h3><p className="mt-1 text-sm text-slate-500">Images longues affichées après le formulaire ou la description selon l'ordre choisi.</p></div>
       <input ref={landingRef} type="file" multiple accept="image/jpeg,image/png,image/webp" className="block w-full text-sm"/>
       <button type="button" className="mt-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold" onClick={()=>upload(Array.from(landingRef.current?.files??[]),"landing")} disabled={uploading!==null||landingImages.length>=20}>{uploading==="landing"?"Téléversement…":"Ajouter des images landing"}</button>
       {landingImages.length>0&&<div className="mt-3 flex gap-2 overflow-x-auto">{landingImages.map((url,idx)=><div key={url+idx} className="relative shrink-0">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={url} alt="" className="h-24 w-20 rounded-lg border object-cover"/><button type="button" className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-red-500 text-xs text-white" onClick={()=>setLandingImages(landingImages.filter((_,i)=>i!==idx))}>×</button></div>)}</div>}
     </section>
 
-    <section className={section}>
-      <div className="mb-4"><h3 className="text-base font-bold text-slate-900">Tarification</h3></div>
+    <section id="product-price" className={section}>
+      <div className="mb-4"><h3 className="text-lg font-bold tracking-tight text-slate-900">Tarification</h3><p className="mt-1 text-sm text-slate-500">Prix affiché et comparaison éventuelle.</p></div>
       <div className="grid gap-4 md:grid-cols-3">
         <div><label className={label}>Prix (DA) *</label><input type="number" min=".01" step=".01" className={input} value={price} onChange={e=>setPrice(e.target.value)} required/></div>
         <div><label className={label}>Prix de comparaison</label><input type="number" min="0" step=".01" className={input} value={compareAt} onChange={e=>setCompareAt(e.target.value)} placeholder="Optionnel"/></div>
@@ -339,7 +349,7 @@ export function ProductForm({
       </div>
     </section>
 
-    <section className={section}>
+    <section id="product-variants" className={section}>
       <div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="text-base font-bold text-slate-900">Variantes</h3><p className="mt-1 text-xs text-slate-500">Combinaisons vendables avec prix, SKU et stock propres.</p></div><button type="button" className={subtleBtn} onClick={()=>variants.length<50&&setVariants([...variants,{name:"",options_text:"",price:"",sku:"",stock:"0",is_active:true}])}>+ Variante</button></div>
       <div className="space-y-2">{variants.map((v,idx)=><div key={idx} className="grid gap-2 rounded-xl border bg-slate-50 p-3 md:grid-cols-[1fr_1.3fr_110px_110px_90px_auto]">
         <input className="rounded-lg border px-3 py-2 text-sm" placeholder="Nom ex: Rouge / M" value={v.name} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,name:e.target.value}:x))}/>
@@ -351,7 +361,7 @@ export function ProductForm({
       </div>)}</div>
     </section>
 
-    <section className={section}>
+    <section id="product-options" className={section}>
       <div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="text-base font-bold text-slate-900">Options / choix client</h3><p className="mt-1 text-xs text-slate-500">Créez Couleur, Taille, Accessoires… et choisissez mono-choix ou multi-choix.</p></div><button type="button" className={subtleBtn} onClick={()=>setOptionGroups([...optionGroups,emptyOptionGroup()])}>+ Groupe</button></div>
       <div className="space-y-3">
         {optionGroups.map((g,gi)=><div key={gi} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -378,7 +388,7 @@ export function ProductForm({
       </div>
     </section>
 
-    <section className={section}>
+    <section id="product-offers" className={section}>
       <div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="text-base font-bold text-slate-900">Offres</h3><p className="mt-1 text-xs text-slate-500">Ex : 2 pièces = 3 900 DA.</p></div><button type="button" className={subtleBtn} onClick={()=>offers.length<10&&setOffers([...offers,{min_quantity:"2",total_price:"",label:"",free_shipping:false}])}>+ Offre</button></div>
       <div className="space-y-2">{offers.map((o,idx)=><div key={idx} className="grid gap-2 rounded-xl border bg-slate-50 p-3 md:grid-cols-[100px_160px_1fr_auto]">
         <input type="number" min="2" max="50" className="rounded-lg border px-3 py-2 text-sm" value={o.min_quantity} onChange={e=>setOffers(offers.map((x,i)=>i===idx?{...x,min_quantity:e.target.value}:x))}/>
@@ -389,7 +399,7 @@ export function ProductForm({
       </div>)}</div>
     </section>
 
-    <section className={section}>
+    <section id="product-stock" className={section}>
       <div className="mb-4"><h3 className="text-base font-bold text-slate-900">Stock & référence</h3></div>
       <div className="grid gap-4 md:grid-cols-2">
         <div><label className={label}>Suivi du stock</label><select className={input} value={stockTracking} onChange={e=>setStockTracking(e.target.value as StockTracking)}><option value="none">Ne pas suivre</option><option value="global">Quantité globale</option><option value="variants">Quantité par variantes</option></select></div>
@@ -399,7 +409,7 @@ export function ProductForm({
       </div>
     </section>
 
-    <section className={section}>
+    <section id="product-related" className={section}>
       <div className="mb-4"><h3 className="text-base font-bold text-slate-900">Produits connexes & cross-selling</h3><p className="mt-1 text-xs text-slate-500">Les produits connexes sont affichés dans la fiche. Le cross-selling sert aux suggestions additionnelles.</p></div>
       {choiceRows.length===0?<p className="text-sm text-slate-400">Créez d'autres produits pour utiliser cette section.</p>:<div className="grid gap-4 md:grid-cols-2">
         <div><label className={label}>Produits connexes (Ctrl/Cmd pour plusieurs)</label><select multiple className={input+" min-h-32"} value={relatedIds} onChange={e=>setRelatedIds(Array.from(e.currentTarget.selectedOptions,option=>option.value))}>{choiceRows.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
@@ -407,8 +417,8 @@ export function ProductForm({
       </div>}
     </section>
 
-    <section className={section}>
-      <div className="mb-4"><h3 className="text-base font-bold text-slate-900">Options produit</h3></div>
+    <section id="product-page" className={section}>
+      <div className="mb-4"><h3 className="text-lg font-bold tracking-tight text-slate-900">Présentation sur la page produit</h3><p className="mt-1 text-sm text-slate-500">Livraison, quantité minimale et ordre des éléments.</p></div>
       <div className="grid gap-4 md:grid-cols-2">
         <div><label className={label}>Nom sur bordereau livraison</label><input className={input} value={shippingLabel} onChange={e=>setShippingLabel(e.target.value)} placeholder="Optionnel"/></div>
         <div><label className={label}>Quantité minimale par commande</label><input type="number" min="1" max="50" className={input} value={minOrderQuantity} onChange={e=>setMinOrderQuantity(e.target.value)}/></div>
@@ -417,14 +427,14 @@ export function ProductForm({
       <div className="mt-5"><div className="mb-2 text-sm font-bold">Ordre des éléments dans la page produit</div><div className="space-y-2">{pageOrder.map((key,idx)=><div key={key} className="flex items-center justify-between rounded-xl border bg-slate-50 px-3 py-2"><span className="text-sm font-medium">{ORDER_LABELS[key]??key}</span><div className="flex gap-1"><button type="button" className={subtleBtn} disabled={idx===0} onClick={()=>setPageOrder(move(pageOrder,idx,idx-1))}>↑</button><button type="button" className={subtleBtn} disabled={idx===pageOrder.length-1} onClick={()=>setPageOrder(move(pageOrder,idx,idx+1))}>↓</button></div></div>)}</div></div>
     </section>
 
-    <section className={section}>
+    <section id="product-seo" className={section}>
       <div className="mb-4"><h3 className="text-base font-bold text-slate-900">SEO</h3></div>
       <div className="grid gap-4 md:grid-cols-2"><div><label className={label}>Titre SEO</label><input className={input} value={seoTitle} onChange={e=>setSeoTitle(e.target.value)} maxLength={160}/></div><div><label className={label}>Description SEO</label><textarea className={input} rows={2} value={seoDescription} onChange={e=>setSeoDescription(e.target.value)} maxLength={300}/></div></div>
     </section>
 
-    <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
-      <button type="submit" className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-50" disabled={busy||uploading!==null}>{uploading!==null?"Attendez la fin des images…":busy?"Enregistrement…":mode==="create"?"Créer le produit":"Enregistrer les modifications"}</button>
-      {error&&<p className="text-sm text-red-600">{error}</p>}{okMsg&&<p className="text-sm text-emerald-600">{okMsg}</p>}
+    <div className="sticky bottom-2 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-[0_8px_35px_rgba(15,23,42,.16)] backdrop-blur sm:bottom-4 sm:p-4">
+      <button type="submit" className="w-full rounded-xl bg-rose-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-rose-700 disabled:cursor-wait disabled:opacity-50 sm:w-auto" disabled={busy||uploading!==null}>{uploading!==null?"Attendez la fin des images…":busy?"Enregistrement…":mode==="create"?"Créer le produit":"Enregistrer les modifications"}</button>
+      {error&&<p role="alert" className="text-sm text-red-700">{error}</p>}{okMsg&&<p role="status" className="text-sm text-emerald-700">{okMsg}</p>}
     </div>
   </form>;
 }

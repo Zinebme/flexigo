@@ -46,3 +46,32 @@ body {
 .merchant-dashboard a:focus-visible {
   outline-color: #e11d48;
 }
+
+.merchant-dashboard .stat-card:first-child > div:first-child {
+  background: #e11d48;
+}
+
+.merchant-dashboard .product-editor input[type="checkbox"],
+.merchant-dashboard .product-editor input[type="radio"] {
+  accent-color: #e11d48;
+}
+
+.merchant-dashboard .product-editor section h3 {
+  line-height: 1.35;
+}
+
+.merchant-dashboard .product-editor section input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
+.merchant-dashboard .product-editor section select,
+.merchant-dashboard .product-editor section textarea {
+  min-height: 2.6rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .merchant-dashboard *,
+  .merchant-dashboard *::before,
+  .merchant-dashboard *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

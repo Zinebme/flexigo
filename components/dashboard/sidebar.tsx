@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { getDashboardDict, type DashboardLang } from "@/lib/i18n/dashboard";
 
@@ -72,11 +73,12 @@ function visible(item: NavItem, role: string) {
   return !item.roles || item.roles.includes(role);
 }
 
-function NavLink({ item, pathname, dict }: { item: NavItem; pathname: string; dict: Record<string, string> }) {
+function NavLink({ item, pathname, dict, onNavigate }: { item: NavItem; pathname: string; dict: Record<string, string>; onNavigate?: () => void }) {
   const active = item.href === "/dashboard" ? pathname === "/dashboard" : item.href === "/dashboard/commandes" ? pathname === item.href || pathname.startsWith(`${item.href}/`) : pathname.startsWith(item.href);
   return (
     <Link
       href={item.href}
+      onClick={onNavigate}
       className={cn(
         "flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition",
         active ? "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-100" : "text-slate-600 hover:bg-rose-50/60 hover:text-slate-900",
@@ -152,5 +154,45 @@ export function DashboardSidebar({
         </div>
       </nav>
     </aside>
+  );
+}
+
+export function DashboardMobileNav({ role, lang = "fr" }: { role: string; lang?: DashboardLang }) {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const dict = getDashboardDict(lang);
+  const sections = [
+    { label: lang === "ar" ? "الرئيسية" : lang === "en" ? "Overview" : "Vue d’ensemble", items: HOME },
+    ...GROUPS.map((group) => ({ label: group.label[lang], items: group.items })),
+    { label: lang === "ar" ? "الإدارة" : lang === "en" ? "Administration" : "Administration", items: ADMIN },
+  ];
+  const current = [...HOME, ...GROUPS.flatMap((group) => group.items), ...ADMIN]
+    .filter((item) => visible(item, role))
+    .sort((a, b) => b.href.length - a.href.length)
+    .find((item) => pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`))) ?? HOME[0]!;
+
+  return (
+    <nav className="border-b border-slate-200 bg-white px-4 py-2 lg:hidden" aria-label="Navigation marchand">
+      <div className="flex items-center gap-2">
+        <button type="button" aria-expanded={open} aria-controls="merchant-mobile-menu" onClick={() => setOpen(!open)} className="flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-800">
+          <span aria-hidden="true">☰</span> Menu <span className="text-slate-400">{open ? "⌃" : "⌄"}</span>
+        </button>
+        <span className="min-w-0 truncate text-sm font-semibold text-rose-700">{dict[current.key] ?? current.key}</span>
+      </div>
+      {open && (
+        <div id="merchant-mobile-menu" className="mt-3 max-h-[65vh] space-y-4 overflow-y-auto rounded-xl border border-slate-100 bg-white p-3 shadow-lg">
+          {sections.map((section) => {
+            const items = section.items.filter((item) => visible(item, role));
+            if (!items.length) return null;
+            return <div key={section.label}>
+              <p className="mb-1 px-2 text-xs font-bold uppercase tracking-wide text-slate-500">{section.label}</p>
+              <div className="grid gap-1 sm:grid-cols-2">
+                {items.map((item) => <NavLink key={item.href} item={item} pathname={pathname} dict={dict} onNavigate={() => setOpen(false)} />)}
+              </div>
+            </div>;
+          })}
+        </div>
+      )}
+    </nav>
   );
 }

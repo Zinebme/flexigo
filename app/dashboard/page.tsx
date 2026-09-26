@@ -1,28 +1,10 @@
 import Link from "next/link";
 import { getMerchantContext } from "@/lib/auth/merchant-context";
 import { getDashboardStats } from "@/lib/dashboard/stats";
-import { ORDER_STATUS_LABELS, type OrderStatus } from "@/lib/types";
 import { formatDA, formatDateTimeFr, timeAgoFr } from "@/lib/utils";
-import { PageHeader, Card, CardHeader, Stat, Table, Th, Td, Badge, EmptyState } from "@/components/ui";
+import { PageHeader, Card, CardHeader, Stat, Table, Th, Td, Badge, EmptyState, btnSecondary } from "@/components/ui";
 import { BarChart } from "@/components/dashboard/bar-chart";
-
-const STATUS_TONE: Record<string, string> = {
-  new: "blue",
-  to_confirm: "amber",
-  confirmed: "blue",
-  preparation: "purple",
-  shipped: "purple",
-  in_transit: "purple",
-  at_office: "amber",
-  out_for_delivery: "amber",
-  delivered: "green",
-  returned: "red",
-  delivery_failed: "red",
-  no_answer: "gray",
-  postponed: "gray",
-  cancelled_customer: "red",
-  cancelled_store: "red",
-};
+import { orderStatusLabel, orderStatusTone } from "@/components/dashboard/order-status";
 
 export default async function DashboardHome() {
   const ctx = await getMerchantContext();
@@ -30,7 +12,10 @@ export default async function DashboardHome() {
 
   return (
     <>
-      <PageHeader title={`Bonjour 👋`} subtitle={`Vue d'ensemble de ${ctx.store.name}`} />
+      <PageHeader title="Vue d’ensemble" subtitle={ctx.store.name}>
+        <Link href="/dashboard/commandes?status=new" className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-rose-700">Traiter les commandes →</Link>
+        <Link href="/dashboard/produits" className={btnSecondary}>Gérer les produits</Link>
+      </PageHeader>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Nouvelles commandes" value={s.newOrders} hint="à traiter" tone={s.newOrders > 0 ? "primary" : "default"} />
@@ -61,7 +46,7 @@ export default async function DashboardHome() {
               s.byStatus.map((b) => (
                 <div key={b.status} className="flex items-center justify-between text-sm">
                   <span className="text-slate-600">{b.label}</span>
-                  <Badge tone={STATUS_TONE[b.status] ?? "gray"}>{b.count}</Badge>
+                  <Badge tone={orderStatusTone(b.status)}>{b.count}</Badge>
                 </div>
               ))
             )}
@@ -89,7 +74,7 @@ export default async function DashboardHome() {
                 <Td className="text-slate-600">{o.wilaya}</Td>
                 <Td className="font-semibold text-slate-900">{formatDA(o.total_cents)}</Td>
                 <Td>
-                  <Badge tone={STATUS_TONE[o.status] ?? "gray"}>{ORDER_STATUS_LABELS[o.status as OrderStatus] ?? o.status}</Badge>
+                  <Badge tone={orderStatusTone(o.status)}>{orderStatusLabel(o.status)}</Badge>
                 </Td>
                 <Td className="text-slate-500" title={formatDateTimeFr(o.created_at)}>{timeAgoFr(o.created_at)}</Td>
                 <Td>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getMerchantContext } from "@/lib/auth/merchant-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { isAppError } from "@/lib/errors";
-import { DashboardSidebar } from "@/components/dashboard/sidebar";
+import { DashboardMobileNav, DashboardSidebar } from "@/components/dashboard/sidebar";
 import { DashboardTopbar, type StoreOption } from "@/components/dashboard/topbar";
 import { getLangDir, type DashboardLang } from "@/lib/i18n/dashboard";
 
@@ -69,9 +69,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           supportStoreName={ctx.store.name}
           lang={dashboardLang}
         />
-        <nav className="flex gap-2 overflow-x-auto border-b border-slate-200 bg-white px-4 py-2 text-xs font-semibold lg:hidden" aria-label="Navigation marchand">
-          {[["Accueil", "/dashboard"], ["Commandes", "/dashboard/commandes"], ["Produits", "/dashboard/produits"], ["Livraison", "/dashboard/livraison"], ["Site", "/dashboard/site"], ["Paramètres", "/dashboard/parametres"]].map(([label, href]) => <Link key={href} href={href!} className="shrink-0 rounded-lg bg-rose-50 px-3 py-2 text-rose-700">{label}</Link>)}
-        </nav>
+        <DashboardMobileNav role={ctx.role} lang={dashboardLang} />
         <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:py-8">{children}</main>
       </div>
     </div>
