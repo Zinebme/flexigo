@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { err, toErrorResponse } from "@/lib/errors";
 import { ORDER_STATUSES } from "@/lib/types";
 import type { OrderStatus } from "@/lib/types";
+import { normalizeDZPhone } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -116,6 +117,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const ctx = await getMerchantContext();
     requireCapability(ctx, "orders.manage");
     const body = editSchema.parse(await req.json());
+    const normalizedPhone = normalizeDZPhone(body.phone);
+    if (!normalizedPhone) throw err("VALIDATION", "Saisissez un numéro algérien valide.");
     const admin = getAdminSupabase();
     const { data: order, error: readError } = await admin.from("orders").select("*").eq("id", id).eq("store_id", ctx.store.id).maybeSingle();
     if (readError) throw readError;
@@ -125,6 +128,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { error: updateError } = await admin.from("orders").update({
       full_name: body.full_name,
       phone: body.phone,
+      normalized_phone: normalizedPhone,
       commune: body.commune,
       address: order.delivery_type === "home" ? body.address : order.address,
       status: body.status,
