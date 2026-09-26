@@ -99,3 +99,49 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return toErrorResponse(e);
   }
 }
+
+const editSchema = z.object({
+  full_name: z.string().trim().min(2).max(120),
+  phone: z.string().trim().min(8).max(24).regex(/^[+\d\s().-]+$/),
+  commune: z.string().trim().min(2).max(120),
+  address: z.string().trim().max(500).nullable(),
+  status: z.enum(ORDER_STATUSES),
+  note: z.string().trim().max(2000).optional(),
+});
+
+/** Edit contact/delivery details without changing priced destination or historical line items. */
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const ctx = await getMerchantContext();
+    requireCapability(ctx, "orders.manage");
+    const body = editSchema.parse(await req.json());
+    const admin = getAdminSupabase();
+    const { data: order, error: readError } = await admin.from("orders").select("*").eq("id", id).eq("store_id", ctx.store.id).maybeSingle();
+    if (readError) throw readError;
+    if (!order) throw err("NOT_FOUND", "Commande introuvable");
+    const now = new Date().toISOString();
+    const entry = body.note ? `[${now.slice(0, 16).replace("T", " ")}] ${roleLabelFr(ctx.role)} : ${body.note}` : null;
+    const { error: updateError } = await admin.from("orders").update({
+      full_name: body.full_name,
+      phone: body.phone,
+      commune: body.commune,
+      address: order.delivery_type === "home" ? body.address : order.address,
+      status: body.status,
+      ...(entry ? { internal_notes: order.internal_notes ? `${order.internal_notes}\n${entry}` : entry } : {}),
+      updated_at: now,
+    }).eq("id", id).eq("store_id", ctx.store.id);
+    if (updateError) throw updateError;
+    if (body.status !== order.status) {
+      const { error: historyError } = await admin.from("order_status_history").insert({
+        order_id: id, from_status: order.status, to_status: body.status, actor_user_id: ctx.user.id, note: body.note || null,
+      });
+      if (historyError) throw historyError;
+    }
+    void logAudit({ actorId: ctx.user.id, storeId: ctx.store.id, action: "order.edited", entity: "order", entityId: id,
+      supportSessionId: ctx.supportSession?.id ?? null, metadata: { order_number: order.order_number, status: body.status } });
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return toErrorResponse(e);
+  }
+}

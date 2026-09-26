@@ -107,7 +107,7 @@ export function DashboardTopbar({
                     onClick={() => switchStore(s.store_id)}
                     className={cn(
                       "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-slate-50",
-                      s.store_id === storeId ? "text-blue-700" : "text-slate-700",
+                      s.store_id === storeId ? "text-rose-700" : "text-slate-700",
                     )}
                   >
                     <span className="truncate">{s.store_name}</span>
@@ -129,7 +129,7 @@ export function DashboardTopbar({
                 <div className="fixed inset-0 z-40" onClick={() => setLangMenu(false)} />
                 <div className="absolute right-0 z-50 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
                   {DASHBOARD_LANGS.map((l) => (
-                    <button key={l.code} onClick={() => changeLang(l.code)} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm ${lang === l.code ? "bg-blue-50 text-blue-700 font-bold" : "text-slate-700 hover:bg-slate-50"}`}>
+                    <button key={l.code} onClick={() => changeLang(l.code)} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm ${lang === l.code ? "bg-rose-50 text-rose-700 font-bold" : "text-slate-700 hover:bg-slate-50"}`}>
                       <span>{l.flag}</span> {l.label}
                     </button>
                   ))}
@@ -145,7 +145,7 @@ export function DashboardTopbar({
           <div className="relative">
             <button
               onClick={() => setMenu(!menu)}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-600 text-sm font-bold text-white"
               aria-label="Menu utilisateur"
             >
               {userEmail.slice(0, 1).toUpperCase()}

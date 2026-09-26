@@ -82,7 +82,7 @@ export function CheckoutSettingsEditor({ initial, onSave, title = "Formulaire de
         <div className="grid grid-cols-[1fr_88px_100px] gap-2 bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">
           <span>Champ</span><span>Afficher</span><span>Obligatoire</span>
         </div>
-        {fields.map((field) => {
+        {fields.filter((field) => field.key !== "office").map((field) => {
           const locked = REQUIRED_CORE.has(field.key);
           return (
             <div key={field.key} className="grid grid-cols-[1fr_88px_100px] items-center gap-2 border-t border-slate-100 px-3 py-3 text-sm">
@@ -100,7 +100,7 @@ export function CheckoutSettingsEditor({ initial, onSave, title = "Formulaire de
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm font-medium text-slate-700"><input type="checkbox" checked={showQuantity} onChange={(event) => setShowQuantity(event.target.checked)} />Afficher le sélecteur de quantité</label>
         <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm font-medium text-slate-700"><input type="checkbox" checked={showOffers} onChange={(event) => setShowOffers(event.target.checked)} />Afficher les offres par quantité</label>
-        <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm font-medium text-slate-700"><input type="checkbox" checked={showDeliveryChoice} onChange={(event) => setShowDeliveryChoice(event.target.checked)} />Proposer domicile / bureau</label>
+        <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm font-medium text-slate-700"><input type="checkbox" checked={showDeliveryChoice} onChange={(event) => setShowDeliveryChoice(event.target.checked)} />Proposer les modes de livraison disponibles (bureau si l’API fournit une adresse)</label>
         <label className="text-sm font-medium text-slate-700">Présentation des variantes<select className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" value={variantDisplay} onChange={(event) => setVariantDisplay(event.target.value as typeof variantDisplay)}><option value="dynamic">Automatique selon le type</option><option value="buttons">Boutons</option><option value="dropdown">Liste déroulante</option></select></label>
       </div>
 

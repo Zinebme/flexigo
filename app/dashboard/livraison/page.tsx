@@ -2,11 +2,11 @@ import { getMerchantContext } from "@/lib/auth/merchant-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { can } from "@/lib/types";
 import { formatDateFr } from "@/lib/utils";
-import { getProvider, decryptConfig } from "@/lib/providers/shipping";
+import { getProvider, providerCapabilities } from "@/lib/providers/shipping";
 import { PageHeader, Card, CardHeader, Table, Th, Td, Badge, EmptyState } from "@/components/ui";
 import { ZonesEditor } from "@/components/dashboard/zones-editor";
-import { ManualShippingMode, ShippingProviderForm, type ProviderInfo } from "@/components/dashboard/shipping-provider-form";
-import { SHIPPING_PROVIDER_KEYS } from "@/lib/types";
+import { ShippingModeSelector, type MerchantCarrier } from "@/components/dashboard/shipping-mode-selector";
+
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ export default async function LivraisonPage() {
 
   const [zonesRes, integrationsRes, shipmentsRes] = await Promise.all([
     admin.from("shipping_zones").select("*").eq("store_id", ctx.store.id).order("wilaya_code", { ascending: true }),
-    admin.from("shipping_integrations").select("*").eq("store_id", ctx.store.id),
+    admin.from("shipping_integrations").select("provider_key, status, is_active").eq("store_id", ctx.store.id),
     admin.from("shipments").select("*").eq("store_id", ctx.store.id).order("created_at", { ascending: false }).limit(15),
   ]);
   const shipments = (shipmentsRes.data ?? []) as Array<{ id: string; order_id: string; provider_key: string; status: string; tracking_number: string | null; provider_shipment_id: string | null; created_at: string }>;
@@ -30,48 +30,22 @@ export default async function LivraisonPage() {
   const zones = zonesRes.data;
   const integrations = integrationsRes.data;
 
-  // Build the provider list (mask secrets before sending to the browser).
-  const byKey = new Map(((integrations ?? []) as Array<Record<string, unknown>>).map((r) => [r.provider_key as string, r]));
-  const providers: ProviderInfo[] = SHIPPING_PROVIDER_KEYS.map((key) => {
-    const provider = getProvider(key);
-    const row = byKey.get(key);
-    const config = row ? decryptConfig(row.config as Record<string, unknown> | null) : {};
-    return {
-      key,
-      label: provider.label,
-      statusNote: provider.statusNote,
-      fields: provider.configFields.map((f) => ({
-        key: f.key,
-        label: f.label,
-        secret: f.secret,
-        value: f.secret ? (config[f.key] ? "••••••••" : "") : (config[f.key] ?? ""),
-        placeholder: f.placeholder,
-      })),
-      is_active: (row?.is_active as boolean) ?? false,
-      status: (row?.status as string) ?? "unconfigured",
-      last_tested_at: (row?.last_tested_at as string | null) ?? null,
-      last_error: (row?.last_error as string | null) ?? null,
-    };
-  });
+  const byKey = new Map(((integrations ?? []) as Array<{ provider_key: string; status: string; is_active: boolean }>).map(row => [row.provider_key, row]));
+  const carriers: MerchantCarrier[] = ((integrations ?? []) as Array<{ provider_key: string; status: string; is_active: boolean }>)
+    .filter(row => row.provider_key !== "manual" && row.provider_key !== "mock" && row.status === "configured")
+    .map(row => ({ key: row.provider_key, label: getProvider(row.provider_key).label, isActive: row.is_active,
+      automatic: providerCapabilities(row.provider_key).automaticShipments, officeLookup: providerCapabilities(row.provider_key).officeLookup }));
+  const manualActive = !Array.from(byKey.values()).some(row => row.is_active && row.provider_key !== "manual");
 
   return (
     <>
-      <PageHeader title="Livraison" subtitle="Zones de frais par wilaya, transporteur actif et expéditions." />
+      <PageHeader title="Livraison" subtitle="Mode actif, tarifs et suivi des expéditions." />
 
       <div className="space-y-4">
-        <Card>
-          <CardHeader title="Livraison manuelle" subtitle="Tarifs par wilaya, sans connexion API." />
-          <ManualShippingMode active={Boolean(byKey.get("manual")?.is_active) || !Array.from(byKey.values()).some(row=>row.is_active)} canManage={canManage} />
-          <ZonesEditor
-            canManage={canManage}
-            initial={((zones ?? []) as Array<{ wilaya_code: number; home_fee_cents: number | null; office_fee_cents: number | null; is_active: boolean }>).map((z) => ({ ...z }))}
-          />
-        </Card>
-
-        <Card>
-          <CardHeader title="Transporteur API" subtitle="Connexion et activation d'un prestataire. Les jetons restent chiffrés côté serveur." />
-          <ShippingProviderForm providers={providers} canManage={canManage} />
-        </Card>
+        <ShippingModeSelector manualActive={manualActive} carriers={carriers} canManage={canManage} manualContent={<ZonesEditor
+          canManage={canManage}
+          initial={((zones ?? []) as Array<{ wilaya_code: number; home_fee_cents: number | null; office_fee_cents: number | null; is_active: boolean }>).map(z => ({ ...z }))}
+        />} />
 
         <Card>
           <CardHeader title="Dernières expéditions" />
@@ -90,7 +64,7 @@ export default async function LivraisonPage() {
               ))}
             </Table>
           ) : (
-            <EmptyState icon="🚚" title="Aucune expédition" text="Envoyez une commande au transporteur depuis sa fiche pour la voir ici." />
+            <EmptyState icon="🚚" title="Aucune expédition" text="Marquez une commande comme expédiée depuis sa fiche pour la voir ici." />
           )}
         </Card>
       </div>

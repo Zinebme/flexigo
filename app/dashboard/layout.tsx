@@ -57,7 +57,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const dir = getLangDir(dashboardLang);
 
   return (
-    <div className={`min-h-screen bg-slate-50 ${dir === "rtl" ? "rtl" : "ltr"}`} dir={dir}>
+    <div className={`merchant-dashboard min-h-screen bg-[#f5f6fa] ${dir === "rtl" ? "rtl" : "ltr"}`} dir={dir}>
       <DashboardSidebar storeName={ctx.store.name} role={ctx.role} previewUrl={`/s/${ctx.store.slug}`} lang={dashboardLang} />
       <div className={dir === "rtl" ? "lg:pr-60 lg:pl-0" : "lg:pl-60"}>
         <DashboardTopbar
@@ -69,6 +69,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           supportStoreName={ctx.store.name}
           lang={dashboardLang}
         />
+        <nav className="flex gap-2 overflow-x-auto border-b border-slate-200 bg-white px-4 py-2 text-xs font-semibold lg:hidden" aria-label="Navigation marchand">
+          {[["Accueil", "/dashboard"], ["Commandes", "/dashboard/commandes"], ["Produits", "/dashboard/produits"], ["Livraison", "/dashboard/livraison"], ["Site", "/dashboard/site"], ["Paramètres", "/dashboard/parametres"]].map(([label, href]) => <Link key={href} href={href!} className="shrink-0 rounded-lg bg-rose-50 px-3 py-2 text-rose-700">{label}</Link>)}
+        </nav>
         <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:py-8">{children}</main>
       </div>
     </div>

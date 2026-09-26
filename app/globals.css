@@ -38,3 +38,11 @@ body {
   background: #cbd5e1;
   border-radius: 8px;
 }
+
+.merchant-dashboard input:focus-visible,
+.merchant-dashboard select:focus-visible,
+.merchant-dashboard textarea:focus-visible,
+.merchant-dashboard button:focus-visible,
+.merchant-dashboard a:focus-visible {
+  outline-color: #e11d48;
+}

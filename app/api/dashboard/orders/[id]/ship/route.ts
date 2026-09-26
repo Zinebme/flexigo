@@ -4,7 +4,7 @@ import { getMerchantContext, requireCapability } from "@/lib/auth/merchant-conte
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { err, toErrorResponse } from "@/lib/errors";
-import { sendShipment, getProvider } from "@/lib/providers/shipping";
+import { sendShipment, getProvider, providerCapabilities } from "@/lib/providers/shipping";
 import { SHIPPING_PROVIDER_KEYS } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,7 @@ export const runtime = "nodejs";
 
 const bodySchema = z.object({
   provider: z.enum(SHIPPING_PROVIDER_KEYS).optional(),
+  tracking_number: z.string().trim().max(120).optional(),
 });
 
 /**
@@ -68,15 +69,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       providerKey = body.provider;
       integration = list.find((i) => i.provider_key === providerKey) ?? null;
     } else {
-      const active = list.find((i) => i.is_active) ?? list[0] ?? null;
+      const active = list.find((i) => i.is_active) ?? null;
       integration = active;
-      providerKey = active && isKnownKey(active.provider_key) ? active.provider_key : "manual";
+      providerKey = active && isKnownKey(active.provider_key) && providerCapabilities(active.provider_key).automaticShipments ? active.provider_key : "manual";
     }
+    if (providerKey === "manual") integration = list.find((i) => i.provider_key === "manual") ?? null;
     const provider = getProvider(providerKey);
-    const config = integration?.config ?? null;
+    if (providerKey === "mock" || (providerKey !== "manual" && (!integration?.is_active || !providerCapabilities(providerKey).automaticShipments))) {
+      throw err("UNSUPPORTED", "Ce transporteur n'est pas activé pour l'envoi automatique. Utilisez le mode manuel.");
+    }
+    const config = providerKey === "manual" ? null : integration?.config ?? null;
 
     // Guard: non-manual providers must be configured.
-    if (providerKey !== "manual" && providerKey !== "mock" && integration?.status !== "configured") {
+    if (providerKey !== "manual" && integration?.status !== "configured") {
       // `status` not selected above; treat missing config as unconfigured.
       const hasConfig = config && Object.values(config).some((v) => typeof v === "string" && v.length > 0);
       if (!hasConfig) throw err("CONFIG_MISSING", `Configurez d'abord le transporteur « ${provider.label} » dans Livraison.`);
@@ -105,6 +110,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         totalCents: order.total_cents,
       },
     });
+    const trackingNumber = providerKey === "manual" ? body.tracking_number || null : result.trackingNumber;
 
     const now = new Date().toISOString();
 
@@ -115,7 +121,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       integration_id: integration?.id ?? null,
       provider_key: providerKey,
       provider_shipment_id: result.providerShipmentId,
-      tracking_number: result.trackingNumber,
+      tracking_number: trackingNumber,
       status: result.status,
     });
     if (shipError) throw shipError;
@@ -125,7 +131,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .from("orders")
       .update({
         status: "shipped",
-        tracking_number: result.trackingNumber,
+        tracking_number: trackingNumber,
         shipping_provider: providerKey,
         updated_at: now,
       })
@@ -153,7 +159,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         order_number: order.order_number,
         provider: providerKey,
         provider_shipment_id: result.providerShipmentId,
-        tracking_number: result.trackingNumber,
+        tracking_number: trackingNumber,
       },
     });
 
@@ -161,7 +167,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       ok: true,
       provider: providerKey,
       provider_shipment_id: result.providerShipmentId,
-      tracking_number: result.trackingNumber,
+      tracking_number: trackingNumber,
       status: result.status,
     });
   } catch (e) {

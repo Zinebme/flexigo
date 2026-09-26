@@ -49,6 +49,13 @@ export function getProvider(key: string): ShippingProvider {
   return provider;
 }
 
+/** A stored credential alone does not make a carrier's shipment or office API operational. */
+export function providerCapabilities(key: string) {
+  // The mock adapter is intentionally unavailable on production storefronts.
+  const simulated = key === "mock" && process.env.NODE_ENV !== "production";
+  return { automaticShipments: simulated, officeLookup: simulated };
+}
+
 /** Send an order to the configured carrier (server-side only). */
 export async function sendShipment(args: {
   providerKey: string;

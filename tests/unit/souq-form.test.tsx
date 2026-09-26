@@ -106,7 +106,7 @@ function packButton(quantityLabel: string, priceLabel: string): HTMLButtonElemen
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
-  vi.stubGlobal("fetch", vi.fn());
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ offices: [{ value: "مكتب الجزائر — 1 rue Didouche", name: "مكتب الجزائر", address: "1 rue Didouche" }] }) }));
 });
 
 afterEach(() => {
@@ -127,7 +127,7 @@ describe("SOUQ — COD form interactions", () => {
     expect(summary().textContent).toContain("500 دج"); // 50 000 centimes, home
     expect(summary().textContent).toContain("3 400 دج"); // 2 900 + 500
 
-    await user.click(screen.getByRole("radio", { name: new RegExp(copy.checkout.office) }));
+    await user.click(await screen.findByRole("radio", { name: new RegExp(copy.checkout.office) }));
     expect(summary().textContent).toContain("300 دج"); // office fee for wilaya 16
     expect(summary().textContent).toContain("3 200 دج"); // 2 900 + 300
   });
@@ -159,9 +159,10 @@ describe("SOUQ — COD form interactions", () => {
     expect(screen.getByLabelText(new RegExp(copy.checkout.address))).not.toBeNull();
     expect(document.getElementById("souq-office")).toBeNull();
 
-    await user.click(screen.getByRole("radio", { name: new RegExp(copy.checkout.office) }));
+    await user.selectOptions(wilayaSelect(), "16");
+    await user.click(await screen.findByRole("radio", { name: new RegExp(copy.checkout.office) }));
     expect(document.getElementById("souq-address")).toBeNull();
-    expect(screen.getByLabelText(new RegExp(copy.checkout.office))).not.toBeNull();
+    expect(document.getElementById("souq-office")).toBeInstanceOf(HTMLSelectElement);
   });
 
   it("applies a quantity pack to the order and to the summary", async () => {
@@ -259,9 +260,9 @@ describe("SOUQ — COD form interactions", () => {
     await user.click(packButton(copy.product.twoUnits, "5 200 دج"));
     await user.click(submitButton());
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/checkout/abandoned");
-    const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
+    const checkoutCall = fetchMock.mock.calls.find(([url]) => url === "/api/checkout") as [string, RequestInit] | undefined;
+    expect(checkoutCall).toBeDefined();
+    const [url, init] = checkoutCall!;
     expect(url).toBe("/api/checkout");
     const body = JSON.parse(String(init.body)) as Record<string, unknown>;
 

@@ -408,6 +408,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     if (input.action === "shipping") {
+      // Credentials may be prepared ahead of time, but an undocumented adapter
+      // must never be activated as if it could create real shipments.
+      if (input.is_active && input.provider_key !== "manual" && input.provider_key !== "mock") {
+        throw err("UNSUPPORTED", "Ce transporteur est enregistré, mais son API d'envoi n'est pas encore intégrée. Activez le mode manuel.");
+      }
       const { data: currentShipping } = await admin
         .from("shipping_integrations")
         .select("config")

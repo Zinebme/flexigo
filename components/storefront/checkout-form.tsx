@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { WILAYAS } from "../../lib/algeria/wilayas";
 import { getCommunes } from "../../lib/algeria/communes";
@@ -50,11 +50,20 @@ export function CheckoutForm({
   const [address, setAddress] = useState("");
   const [deliveryType, setDeliveryType] = useState<"home" | "office">("home");
   const [office, setOffice] = useState("");
+  const [offices, setOffices] = useState<Array<{ value: string; name: string; address: string }>>([]);
   // Honeypot — humans never see or fill this.
   const [website, setWebsite] = useState("");
   const [state, setState] = useState<SubmitState>({ status: "idle" });
 
   const communes = useMemo(() => getCommunes(wilayaCode), [wilayaCode]);
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch(`/api/storefront/offices?store_slug=${encodeURIComponent(storeSlug)}&wilaya_code=${wilayaCode}`, { signal: controller.signal })
+      .then(async response => response.ok ? await response.json() as { offices?: Array<{ value: string; name: string; address: string }> } : { offices: [] })
+      .then(result => { if (!controller.signal.aborted) setOffices(result.offices ?? []); })
+      .catch(() => { if (!controller.signal.aborted) setOffices([]); });
+    return () => controller.abort();
+  }, [storeSlug, wilayaCode]);
   const finalCommune = commune === "__other__" ? otherCommune : commune;
 
   async function onSubmit(e: React.FormEvent) {
@@ -72,7 +81,7 @@ export function CheckoutForm({
       setState({ status: "error", message: dict.checkout.commune + " requise." });
       return;
     }
-    if (deliveryType === "office" && office.trim().length < 2) {
+    if (deliveryType === "office" && !offices.some(item => item.value === office)) {
       setState({ status: "error", message: dict.checkout.office + " requis." });
       return;
     }
@@ -174,7 +183,7 @@ export function CheckoutForm({
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label className={label} htmlFor="co-wilaya">{dict.checkout.wilaya} *</label>
-          <select id="co-wilaya" className={input} value={wilayaCode} onChange={(e) => { setWilayaCode(Number(e.target.value)); setCommune(""); }}>
+          <select id="co-wilaya" className={input} value={wilayaCode} onChange={(e) => { setWilayaCode(Number(e.target.value)); setCommune(""); setOffice(""); setOffices([]); setDeliveryType("home"); }}>
             {WILAYAS.map((w) => (
               <option key={w.code} value={w.code}>{w.name}</option>
             ))}
@@ -219,23 +228,22 @@ export function CheckoutForm({
           >
             🏠 {dict.checkout.homeDelivery}
           </button>
-          <button
+          {offices.length > 0 && <button
             type="button"
             onClick={() => setDeliveryType("office")}
             className={`rounded-lg border px-4 py-3 text-sm font-semibold transition ${deliveryType === "office" ? "border-[var(--fx-primary)] bg-[var(--fx-primary)]/5 text-[var(--fx-primary)]" : "border-slate-200 text-slate-600"}`}
           >
             🏢 {dict.checkout.officeDelivery}
-          </button>
+          </button>}
         </div>
-        {deliveryType === "office" ? (
-          <input
-            className={`${input} mt-3`}
-            value={office}
-            onChange={(e) => setOffice(e.target.value)}
-            placeholder={dict.checkout.officePlaceholder}
-            required
-            maxLength={120}
-          />
+        {deliveryType === "office" && offices.length > 0 ? (
+          <div className="mt-3"><label className={label} htmlFor="co-office">Choisir un bureau de retrait *</label>
+            <select id="co-office" className={input} value={office} onChange={e => setOffice(e.target.value)} required>
+              <option value="">Choisir un bureau</option>
+              {offices.map(item => <option key={item.value} value={item.value}>{item.name} — {item.address}</option>)}
+            </select>
+            {office && <p className="mt-2 text-sm text-slate-600">Adresse du bureau : {offices.find(item => item.value === office)?.address}</p>}
+          </div>
         ) : null}
       </div>
 

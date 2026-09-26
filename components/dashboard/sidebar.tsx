@@ -79,10 +79,10 @@ function NavLink({ item, pathname, dict }: { item: NavItem; pathname: string; di
       href={item.href}
       className={cn(
         "flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition",
-        active ? "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+        active ? "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-100" : "text-slate-600 hover:bg-rose-50/60 hover:text-slate-900",
       )}
     >
-      <span className={cn("flex h-7 w-7 items-center justify-center rounded-lg text-sm", active ? "bg-blue-100 text-blue-700" : "bg-slate-50 text-slate-500")}>{item.icon}</span>
+      <span className={cn("flex h-7 w-7 items-center justify-center rounded-lg text-sm", active ? "bg-rose-100 text-rose-700" : "bg-slate-50 text-slate-500")}>{item.icon}</span>
       <span>{dict[item.key] ?? item.key}</span>
     </Link>
   );
@@ -106,7 +106,7 @@ export function DashboardSidebar({
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-slate-200 bg-white lg:flex rtl:right-0 rtl:left-auto rtl:border-l rtl:border-r-0">
       <div className="border-b border-slate-100 px-4 py-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-sm font-black text-white">F</span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600 text-sm font-black text-white">M</span>
           <div className="min-w-0">
             <div className="truncate text-sm font-bold text-slate-900">{storeName}</div>
             <div className="text-[11px] text-slate-400">{lang === "ar" ? "لوحة المتجر" : lang === "en" ? "Store dashboard" : "Tableau de bord"}</div>
@@ -116,7 +116,7 @@ export function DashboardSidebar({
           href={previewUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 flex min-h-10 w-full items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 transition hover:bg-white hover:shadow-sm"
+          className="mt-4 flex min-h-10 w-full items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-3 text-sm font-semibold text-rose-700 transition hover:bg-white hover:shadow-sm"
         >
           ◉ {lang === "ar" ? "عرض المتجر" : lang === "en" ? "View store" : "Voir la boutique"}
         </a>
@@ -127,25 +127,17 @@ export function DashboardSidebar({
           {HOME.filter((item) => visible(item, role)).map((item) => <NavLink key={item.href} item={item} pathname={pathname} dict={dict} />)}
         </div>
 
-        <div className="mt-4 space-y-2">
+        <div className="mt-5 space-y-5">
           {GROUPS.map((group) => {
             const items = group.items.filter((item) => visible(item, role));
             if (!items.length) return null;
-            const active = items.some((item) => pathname.startsWith(item.href));
             return (
-              <details key={group.label.fr} open={active} className="group rounded-xl">
-                <summary className={cn(
-                  "flex min-h-10 cursor-pointer list-none items-center gap-3 rounded-xl px-3 text-sm font-semibold transition",
-                  active ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-                )}>
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-50 text-slate-500">{group.icon}</span>
-                  <span className="flex-1">{group.label[lang]}</span>
-                  <span className="text-xs text-slate-400 transition group-open:rotate-180">⌄</span>
-                </summary>
-                <div className="ms-4 mt-1 space-y-1 border-s border-slate-100 ps-2">
+              <div key={group.label.fr}>
+                <div className="mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">{group.label[lang]}</div>
+                <div className="space-y-1">
                   {items.map((item) => <NavLink key={item.href} item={item} pathname={pathname} dict={dict} />)}
                 </div>
-              </details>
+              </div>
             );
           })}
         </div>

@@ -14,6 +14,7 @@ export type AuditAction =
   | "order.status_changed"
   | "order.created"
   | "order.note"
+  | "order.edited"
   | "price.changed"
   | "product.created"
   | "product.updated"

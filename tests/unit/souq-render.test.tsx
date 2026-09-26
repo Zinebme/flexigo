@@ -177,12 +177,9 @@ describe("SOUQ — COD form rendering", () => {
     expect(html).toContain("31 - وهران");
   });
 
-  it("offers home and office delivery as real radio inputs", () => {
-    expect(html).toContain(copy.checkout.home);
-    expect(html).toContain(copy.checkout.office);
-    expect(html).toMatch(/<input[^>]*type="radio"[^>]*name="souq-delivery"[^>]*value="home"/);
-    expect(html).toMatch(/<input[^>]*type="radio"[^>]*name="souq-delivery"[^>]*value="office"/);
-    expect(html).toContain('checked=""'); // home is the default choice
+  it("offers home delivery initially, without an unverified office address field", () => {
+    expect(html).toContain('id="souq-address"');
+    expect(html).not.toContain('id="souq-office"');
   });
 
   it("renders the display-only summary lines and the amber CTA", () => {

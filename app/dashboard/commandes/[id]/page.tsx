@@ -3,11 +3,13 @@ import Link from "next/link";
 import { getMerchantContext } from "@/lib/auth/merchant-context";
 import { getOrderDetail } from "@/lib/dashboard/orders";
 import { can } from "@/lib/types";
-import { ORDER_STATUSES, ORDER_STATUS_LABELS, type OrderStatus } from "@/lib/types";
+import { ORDER_STATUS_LABELS, type OrderStatus } from "@/lib/types";
 import { formatDA, formatDateTimeFr, timeAgoFr } from "@/lib/utils";
 import { Card, CardHeader, Table, Th, Td, Badge, PageHeader } from "@/components/ui";
-import { StatusUpdateForm } from "@/components/dashboard/status-update-form";
+import { OrderEditForm } from "@/components/dashboard/order-edit-form";
 import { ShipButton } from "@/components/dashboard/ship-button";
+import { getAdminSupabase } from "@/lib/supabase/admin";
+import { providerCapabilities } from "@/lib/providers/shipping";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +30,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const canStatus = can(ctx.role, "orders.manage");
   const canShip = can(ctx.role, "orders.ship");
   const alreadyShipped = order.status === "shipped" || order.status === "in_transit" || !!shipment;
-  const providerKey = order.shipping_provider ?? "mock";
+  const { data: activeCarrier } = await getAdminSupabase().from("shipping_integrations")
+    .select("provider_key").eq("store_id", ctx.store.id).eq("is_active", true).limit(1).maybeSingle();
+  const configuredProvider = activeCarrier?.provider_key ?? "manual";
+  const providerKey = configuredProvider === "manual" || providerCapabilities(configuredProvider).automaticShipments ? configuredProvider : "manual";
   const wa = `https://wa.me/${order.phone.replace(/[^0-9]/g, "")}`;
   const tel = `tel:+${order.phone.replace(/[^0-9]/g, "")}`;
 
@@ -72,18 +77,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           </Card>
 
           <Card>
-            <div id="modifier"><CardHeader title="Notes internes" /></div>
-            <StatusUpdateForm
-              orderId={order.id}
-              currentStatus={order.status}
-              statuses={ORDER_STATUSES.map((s) => ({ value: s, label: ORDER_STATUS_LABELS[s] }))}
-              canChange={canStatus}
-              canNote={canStatus}
-            />
+            <div id="modifier"><CardHeader title="Modifier la commande" subtitle="Coordonnées, adresse, statut et note interne" /></div>
+            {canStatus ? <OrderEditForm order={order} /> : <p className="p-5 text-sm text-slate-500">Modification réservée aux gestionnaires.</p>}
             {order.internal_notes ? (
-              <p className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{order.internal_notes}</p>
+              <div className="border-t border-slate-100 p-5"><h3 className="mb-2 text-sm font-semibold text-slate-700">Notes précédentes</h3><p className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{order.internal_notes}</p></div>
             ) : (
-              <p className="mt-3 text-sm text-slate-400">Aucune note.</p>
+              null
             )}
           </Card>
 
@@ -95,7 +94,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <ol className="space-y-3">
                 {history.map((h) => (
                   <li key={h.id} className="flex gap-3">
-                    <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500" />
+                    <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-rose-500" />
                     <div className="min-w-0">
                       <p className="text-sm text-slate-800">
                         {h.from_status && <span className="text-slate-400">{ORDER_STATUS_LABELS[h.from_status as OrderStatus] ?? h.from_status} → </span>}
@@ -122,7 +121,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             )}
             {alreadyShipped && (
               <div className="rounded-lg bg-indigo-50 p-3 text-sm text-indigo-800">
-                <p className="font-semibold">Suivi transporteur</p>
+                <p className="font-semibold">Suivi de l’expédition</p>
                 {shipment?.provider_shipment_id && <p className="mt-1">Réf. transporteur : <span className="font-mono">{shipment.provider_shipment_id}</span></p>}
                 {order.tracking_number && <p>N° de suivi : <span className="font-mono">{order.tracking_number}</span></p>}
                 {order.shipping_provider && <p>Transporteur : {order.shipping_provider}</p>}
@@ -136,7 +135,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <div><dt className="text-slate-400">Nom</dt><dd className="font-medium text-slate-800">{order.full_name}</dd></div>
               <div><dt className="text-slate-400">Téléphone</dt>
                 <dd className="mt-1 flex flex-wrap gap-2">
-                  <a className="font-semibold text-blue-600" href={tel}>{order.phone}</a>
+                  <a className="font-semibold text-rose-600" href={tel}>{order.phone}</a>
                   <a className="text-emerald-600" href={wa} target="_blank" rel="noreferrer">WhatsApp</a>
                 </dd>
               </div>

@@ -377,7 +377,7 @@ export async function POST(req: Request) {
     await admin.from("shipping_integrations").upsert({
       store_id: newStoreId,
       provider_key: input.shipping_provider,
-      is_active: true,
+      is_active: input.shipping_provider === "manual",
       config: shippingConfig,
       status: input.shipping_provider === "manual"
         ? "configured"
@@ -386,6 +386,13 @@ export async function POST(req: Request) {
           : "unconfigured",
       updated_at: new Date().toISOString(),
     } as never, { onConflict: "store_id,provider_key" });
+    if (input.shipping_provider !== "manual") {
+      const { error: manualError } = await admin.from("shipping_integrations").upsert({
+        store_id: newStoreId, provider_key: "manual", is_active: true,
+        config: {}, status: "configured", updated_at: new Date().toISOString(),
+      } as never, { onConflict: "store_id,provider_key" });
+      if (manualError) throw manualError;
+    }
 
     // Marketing integrations
     const marketing: Array<{ provider_key: string; config: Record<string, string> }> = [];

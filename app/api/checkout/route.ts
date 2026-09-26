@@ -2,6 +2,7 @@ import { type NextRequest } from "next/server";
 import { z } from "zod";
 import { getAnonSupabase } from "../../../lib/supabase/anon";
 import { getAdminSupabase } from "../../../lib/supabase/admin";
+import { getAvailableOffices } from "../../../lib/providers/shipping/offices";
 import { resolveStoreBySlug } from "../../../lib/storefront/resolve";
 import { hit, clientIpFromHeaders } from "../../../lib/rate-limit";
 import { normalizeDZPhone } from "../../../lib/phone";
@@ -153,6 +154,13 @@ export async function POST(req: NextRequest) {
     const store = await resolveStoreBySlug(body.store_slug);
     if (!store || store.status !== "active") {
       return Response.json({ ok: false, error: messageFor("STORE_NOT_ACTIVE", locale) }, { status: 400 });
+    }
+
+    if (body.delivery_type === "office") {
+      const offices = await getAvailableOffices(store.id, body.wilaya_code);
+      if (!body.office || !offices.some((office) => office.value === body.office)) {
+        return Response.json({ ok: false, error: locale === "ar" ? "التوصيل إلى المكتب غير متاح لهذه الولاية حالياً" : "Aucun bureau de livraison disponible pour cette wilaya." }, { status: 400 });
+      }
     }
 
     const service = getAdminSupabase();

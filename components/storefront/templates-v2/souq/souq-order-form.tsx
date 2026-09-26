@@ -316,7 +316,6 @@ export function useSouqOrderState(
       const wilaya = fieldSetting(data.settings, "wilaya");
       const commune = fieldSetting(data.settings, "commune");
       const addressField = fieldSetting(data.settings, "address");
-      const officeField = fieldSetting(data.settings, "office");
 
       const firstName = field("souq-first-name");
       const lastName = field("souq-last-name");
@@ -337,7 +336,7 @@ export function useSouqOrderState(
       if (deliveryType === "home" && addressField.enabled && addressField.required && addressValue.length < 4) {
         errors.address = data.copy.errors.address;
       }
-      if (deliveryType === "office" && officeField.enabled && officeField.required && officeValue.length < 2) {
+      if (deliveryType === "office" && officeValue.length < 2) {
         errors.office = data.copy.errors.office;
       }
       if (optionIssues.length > 0) {
@@ -819,6 +818,8 @@ export function SouqOrderFormView({
   const { copy, lang, settings, product, zones } = data;
   const { preview, fieldErrors, submitState } = form;
   const [communeValue, setCommuneValue] = useState("");
+  const [offices, setOffices] = useState<Array<{ value: string; name: string; address: string }>>([]);
+  const [officeValue, setOfficeValue] = useState("");
   const otherCommune = communeValue === "__other__";
   const communes = useMemo(() => (form.wilayaCode ? getCommunes(form.wilayaCode) : []), [form.wilayaCode]);
 
@@ -829,10 +830,22 @@ export function SouqOrderFormView({
   const wilaya = fieldSetting(settings, "wilaya");
   const commune = fieldSetting(settings, "commune");
   const address = fieldSetting(settings, "address");
-  const office = fieldSetting(settings, "office");
 
   const homeAvailable = settings.showDeliveryChoice;
-  const officeAvailable = settings.showDeliveryChoice && data.officeDeliveryEnabled;
+  const officeAvailable = settings.showDeliveryChoice && data.officeDeliveryEnabled && offices.length > 0;
+  useEffect(() => {
+    if (!data.officeDeliveryEnabled || !form.wilayaCode) return;
+    if (data.previewMode) {
+      Promise.resolve().then(() => setOffices([{ value: "Bureau central — Adresse de démonstration", name: "Bureau central", address: "Adresse de démonstration" }]));
+      return;
+    }
+    const controller = new AbortController();
+    void fetch(`/api/storefront/offices?store_slug=${encodeURIComponent(data.storeSlug)}&wilaya_code=${form.wilayaCode}`, { signal: controller.signal })
+      .then(async response => response.ok ? await response.json() as { offices?: Array<{ value: string; name: string; address: string }> } : { offices: [] })
+      .then(result => { if (!controller.signal.aborted) setOffices(result.offices ?? []); })
+      .catch(() => { if (!controller.signal.aborted) setOffices([]); });
+    return () => controller.abort();
+  }, [data.officeDeliveryEnabled, data.previewMode, data.storeSlug, form.wilayaCode]);
   const wilayaOptions = useMemo(() => WILAYAS.map((w) => ({ code: w.code, label: `${w.code} - ${wilayaLabel(w.code, w.name, lang)}` })), [lang]);
 
   if (submitState.status === "success") {
@@ -1046,6 +1059,7 @@ export function SouqOrderFormView({
                     const value = event.target.value;
                     form.setWilayaCode(value ? Number(value) : null);
                     setCommuneValue("");
+                    setOffices([]); setOfficeValue(""); form.setDeliveryType("home");
                   }}
                 >
                   <option value="">{copy.checkout.wilayaPlaceholder}</option>
@@ -1126,27 +1140,20 @@ export function SouqOrderFormView({
             </div>
           ) : null}
 
-          {form.deliveryType === "office" && office.enabled ? (
+          {form.deliveryType === "office" && officeAvailable ? (
             <div data-field="office">
               <label className="souq-label" htmlFor="souq-office">
-                {copy.checkout.officeName} {office.required ? <span className="text-[var(--souq-danger)]">*</span> : null}
+                {lang === "ar" ? "اختر مكتب الاستلام" : lang === "en" ? "Choose a pickup office" : "Choisir un bureau de retrait"}
               </label>
-              <input
-                id="souq-office"
-                name="souq-office"
-                className="souq-input"
-                placeholder={copy.checkout.officePlaceholder}
-                maxLength={120}
-                required={office.required}
-                aria-invalid={Boolean(fieldErrors.office)}
-              />
-              {fieldErrors.office ? (
-                <p role="alert" className="souq-error">
-                  {fieldErrors.office}
-                </p>
-              ) : null}
+              <select id="souq-office" name="souq-office" className="souq-input" required value={officeValue} onChange={event => setOfficeValue(event.target.value)} aria-invalid={Boolean(fieldErrors.office)}>
+                <option value="">{lang === "ar" ? "اختر المكتب" : "Choisir un bureau"}</option>
+                {offices.map(office => <option key={office.value} value={office.value}>{office.name} — {office.address}</option>)}
+              </select>
+              {officeValue && <p className="mt-2 text-sm text-slate-600">{lang === "ar" ? "عنوان المكتب" : "Adresse du bureau"} : {offices.find(office => office.value === officeValue)?.address}</p>}
+              {fieldErrors.office && <p role="alert" className="souq-error">{fieldErrors.office}</p>}
             </div>
           ) : null}
+          {data.officeDeliveryEnabled && form.wilayaCode && offices.length === 0 && !data.previewMode ? <p className="text-xs text-slate-500">{lang === "ar" ? "لا توجد مكاتب متاحة في هذه الولاية حالياً؛ التوصيل إلى المنزل متاح." : "Aucun bureau disponible dans cette wilaya ; choisissez la livraison à domicile."}</p> : null}
         </div>
 
         {/* Quantity (when no bundle offer is selected) */}

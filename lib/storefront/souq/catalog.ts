@@ -10,6 +10,8 @@
  * RLS exposes for published/active stores.
  */
 import { getAnonSupabase } from "../../supabase/anon";
+import { getAdminSupabase } from "../../supabase/admin";
+import { providerCapabilities } from "../../providers/shipping";
 import type { FaqItemRow, ProductRow, ProductVariantRow, QuantityOfferRow, ReviewRow, StoreSettings } from "../../supabase/database.types";
 import { resolveSouqCheckoutSettings, type SouqCheckoutSettings } from "./checkout-settings";
 import type { SouqAddOnProduct, SouqVariantInput } from "./variants";
@@ -419,7 +421,7 @@ export async function loadSouqProductDetail(
   settings?: StoreSettings | null,
 ): Promise<SouqProductBundle> {
   const anon = getAnonSupabase();
-  const [{ data: imageRows }, { data: variantRows }, { data: offerRows }, zones, shop, reviews, faq] = await Promise.all([
+  const [{ data: imageRows }, { data: variantRows }, { data: offerRows }, zones, shop, reviews, faq, { data: activeCarrier }] = await Promise.all([
     anon
       .from("product_images")
       .select("id, url, position")
@@ -441,6 +443,7 @@ export async function loadSouqProductDetail(
     loadSouqShop(storeId),
     loadSouqReviews(storeId, product.id, 6),
     loadSouqFaq(storeId, 6),
+    getAdminSupabase().from("shipping_integrations").select("provider_key, status").eq("store_id", storeId).eq("is_active", true).limit(1).maybeSingle(),
   ]);
 
   const variants: SouqVariantInput[] = (variantRows ?? []).map((row: Pick<ProductVariantRow, "id" | "name" | "options" | "price_cents" | "stock" | "is_active">) => ({
@@ -483,7 +486,7 @@ export async function loadSouqProductDetail(
       hasZones: activeZones.length > 0,
       homeFromCents: homeFees.length > 0 ? Math.min(...homeFees) : null,
       officeFromCents: officeFees.length > 0 ? Math.min(...officeFees) : null,
-      officeEnabled: settings?.business?.office_delivery_enabled !== false,
+      officeEnabled: settings?.business?.office_delivery_enabled !== false && activeCarrier?.status === "configured" && providerCapabilities(activeCarrier.provider_key).officeLookup,
     },
   };
 }
