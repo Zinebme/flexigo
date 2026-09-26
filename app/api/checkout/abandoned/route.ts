@@ -17,6 +17,7 @@ const bodySchema = z.object({
   quantity: z.number().int().min(1).max(50),
   selected_options: z.record(z.string().max(40), z.array(z.string().max(60)).max(40)).optional(),
   estimated_total_cents: z.number().int().min(0).max(1_000_000_000).optional(),
+  stage: z.enum(["contact", "delivery", "submitted"]).default("contact"),
 });
 
 export async function POST(req: Request) {
@@ -43,8 +44,8 @@ export async function POST(req: Request) {
     quantity: body.quantity,
     selected_options: body.selected_options ?? {},
     estimated_total_cents: body.estimated_total_cents ?? null,
-    stage: "checkout_submitted",
-    reason_code: "submission_not_completed",
+    stage: body.stage,
+    reason_code: body.stage === "submitted" ? "submission_not_completed" : "left_before_confirmation",
     updated_at: new Date().toISOString(),
   }, { onConflict: "store_id,session_key" });
   if (error) return Response.json({ ok: false }, { status: 500 });

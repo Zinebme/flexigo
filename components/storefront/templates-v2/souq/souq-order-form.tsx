@@ -168,6 +168,7 @@ export function useSouqOrderState(
   const [wilayaCode, setWilayaCode] = useState<number | null>(null);
   const [submitState, setSubmitState] = useState<SubmitState>({ status: "idle" });
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const sessionKeyRef = useRef<string | null>(null);
 
   const variant = useMemo(
     () => resolveVariant(data.variants, data.optionGroups, selections),
@@ -229,7 +230,7 @@ export function useSouqOrderState(
           if (main) {
             await fetch("/api/checkout/abandoned", {
               method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ store_slug: data.storeSlug, session_key: body.abandoned_session_key,
+              body: JSON.stringify({ store_slug: data.storeSlug, session_key: body.abandoned_session_key, stage: "submitted",
                 product_id: main.product_id, variant_id: main.variant_id, quantity: main.quantity,
                 selected_options: main.selected_options, full_name: body.full_name, phone: body.phone,
                 wilaya_code: body.wilaya_code, estimated_total_cents }),
@@ -268,6 +269,37 @@ export function useSouqOrderState(
     },
     [data.copy, data.storeSlug, preview.totalCents],
   );
+
+  useEffect(() => {
+    if (data.previewMode || submitState.status === "success") return;
+    const form = formRef.current;
+    if (!form) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const capture = () => {
+      const fields = new FormData(form);
+      const read = (key: string) => String(fields.get(key) ?? "").trim();
+      const phone = read("souq-phone");
+      if (!isValidDZMobile(phone)) return;
+      const sessionKey = sessionKeyRef.current ??= crypto.randomUUID();
+      const selectedOptions = Object.fromEntries(Object.entries(selections).filter(([key, values]) =>
+        values.length > 0 && data.optionGroups.some((group) => group.key === key && group.selectionMode === "multiple"),
+      ));
+      void fetch("/api/checkout/abandoned", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ store_slug: data.storeSlug, session_key: sessionKey,
+          product_id: data.product.id, variant_id: variant?.id ?? null, quantity,
+          selected_options: selectedOptions,
+          full_name: [read("souq-first-name"), read("souq-last-name")].filter(Boolean).join(" "),
+          phone, ...(wilayaCode ? { wilaya_code: wilayaCode } : {}),
+          estimated_total_cents: preview.totalCents,
+          stage: wilayaCode ? "delivery" : "contact" }),
+      }).catch(() => undefined);
+    };
+    const schedule = () => { if (timer) clearTimeout(timer); timer = setTimeout(capture, 1200); };
+    form.addEventListener("change", schedule);
+    form.addEventListener("focusout", schedule);
+    return () => { if (timer) clearTimeout(timer); form.removeEventListener("change", schedule); form.removeEventListener("focusout", schedule); };
+  }, [data.optionGroups, data.previewMode, data.product.id, data.storeSlug, formRef, preview.totalCents, quantity, selections, submitState.status, variant?.id, wilayaCode]);
 
   const submit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -364,7 +396,7 @@ export function useSouqOrderState(
         office: deliveryType === "office" ? officeValue || null : null,
         website: field("souq-website"),
         locale: data.lang,
-        ...(data.previewMode ? {} : { abandoned_session_key: crypto.randomUUID(), estimated_total_cents: preview.totalCents }),
+        ...(data.previewMode ? {} : { abandoned_session_key: sessionKeyRef.current ??= crypto.randomUUID(), estimated_total_cents: preview.totalCents }),
       };
 
       if (data.previewMode) {
