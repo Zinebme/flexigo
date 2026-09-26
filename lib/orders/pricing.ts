@@ -18,7 +18,7 @@ import type {
 export interface PricedLine {
   unitPriceCents: number;
   lineTotalCents: number;
-  offer: Pick<QuantityOfferRow, "id" | "store_id" | "product_id" | "min_quantity" | "total_price_cents" | "label" | "is_active"> | null;
+  offer: Pick<QuantityOfferRow, "id" | "store_id" | "product_id" | "min_quantity" | "total_price_cents" | "label" | "is_active"> & { free_shipping?: boolean } | null;
   offerLabel: string | null;
 }
 
@@ -32,7 +32,7 @@ export function priceLine(
   product: Pick<ProductRow, "id" | "price_cents">,
   variant: Pick<ProductVariantRow, "id" | "price_cents"> | null,
   quantity: number,
-  offers: Array<Pick<QuantityOfferRow, "id" | "store_id" | "product_id" | "min_quantity" | "total_price_cents" | "label" | "is_active">>,
+  offers: Array<Pick<QuantityOfferRow, "id" | "store_id" | "product_id" | "min_quantity" | "total_price_cents" | "label" | "is_active"> & { free_shipping?: boolean }>,
 ): PricedLine {
   const base = variant ? (variant.price_cents ?? product.price_cents) : product.price_cents;
   const applicable = offers.filter(

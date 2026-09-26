@@ -5,7 +5,7 @@ import { formatDateFr } from "@/lib/utils";
 import { getProvider, decryptConfig } from "@/lib/providers/shipping";
 import { PageHeader, Card, CardHeader, Table, Th, Td, Badge, EmptyState } from "@/components/ui";
 import { ZonesEditor } from "@/components/dashboard/zones-editor";
-import { ShippingProviderForm, type ProviderInfo } from "@/components/dashboard/shipping-provider-form";
+import { ManualShippingMode, ShippingProviderForm, type ProviderInfo } from "@/components/dashboard/shipping-provider-form";
 import { SHIPPING_PROVIDER_KEYS } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -60,7 +60,8 @@ export default async function LivraisonPage() {
 
       <div className="space-y-4">
         <Card>
-          <CardHeader title="Frais de livraison par zone" subtitle="58 wilayas + zone par défaut. Appliqué au checkout selon la destination." />
+          <CardHeader title="Livraison manuelle" subtitle="Tarifs par wilaya, sans connexion API." />
+          <ManualShippingMode active={Boolean(byKey.get("manual")?.is_active) || !Array.from(byKey.values()).some(row=>row.is_active)} canManage={canManage} />
           <ZonesEditor
             canManage={canManage}
             initial={((zones ?? []) as Array<{ wilaya_code: number; home_fee_cents: number | null; office_fee_cents: number | null; is_active: boolean }>).map((z) => ({ ...z }))}
@@ -68,7 +69,7 @@ export default async function LivraisonPage() {
         </Card>
 
         <Card>
-          <CardHeader title="Transporteur" subtitle="Interface d'adaptation neutre : Navex, manuel ou mock. Les jetons sont chiffrés et jamais exposés." />
+          <CardHeader title="Transporteur API" subtitle="Connexion et activation d'un prestataire. Les jetons restent chiffrés côté serveur." />
           <ShippingProviderForm providers={providers} canManage={canManage} />
         </Card>
 

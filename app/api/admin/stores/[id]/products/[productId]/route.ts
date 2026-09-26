@@ -4,6 +4,7 @@ import { getAdminSupabase } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { toErrorResponse, err } from "@/lib/errors";
 import { productSchema, quantityOfferSchema } from "@/lib/schemas";
+import { validateProductLinks } from "@/lib/catalog/validate-product-links";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,6 +36,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       .maybeSingle();
     if (curError) throw curError;
     if (!current) throw err("NOT_FOUND", "Produit introuvable");
+    await validateProductLinks(storeId, input.category_id, [
+      ...(input.related_product_ids ?? []), ...(input.cross_sell_product_ids ?? []),
+      ...(input.option_groups ?? []).flatMap((group) => group.values.map((value) => value.addon_product_id).filter((linkedId): linkedId is string => Boolean(linkedId))),
+    ]);
 
     // Build the update patch.
     const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -60,6 +65,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (input.short_description !== undefined) patch.short_description = input.short_description || null;
     if (input.cost !== undefined) patch.cost_cents = input.cost != null ? Math.round(input.cost * 100) : null;
     if (input.is_digital !== undefined) patch.is_digital = input.is_digital;
+    if (input.free_shipping !== undefined) patch.free_shipping = input.free_shipping;
     if (input.gallery_mode !== undefined) patch.gallery_mode = input.gallery_mode;
     if (input.landing_images !== undefined) patch.landing_images = input.landing_images;
     if (input.min_order_quantity !== undefined) patch.min_order_quantity = input.min_order_quantity;
@@ -186,6 +192,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           total_price_cents: o.total_price_cents,
           label: o.label || `Offre ${o.min_quantity}+`,
           is_active: o.is_active,
+          free_shipping: o.free_shipping,
           position: idx,
         }));
         const { error: offError } = await admin.from("quantity_offers").insert(rows);

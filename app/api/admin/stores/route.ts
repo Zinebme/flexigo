@@ -290,6 +290,7 @@ export async function POST(req: Request) {
           is_active: input.publish_mode !== "draft",
           is_featured: product.featured,
           is_digital: product.is_digital,
+          free_shipping: product.free_shipping,
           gallery_mode: product.gallery_mode,
           stock_tracking_mode: product.stock_tracking_mode,
           min_order_quantity: product.min_order_quantity,
@@ -337,6 +338,7 @@ export async function POST(req: Request) {
             total_price_cents: offer.total_price_cents,
             label: offer.label || `Offre ${offer.min_quantity}+`,
             is_active: offer.is_active,
+            free_shipping: offer.free_shipping,
             position,
           })) as never,
         );

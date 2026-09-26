@@ -16,6 +16,7 @@ type Dict = Record<string, string>;
 const FR: Dict = {
   "nav.dashboard": "Tableau de bord",
   "nav.orders": "Commandes",
+  "nav.abandonedOrders": "Commandes abandonnées",
   "nav.products": "Produits",
   "nav.categories": "Catégories",
   "nav.customers": "Clients",
@@ -46,6 +47,7 @@ const FR: Dict = {
 const AR: Dict = {
   "nav.dashboard": "لوحة التحكم",
   "nav.orders": "الطلبات",
+  "nav.abandonedOrders": "الطلبات المتروكة",
   "nav.products": "المنتجات",
   "nav.categories": "الفئات",
   "nav.customers": "العملاء",
@@ -76,6 +78,7 @@ const AR: Dict = {
 const EN: Dict = {
   "nav.dashboard": "Dashboard",
   "nav.orders": "Orders",
+  "nav.abandonedOrders": "Abandoned orders",
   "nav.products": "Products",
   "nav.categories": "Categories",
   "nav.customers": "Customers",

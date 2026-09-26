@@ -48,6 +48,7 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
     price: p.price_cents / 100,
     cost: p.cost_cents != null ? p.cost_cents / 100 : null,
     is_digital: p.is_digital ?? false,
+    free_shipping: Boolean(p.free_shipping),
     gallery_mode: p.gallery_mode ?? "slideshow",
     landing_images: p.landing_images ?? [],
     min_order_quantity: p.min_order_quantity ?? 1,
@@ -76,10 +77,11 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
       stock: v.stock,
       is_active: v.is_active,
     })),
-    offers: ((offers ?? []) as Array<{ min_quantity: number; total_price_cents: number; label: string | null }>).map((o) => ({
+    offers: ((offers ?? []) as Array<{ min_quantity: number; total_price_cents: number; label: string | null; free_shipping?: boolean }>).map((o) => ({
       min_quantity: o.min_quantity,
       total_price: o.total_price_cents / 100,
       label: o.label ?? "",
+      free_shipping: o.free_shipping ?? false,
     })),
   };
 

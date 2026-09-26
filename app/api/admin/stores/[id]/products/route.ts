@@ -5,6 +5,7 @@ import { logAudit } from "@/lib/audit";
 import { toErrorResponse, err } from "@/lib/errors";
 import { productSchema, quantityOfferSchema, parseBody } from "@/lib/schemas";
 import { slugify } from "@/lib/slug";
+import { validateProductLinks } from "@/lib/catalog/validate-product-links";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,6 +25,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const admin = getAdminSupabase();
     const { data: store } = await admin.from("stores").select("id").eq("id", storeId).is("deleted_at", null).maybeSingle();
     if (!store) throw err("NOT_FOUND", "Site introuvable.");
+    await validateProductLinks(storeId, input.category_id, [
+      ...input.related_product_ids, ...input.cross_sell_product_ids,
+      ...input.option_groups.flatMap((group) => group.values.map((value) => value.addon_product_id).filter((linkedId): linkedId is string => Boolean(linkedId))),
+    ]);
 
     // Unique slug within the store.
     let slug = input.slug ? slugify(input.slug) : slugify(input.name);
@@ -74,6 +79,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         compare_at_price_cents: compareCents,
         cost_cents: costCents,
         is_digital: input.is_digital,
+        free_shipping: input.free_shipping,
         gallery_mode: input.gallery_mode,
         landing_images: input.landing_images,
         min_order_quantity: input.min_order_quantity,
@@ -120,6 +126,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         total_price_cents: offer.total_price_cents,
         label: offer.label || `Offre ${offer.min_quantity}+`,
         is_active: offer.is_active,
+        free_shipping: offer.free_shipping,
         position: index,
       }));
       const { error: offerError } = await admin.from("quantity_offers").insert(rows);

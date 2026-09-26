@@ -28,17 +28,34 @@ export interface Analytics {
   delivered_ratio: number;
 }
 
+export interface AnalyticsFilters { product_id?: string; status?: string; from?: string; to?: string }
+
 function dayKey(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-export async function getAnalytics(storeId: string): Promise<Analytics> {
+export async function getAnalytics(storeId: string, filters: AnalyticsFilters = {}): Promise<Analytics> {
   const admin = getAdminSupabase();
-  const { data: orders } = await admin
+  let query = admin
     .from("orders")
     .select("*")
     .eq("store_id", storeId);
-  const os = (orders ?? []) as OrderRow[];
+  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.from) query = query.gte("created_at", `${filters.from}T00:00:00.000Z`);
+  if (filters.to) query = query.lte("created_at", `${filters.to}T23:59:59.999Z`);
+  const { data: orders, error: orderError } = await query;
+  if (orderError) throw new Error(orderError.message);
+  let os = (orders ?? []) as OrderRow[];
+  if (filters.product_id && os.length) {
+    const ids = new Set<string>();
+    for (let i = 0; i < os.length; i += 500) {
+      const { data: items, error } = await admin.from("order_items").select("order_id")
+        .eq("product_id", filters.product_id).in("order_id", os.slice(i, i + 500).map((order) => order.id));
+      if (error) throw new Error(error.message);
+      for (const item of items ?? []) ids.add(item.order_id);
+    }
+    os = os.filter((order) => ids.has(order.id));
+  } else if (filters.product_id) os = [];
 
   const cancelled = (s: string) =>
     ORDER_TERMINAL_STATUSES.includes(s as (typeof ORDER_TERMINAL_STATUSES)[number]) || s === "cancelled_customer" || s === "cancelled_store";
@@ -86,13 +103,14 @@ export async function getAnalytics(storeId: string): Promise<Analytics> {
     const chunk = activeIdList.slice(i, i + 500);
     const { data: chunkItems } = await admin
       .from("order_items")
-      .select("product_name, quantity, line_total_cents, order_id")
+      .select("product_id, product_name, quantity, line_total_cents, order_id")
       .in("order_id", chunk);
     itemBuckets.push(...((chunkItems ?? []) as OrderItemRow[]));
   }
   const prodAgg = new Map<string, { units: number; revenue_cents: number }>();
   for (const it of itemBuckets) {
     if (!activeIds.has(it.order_id)) continue;
+    if (filters.product_id && it.product_id !== filters.product_id) continue;
     const p = prodAgg.get(it.product_name) ?? { units: 0, revenue_cents: 0 };
     p.units += it.quantity;
     p.revenue_cents += it.line_total_cents;

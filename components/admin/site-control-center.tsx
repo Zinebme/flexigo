@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { formatDA, formatDateTimeFr, timeAgoFr } from "@/lib/utils";
 import { Badge, Card, Table, Th, Td } from "@/components/ui";
 import { SiteActions } from "./site-actions";
@@ -9,7 +9,7 @@ import { AdvancedAdminClient } from "./advanced-admin-client";
 import { StoreSettingsEditor, AdminCheckoutSettingsEditor, ThemeEditor, AdminProductCreateForm, ProductQuickEditor, CategoryQuickEditor, CustomerAdminEditor, IntegrationsEditor, OwnerEditor, ContentAdminEditor, DomainControl } from "./site-control-forms";
 import { SiteAssistant } from "./site-assistant";
 
-type Tab = "overview" | "assistant" | "site" | "products" | "categories" | "orders" | "customers" | "stats" | "content" | "appearance" | "delivery" | "integrations" | "domain" | "account" | "logs" | "health";
+type Tab = "overview" | "assistant" | "site" | "products" | "categories" | "orders" | "abandoned" | "customers" | "stats" | "content" | "appearance" | "delivery" | "integrations" | "domain" | "account" | "logs" | "health";
 
 const TABS: Array<{ key: Tab; label: string; icon: string }> = [
   { key: "overview", label: "Vue d'ensemble", icon: "📊" },
@@ -18,6 +18,7 @@ const TABS: Array<{ key: Tab; label: string; icon: string }> = [
   { key: "products", label: "Produits", icon: "📦" },
   { key: "categories", label: "Catégories", icon: "🗂️" },
   { key: "orders", label: "Commandes", icon: "🛒" },
+  { key: "abandoned", label: "Paniers abandonnés", icon: "🕓" },
   { key: "customers", label: "Clients", icon: "👥" },
   { key: "stats", label: "Statistiques", icon: "📈" },
   { key: "content", label: "Contenu", icon: "📝" },
@@ -38,6 +39,7 @@ interface Props {
   domains: Array<Record<string, unknown>>;
   pages: Array<Record<string, unknown>>;
   orders: Array<Record<string, unknown>>;
+  abandoned: Array<Record<string, unknown>>;
   products: Array<Record<string, unknown>>;
   categories: Array<Record<string, unknown>>;
   customers: Array<Record<string, unknown>>;
@@ -53,14 +55,27 @@ interface Props {
 }
 
 export function SiteControlCenter(props: Props) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>(() => {
     const requested = searchParams.get("tab") as Tab | null;
     if (requested && TABS.some((item) => item.key === requested)) return requested;
     return searchParams.get("assistant") === "1" ? "assistant" : "overview";
   });
+  const [orderProductFilter, setOrderProductFilter] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("");
+  const [statsProductFilter, setStatsProductFilter] = useState("");
   const [productView, setProductView] = useState<"list" | "create">(() => props.products.length > 0 ? "list" : "create");
   const s = props.store;
+  const statsOrders = props.orders.filter(o=>!statsProductFilter||(o.order_items as Array<{product_id:string}>|undefined)?.some(item=>item.product_id===statsProductFilter));
+  async function openMerchantOrder(orderId: string) {
+    try {
+      const res = await fetch("/api/admin/support/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ store_id: String(s.id) }) });
+      if (!res.ok) throw new Error("Accès assistance impossible");
+      router.push(`/dashboard/commandes/${encodeURIComponent(orderId)}`);
+    } catch { window.alert("Accès assistance impossible. Réessayez depuis le menu du site."); }
+  }
+
 
   return (
     <div className="space-y-6">
@@ -179,14 +194,15 @@ export function SiteControlCenter(props: Props) {
 
       {tab === "orders" && (
         <Card>
-          <div className="border-b border-slate-100 px-5 py-3"><h3 className="font-bold">Commandes ({props.orders.length})</h3></div>
-          <Table head={<><Th>N°</Th><Th>Total</Th><Th>Statut</Th><Th>Date</Th></>}>
-            {props.orders.map((o) => (
-              <tr key={o.id as string} className="hover:bg-slate-50"><Td className="font-mono">{o.order_number as string}</Td><Td>{formatDA(o.total_cents as number)}</Td><Td><Badge tone={o.status === "delivered" ? "green" : o.status === "cancelled_customer" ? "red" : "gray"}>{o.status as string}</Badge></Td><Td className="text-xs text-slate-500">{timeAgoFr(o.created_at as string)}</Td></tr>
+          <div className="border-b border-slate-100 px-5 py-3"><h3 className="font-bold">Commandes ({props.orders.length})</h3><div className="mt-3 flex flex-wrap gap-2"><select className="rounded-lg border p-2 text-sm" value={orderProductFilter} onChange={e=>setOrderProductFilter(e.target.value)}><option value="">Tous les produits</option>{props.products.map(p=><option key={p.id as string} value={p.id as string}>{p.name as string}</option>)}</select><select className="rounded-lg border p-2 text-sm" value={orderStatusFilter} onChange={e=>setOrderStatusFilter(e.target.value)}><option value="">Tous les statuts</option>{Array.from(new Set(props.orders.map(o=>String(o.status)))).map(st=><option key={st} value={st}>{st}</option>)}</select></div></div>
+          <Table head={<><Th>N°</Th><Th>Produit</Th><Th>Total</Th><Th>Statut</Th><Th>Date</Th><Th>Actions</Th></>}>
+            {props.orders.filter(o=>(!orderStatusFilter||o.status===orderStatusFilter)&&(!orderProductFilter||(o.order_items as Array<{product_id:string}>|undefined)?.some(item=>item.product_id===orderProductFilter))).map((o) => (
+              <tr key={o.id as string} className="hover:bg-slate-50"><Td className="font-mono">{o.order_number as string}</Td><Td>{(o.order_items as Array<{product_name:string}>|undefined)?.map(item=>item.product_name).join(", ")||"—"}</Td><Td>{formatDA(o.total_cents as number)}</Td><Td><Badge tone={o.status === "delivered" ? "green" : o.status === "cancelled_customer" ? "red" : "gray"}>{o.status as string}</Badge></Td><Td className="text-xs text-slate-500">{timeAgoFr(o.created_at as string)}</Td><Td><button className="text-sm font-semibold text-violet-700" onClick={()=>void openMerchantOrder(o.id as string)}>Voir / modifier / expédier</button></Td></tr>
             ))}
           </Table>
         </Card>
       )}
+      {tab === "abandoned" && <Card className="p-5"><h3 className="font-bold">Tentatives non terminées ({props.abandoned.length})</h3><p className="mt-1 text-xs text-slate-500">La raison est indicative : un visiteur peut aussi simplement quitter la page. Les commandes confirmées sont exclues.</p><Table head={<><Th>Produit</Th><Th>Client</Th><Th>Étape / raison probable</Th><Th>Date</Th></>}>{props.abandoned.map(a=><tr key={a.id as string}><Td>{String(a.product_name||"—")}</Td><Td>{String(a.full_name||"—")} · {String(a.phone||"—")}</Td><Td>{String(a.reason_code||a.stage||"inconnue")}</Td><Td>{timeAgoFr(a.created_at as string)}</Td></tr>)}</Table></Card>}
 
       {tab === "customers" && (
         <Card className="p-5">
@@ -200,11 +216,11 @@ export function SiteControlCenter(props: Props) {
 
       {tab === "stats" && (
         <div className="grid gap-4 md:grid-cols-2">
-          <Card className="p-5"><h3 className="font-bold">Statistiques commandes</h3>
+          <Card className="p-5"><h3 className="font-bold">Statistiques commandes</h3><select className="mt-2 rounded-lg border p-2 text-sm" value={statsProductFilter} onChange={e=>setStatsProductFilter(e.target.value)}><option value="">Tous les produits</option>{props.products.map(p=><option key={p.id as string} value={p.id as string}>{p.name as string}</option>)}</select>
             <div className="mt-3 space-y-2 text-sm">
-              <div>Commandes aujourd&apos;hui : {props.orders.filter((o) => new Date(o.created_at as string).toDateString() === new Date().toDateString()).length}</div>
-              <div>Ce mois : {props.orders.filter((o) => new Date(o.created_at as string).getMonth() === new Date().getMonth()).length}</div>
-              <div>GMV : {formatDA(props.gmv)} (brut, pas revenu plateforme)</div>
+              <div>Commandes aujourd&apos;hui : {statsOrders.filter((o) => new Date(o.created_at as string).toDateString() === new Date().toDateString()).length}</div>
+              <div>Ce mois : {statsOrders.filter((o) => new Date(o.created_at as string).getMonth() === new Date().getMonth()).length}</div>
+              <div>GMV : {formatDA(statsOrders.reduce((sum,o)=>sum+Number(o.total_cents||0),0))} (commandes affichées)</div>
               <div>Livrées : {props.orders.filter((o) => o.status === "delivered").length} — Annulées : {props.orders.filter((o) => String(o.status).startsWith("cancelled")).length}</div>
               <div>Taux confirmation : {props.orders.length ? Math.round((props.orders.filter((o) => !String(o.status).startsWith("cancelled")).length / props.orders.length) * 100) : 0}%</div>
             </div>

@@ -53,6 +53,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   <Td>
                     <div className="font-medium text-slate-800">{it.product_name}</div>
                     {it.variant_name && <div className="text-xs text-slate-400">{it.variant_name}</div>}
+                    {it.selected_options && Object.keys(it.selected_options).length > 0 && <div className="text-xs text-slate-500">{Object.entries(it.selected_options).map(([label, values]) => `${label}: ${values.join(", ")}`).join(" · ")}</div>}
                   </Td>
                   <Td>{it.quantity}</Td>
                   <Td className="text-slate-600">{formatDA(it.unit_price_cents)}</Td>
@@ -71,7 +72,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           </Card>
 
           <Card>
-            <CardHeader title="Notes internes" />
+            <div id="modifier"><CardHeader title="Notes internes" /></div>
             <StatusUpdateForm
               orderId={order.id}
               currentStatus={order.status}

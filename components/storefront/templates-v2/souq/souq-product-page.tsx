@@ -94,7 +94,7 @@ export async function SouqProductPage({ data, productSlug }: { data: StorefrontD
                 id: product.id,
                 slug: product.slug,
                 name: product.name,
-                priceCents: product.price_cents,
+                priceCents: product.price_cents,freeShipping:product.free_shipping,
                 compareAtPriceCents: product.compare_at_price_cents,
                 imageUrl: bundle.images[0] ?? null,
                 stock: product.stock,

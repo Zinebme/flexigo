@@ -13,12 +13,14 @@ export const runtime = "nodejs";
 
 const checkoutBody = z.object({
   store_slug: z.string().trim().min(1).max(80),
+  abandoned_session_key: z.string().uuid().optional(),
   lines: z
     .array(
       z.object({
         product_id: z.string().uuid(),
         variant_id: z.string().uuid().nullable().optional(),
         quantity: z.number().int().min(1).max(50),
+        selected_options: z.record(z.string().max(40), z.array(z.string().max(60)).max(40)).optional(),
       }),
     )
     .min(1)
@@ -169,6 +171,35 @@ export async function POST(req: NextRequest) {
 
     const anon = getAnonSupabase();
 
+    // Revalidate buyer choices against the product's saved rules. Client-side
+    // limits are only a convenience and must never authorize an order.
+    const productIds = [...new Set(body.lines.map((line) => line.product_id))];
+    const { data: products, error: productsError } = await service.from("products")
+      .select("id, store_id, option_groups, free_shipping")
+      .eq("store_id", store.id).is("deleted_at", null).in("id", productIds);
+    if (productsError) throw productsError;
+    const productMap = new Map((products ?? []).map((product) => [product.id, product]));
+    for (const line of body.lines) {
+      const product = productMap.get(line.product_id);
+      if (!product) return Response.json({ ok: false, error: messageFor("PRODUCT_NOT_FOUND", locale) }, { status: 400 });
+      const configured = Array.isArray(product.option_groups) ? product.option_groups as Array<Record<string, unknown>> : [];
+      const selected = line.selected_options ?? {};
+      const allowedKeys = new Set(configured.filter((group) => group.selection_mode === "multiple").map((group) => String(group.key)));
+      if (Object.keys(selected).some((key) => !allowedKeys.has(key))) return Response.json({ ok: false, error: messageFor("INVALID_QUANTITY", locale) }, { status: 400 });
+      for (const group of configured) {
+        if (group.selection_mode !== "multiple") continue;
+        const key = String(group.key);
+        const values = selected[key] ?? [];
+        const allowed = new Set((Array.isArray(group.values) ? group.values : []).map((value) => String((value as { value?: unknown }).value ?? "")));
+        if (values.length !== new Set(values).size || values.some((value) => !allowed.has(value))) return Response.json({ ok: false, error: messageFor("INVALID_QUANTITY", locale) }, { status: 400 });
+        const exact = group.selection_count_mode === "order_quantity";
+        if (group.required === false && values.length === 0) continue;
+        const min = exact ? line.quantity : Number(group.min_selections ?? (group.required ? 1 : 0));
+        const max = exact ? line.quantity : Number(group.max_selections ?? allowed.size);
+        if (values.length < min || values.length > max) return Response.json({ ok: false, error: messageFor("INVALID_QUANTITY", locale) }, { status: 400 });
+      }
+    }
+
     // Duplicate detection (same phone + same lines within 10 minutes).
     const dup = await detectDuplicate(service, store.id, normalized, body.lines);
     if (dup) {
@@ -208,6 +239,44 @@ export async function POST(req: NextRequest) {
       return Response.json({ ok: false, error: messageFor(code, locale) }, { status: 400 });
     }
     const out = data as { order_id: string; order_number: string; subtotal_cents: number; shipping_fee_cents: number; total_cents: number; status: string };
+
+    const selectedLines = body.lines.filter((line) => line.selected_options && Object.keys(line.selected_options).length > 0);
+    if (selectedLines.length) {
+      const { data: createdItems, error: itemsError } = await service.from("order_items")
+        .select("id, product_id, variant_id").eq("order_id", out.order_id);
+      if (itemsError) throw itemsError;
+      const remaining = [...(createdItems ?? [])];
+      for (const line of selectedLines) {
+        const index = remaining.findIndex((item) => item.product_id === line.product_id && (item.variant_id ?? null) === (line.variant_id ?? null));
+        if (index < 0) continue;
+        const [item] = remaining.splice(index, 1);
+        if (!item) continue;
+        const { error: updateError } = await service.from("order_items").update({ selected_options: line.selected_options ?? {} }).eq("id", item.id);
+        if (updateError) throw updateError;
+      }
+    }
+
+    const { data: offerRows, error: offersError } = await service.from("quantity_offers")
+      .select("product_id, min_quantity, free_shipping")
+      .eq("store_id", store.id).eq("is_active", true).in("product_id", productIds);
+    if (offersError) throw offersError;
+    const freeShipping = body.lines.some((line) => {
+      if (productMap.get(line.product_id)?.free_shipping) return true;
+      const applicable = (offerRows ?? []).filter((offer) => offer.product_id === line.product_id && offer.min_quantity <= line.quantity)
+        .sort((a, b) => b.min_quantity - a.min_quantity)[0];
+      return applicable?.free_shipping === true;
+    });
+    if (freeShipping && out.shipping_fee_cents > 0) {
+      const { error: feeError } = await service.from("orders").update({ shipping_fee_cents: 0, total_cents: out.total_cents - out.shipping_fee_cents }).eq("store_id", store.id).eq("id", out.order_id);
+      if (feeError) throw feeError;
+      out.total_cents -= out.shipping_fee_cents;
+      out.shipping_fee_cents = 0;
+    }
+    if (body.abandoned_session_key) {
+      await service.from("abandoned_checkouts").update({
+        converted_order_id: out.order_id, stage: "converted", reason_code: null, updated_at: new Date().toISOString(),
+      }).eq("store_id", store.id).eq("session_key", body.abandoned_session_key);
+    }
 
     // Async Telegram notification (non-blocking for checkout, errors logged internally)
     // Fire-and-forget but await in background to ensure logging

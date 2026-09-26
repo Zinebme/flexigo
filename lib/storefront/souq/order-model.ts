@@ -16,6 +16,7 @@ export interface SouqPricingProduct {
   id: string;
   price_cents: number;
   name: string;
+  free_shipping?: boolean;
 }
 
 export interface SouqPricingOffer {
@@ -26,6 +27,7 @@ export interface SouqPricingOffer {
   total_price_cents: number;
   label: string | null;
   is_active: boolean;
+  free_shipping?: boolean;
 }
 
 export interface SouqShippingZone {
@@ -124,7 +126,8 @@ export function buildOrderPreview(input: SouqOrderPreviewInput): SouqOrderPrevie
     });
   }
 
-  const shippingFeeCents = wilayaCode === null || wilayaCode <= 0 ? null : lookupShippingFee(zones, wilayaCode, deliveryType);
+  const grantsFreeShipping = product.free_shipping === true || mainLine.offer?.free_shipping === true;
+  const shippingFeeCents = wilayaCode === null || wilayaCode <= 0 ? null : grantsFreeShipping ? 0 : lookupShippingFee(zones, wilayaCode, deliveryType);
   const totals = computeTotals(lines, shippingFeeCents ?? 0, discountCents);
 
   return {

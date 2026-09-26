@@ -38,6 +38,7 @@ export default async function NewProductPage() {
               price: 0,
               cost: null,
               is_digital: false,
+              free_shipping: false,
               gallery_mode: "slideshow",
               landing_images: [],
               min_order_quantity: 1,

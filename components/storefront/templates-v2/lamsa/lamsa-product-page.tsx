@@ -42,7 +42,7 @@ export async function LamsaProductPage({ data, productSlug }: { data: Storefront
             lang: data.lang,
             currency: data.currency,
             settings,
-            product: { id: product.id, slug: product.slug, name: product.name, priceCents: product.price_cents, compareAtPriceCents: product.compare_at_price_cents, imageUrl: bundle.images[0] ?? null, stock: product.stock, ratingAverage: bundle.ratingAverage, ratingCount: bundle.ratingCount },
+            product: { id: product.id, slug: product.slug, name: product.name, priceCents: product.price_cents,freeShipping:product.free_shipping, compareAtPriceCents: product.compare_at_price_cents, imageUrl: bundle.images[0] ?? null, stock: product.stock, ratingAverage: bundle.ratingAverage, ratingCount: bundle.ratingCount },
             variants: bundle.variants,
             optionGroups: bundle.optionGroups,
             addOnProducts: bundle.addOnProducts,

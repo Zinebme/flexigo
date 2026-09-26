@@ -80,6 +80,7 @@ export const productSchema = z.object({
   price: priceDA,
   cost: z.coerce.number().min(0).max(10_000_000).optional().nullable(),
   is_digital: z.boolean().default(false),
+  free_shipping: z.boolean().default(false),
   gallery_mode: z.enum(["slideshow","stacked"]).default("slideshow"),
   landing_images: z.array(imageUrl).max(20).optional().default([]),
   min_order_quantity: z.number().int().min(1).max(50).default(1),
@@ -92,6 +93,7 @@ export const productSchema = z.object({
     key: z.string().trim().min(1).max(40),
     label: z.string().trim().min(1).max(80),
     selection_mode: z.enum(["single","multiple"]).default("single"),
+    selection_count_mode: z.enum(["fixed","order_quantity"]).default("fixed"),
     display_type: z.enum(["buttons","color_swatch","image","checkbox","dropdown"]).default("buttons"),
     required: z.boolean().default(true),
     min_selections: z.number().int().min(0).max(20).default(0),
@@ -111,7 +113,7 @@ export const productSchema = z.object({
   low_stock_threshold: z.number().int().min(0).max(10_000).default(5),
   is_active: z.boolean().default(true),
   is_featured: z.boolean().default(false),
-  category_id: uuid.optional().nullable(),
+  category_id: uuid,
   images: z.array(imageUrl).max(12).optional().default([]),
   variants: z.array(variantSchema).max(12).optional().default([]),
   seo_title: z.string().max(160).optional().or(z.literal("")).nullable(),
@@ -125,6 +127,7 @@ export const quantityOfferSchema = z.object({
   total_price_cents: z.number().int().positive().max(1_000_000_000),
   label: z.string().max(80).optional().or(z.literal("")).nullable(),
   is_active: z.boolean().default(true),
+  free_shipping: z.boolean().default(false),
 });
 
 export const stockAdjustmentSchema = z.object({
@@ -334,6 +337,7 @@ export const wizardSchema = z.object({
     images: z.array(imageUrl).max(12).default([]),
     gallery_mode: z.enum(["slideshow","stacked"]).default("slideshow"),
     is_digital: z.boolean().default(false),
+    free_shipping: z.boolean().default(false),
     stock_tracking_mode: z.enum(["none","global","variants"]).default("global"),
     min_order_quantity: z.number().int().min(1).max(50).default(1),
     category: z.string().trim().max(80).optional().or(z.literal("")).nullable(),

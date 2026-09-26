@@ -56,6 +56,7 @@ export interface SouqOrderProduct {
   slug: string;
   name: string;
   priceCents: number;
+  freeShipping?: boolean;
   compareAtPriceCents: number | null;
   imageUrl: string | null;
   stock: number;
@@ -176,7 +177,7 @@ export function useSouqOrderState(
   const preview = useMemo(
     () =>
       buildOrderPreview({
-        product: { id: data.product.id, name: data.product.name, price_cents: data.product.priceCents },
+        product: { id: data.product.id, name: data.product.name, price_cents: data.product.priceCents, free_shipping: data.product.freeShipping },
         variants: data.variants,
         groups: data.optionGroups,
         selections,
@@ -199,14 +200,14 @@ export function useSouqOrderState(
     return data.product.stock >= quantity;
   }, [variant, data.variants, data.product.stock, quantity]);
 
-  const optionIssues = useMemo(() => validateSelections(data.optionGroups, selections), [data.optionGroups, selections]);
+  const optionIssues = useMemo(() => validateSelections(data.optionGroups, selections, quantity), [data.optionGroups, selections, quantity]);
 
   const toggleValue = useCallback(
     (group: SouqOptionGroup, value: string) => {
       setSubmitState((current) => (current.status === "success" ? current : { status: "idle" }));
-      setSelections((current) => applySelection(group, current, value));
+      setSelections((current) => applySelection(group, current, value, quantity));
     },
-    [],
+    [quantity],
   );
 
   const selectedGroupValues = useCallback((group: SouqOptionGroup) => selectedValues(selections, group), [selections]);
@@ -215,13 +216,26 @@ export function useSouqOrderState(
     async (payload: Record<string, unknown>) => {
       try {
         const url = new URL(window.location.href);
-        const body = {
-          ...payload,
+        const { estimated_total_cents, ...checkoutPayload } = payload;
+        const body: Record<string, unknown> = {
+          ...checkoutPayload,
           utm_source: url.searchParams.get("utm_source"),
           utm_medium: url.searchParams.get("utm_medium"),
           utm_campaign: url.searchParams.get("utm_campaign"),
           referrer: document.referrer || null,
         };
+        if (body.abandoned_session_key) {
+          const main = (body.lines as Array<{ product_id: string; variant_id: string | null; quantity: number; selected_options?: Record<string, string[]> }> | undefined)?.[0];
+          if (main) {
+            await fetch("/api/checkout/abandoned", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ store_slug: data.storeSlug, session_key: body.abandoned_session_key,
+                product_id: main.product_id, variant_id: main.variant_id, quantity: main.quantity,
+                selected_options: main.selected_options, full_name: body.full_name, phone: body.phone,
+                wilaya_code: body.wilaya_code, estimated_total_cents }),
+            }).catch(() => undefined);
+          }
+        }
         const res = await fetch("/api/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -252,7 +266,7 @@ export function useSouqOrderState(
         setSubmitState({ status: "error", message: data.copy.errors.network });
       }
     },
-    [data.copy, preview.totalCents],
+    [data.copy, data.storeSlug, preview.totalCents],
   );
 
   const submit = useCallback(
@@ -327,10 +341,14 @@ export function useSouqOrderState(
       setSubmitState({ status: "loading" });
 
       const fullName = composeFullName(firstName, lastName, last.enabled);
+      const selectedOptions = Object.fromEntries(Object.entries(selections).filter(([key, values]) =>
+        values.length > 0 && data.optionGroups.some((group) => group.key === key && group.selectionMode === "multiple"),
+      ));
       const lines = preview.lines.map((line) => ({
         product_id: line.productId,
         variant_id: line.variantId,
         quantity: line.quantity,
+        ...(line.isAddOn || Object.keys(selectedOptions).length === 0 ? {} : { selected_options: selectedOptions }),
       }));
 
       const payload = {
@@ -346,6 +364,7 @@ export function useSouqOrderState(
         office: deliveryType === "office" ? officeValue || null : null,
         website: field("souq-website"),
         locale: data.lang,
+        ...(data.previewMode ? {} : { abandoned_session_key: crypto.randomUUID(), estimated_total_cents: preview.totalCents }),
       };
 
       if (data.previewMode) {
@@ -358,7 +377,7 @@ export function useSouqOrderState(
       }
       void submitOrder(payload);
     },
-    [data, deliveryType, formRef, inStock, optionIssues, preview.lines, preview.totalCents, submitOrder, submitState.status, variant, wilayaCode],
+    [data, deliveryType, formRef, inStock, optionIssues, preview.lines, preview.totalCents, selections, submitOrder, submitState.status, variant, wilayaCode],
   );
 
   useEffect(() => {

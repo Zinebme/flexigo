@@ -90,8 +90,8 @@ const STEPS = [
   { key: "template", label: "TEMPLATE", desc: "7 boutiques complètes prêtes à livrer" },
   { key: "brand", label: "IDENTITÉ", desc: "Branding, couleurs, contact" },
   { key: "homepage", label: "CONTENU", desc: "Sections homepage prédéfinies" },
-  { key: "products", label: "PRODUITS", desc: "Produits initiaux" },
   { key: "categories", label: "CATÉGORIES", desc: "Collections & visibilité" },
+  { key: "products", label: "PRODUITS", desc: "Produits initiaux" },
   { key: "delivery", label: "LIVRAISON COD", desc: "58 wilayas + prestataires" },
   { key: "integrations", label: "INTÉGRATIONS", desc: "Pixels, Sheets, Telegram, etc." },
   { key: "domain", label: "DOMAINE", desc: "Aperçu & domaine personnalisé" },
@@ -293,6 +293,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
             image_url: p.images[0] || null,
             gallery_mode: p.gallery_mode,
             is_digital: p.is_digital,
+            free_shipping: p.free_shipping,
             stock_tracking_mode: p.stock_tracking_mode,
             min_order_quantity: Number(p.min_order_quantity || 1),
             category: p.category || null,
@@ -305,8 +306,9 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
               selection_mode: g.selection_mode,
               display_type: g.display_type,
               required: true,
-              min_selections: g.selection_mode === "multiple" ? 0 : 1,
-              max_selections: g.selection_mode === "multiple" ? Math.max(1, g.values.split(",").filter(Boolean).length) : 1,
+              selection_count_mode: g.selection_mode === "multiple" ? g.selection_count_mode : "fixed",
+              min_selections: g.selection_mode === "multiple" ? g.min_selections : 1,
+              max_selections: g.selection_mode === "multiple" ? g.max_selections : 1,
               values: g.values.split(",").map((v) => v.trim()).filter(Boolean).map((v) => ({ value: v, label: v })),
             })),
             variants: p.variants.filter((v) => v.name.trim()).map((v) => {
@@ -318,7 +320,7 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
               return { name: v.name.trim(), options, price_cents: v.price ? Math.round(Number(v.price) * 100) : null, sku: v.sku || null, stock: Number(v.stock || 0), is_active: true };
             }),
             offers: p.offers.filter((o) => o.min_quantity && o.total_price).map((o) => ({
-              min_quantity: Number(o.min_quantity), total_price_cents: Math.round(Number(o.total_price) * 100), label: o.label || null, is_active: true,
+              min_quantity: Number(o.min_quantity), total_price_cents: Math.round(Number(o.total_price) * 100), label: o.label || null, is_active: true, free_shipping: o.free_shipping,
             })),
             related_names: p.related_names.split(",").map((v) => v.trim()).filter(Boolean),
             cross_sell_names: p.cross_sell_names.split(",").map((v) => v.trim()).filter(Boolean),
@@ -621,6 +623,8 @@ export function WizardClient({ organizations, profiles }: { organizations: Org[]
             <div className="space-y-3">
               {form.initial_products.map((product, i) => (
                 <StudioProductDraftEditor
+                  categories={form.initial_categories.map(c=>c.name.trim()).filter(Boolean)}
+                  productNames={form.initial_products.map(p=>p.name.trim()).filter(Boolean)}
                   key={i}
                   index={i}
                   value={product}

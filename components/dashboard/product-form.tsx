@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type SelectionMode = "single" | "multiple";
+type SelectionCountMode = "fixed" | "order_quantity";
 type DisplayType = "buttons" | "color_swatch" | "image" | "checkbox" | "dropdown";
 type GalleryMode = "slideshow" | "stacked";
 type StockTracking = "none" | "global" | "variants";
@@ -19,6 +20,7 @@ interface OptionGroupDraft {
   key: string;
   label: string;
   selection_mode: SelectionMode;
+  selection_count_mode?: SelectionCountMode;
   display_type: DisplayType;
   required: boolean;
   min_selections: number;
@@ -41,6 +43,7 @@ export interface ProductFormInitial {
   is_active: boolean;
   is_featured: boolean;
   is_digital?: boolean;
+  free_shipping?: boolean;
   category_id: string | null;
   images: string[];
   landing_images?: string[];
@@ -55,7 +58,7 @@ export interface ProductFormInitial {
   page_element_order?: string[];
   option_groups?: OptionGroupDraft[];
   variants: Array<{ id?: string; name: string; options_text: string; price: number | null; sku?: string; stock: number; is_active: boolean }>;
-  offers: Array<{ min_quantity: number; total_price: number; label: string }>;
+  offers: Array<{ min_quantity: number; total_price: number; label: string; free_shipping?: boolean }>;
 }
 
 interface Props {
@@ -78,7 +81,7 @@ interface VariantDraft {
   stock: string;
   is_active: boolean;
 }
-interface OfferDraft { min_quantity: string; total_price: string; label: string }
+interface OfferDraft { min_quantity: string; total_price: string; label: string; free_shipping: boolean }
 
 const DEFAULT_ORDER = ["gallery","title","price","variants","offers","description","order_form","landing","reviews","related"];
 const ORDER_LABELS: Record<string,string> = {
@@ -102,7 +105,7 @@ function parseOptionText(text:string) {
   return options;
 }
 function emptyOptionGroup():OptionGroupDraft {
-  return { key:"",label:"",selection_mode:"single",display_type:"buttons",required:true,min_selections:1,max_selections:1,values:[] };
+  return { key:"",label:"",selection_mode:"single",selection_count_mode:"fixed",display_type:"buttons",required:true,min_selections:1,max_selections:1,values:[] };
 }
 function emptyOptionValue():OptionValueDraft {
   return { value:"",label:"",color:"",image:"",addon_product_id:"" };
@@ -135,6 +138,7 @@ export function ProductForm({
   const [isActive,setIsActive]=useState(initial.is_active);
   const [isFeatured,setIsFeatured]=useState(initial.is_featured);
   const [isDigital,setIsDigital]=useState(initial.is_digital??false);
+  const [freeShipping,setFreeShipping]=useState(initial.free_shipping??false);
   const [categoryId,setCategoryId]=useState(initial.category_id??"");
   const [seoTitle,setSeoTitle]=useState(initial.seo_title);
   const [seoDescription,setSeoDescription]=useState(initial.seo_description);
@@ -151,7 +155,7 @@ export function ProductForm({
     initial.variants.map(v=>({id:v.id,name:v.name,options_text:v.options_text,price:v.price!=null?String(v.price):"",sku:v.sku??"",stock:String(v.stock),is_active:v.is_active}))
   );
   const [offers,setOffers]=useState<OfferDraft[]>(
-    initial.offers.map(o=>({min_quantity:String(o.min_quantity),total_price:String(o.total_price),label:o.label}))
+    initial.offers.map(o=>({min_quantity:String(o.min_quantity),total_price:String(o.total_price),label:o.label,free_shipping:o.free_shipping??false}))
   );
 
   const [uploading,setUploading]=useState<"gallery"|"landing"|null>(null);
@@ -196,10 +200,6 @@ export function ProductForm({
     setImages((current)=>move(current,from,to));
   }
 
-  function toggleId(list:string[], id:string, setter:(v:string[])=>void) {
-    setter(list.includes(id)?list.filter(x=>x!==id):[...list,id]);
-  }
-
   async function submit(e:React.FormEvent) {
     e.preventDefault();
     if(uploading!==null){setError("Attendez que toutes les images soient visibles avant d’enregistrer le produit.");return;}
@@ -211,6 +211,7 @@ export function ProductForm({
         option_key:g.key.trim(),
         label:g.label.trim(),
         selection_mode:g.selection_mode,
+        selection_count_mode:g.selection_mode==="multiple"&&g.selection_count_mode==="order_quantity"?"order_quantity":"fixed",
         display_type:g.display_type,
         required:g.required,
         min_selections:g.selection_mode==="multiple"?Math.max(0,g.min_selections):1,
@@ -225,7 +226,7 @@ export function ProductForm({
       name,slug:shownSlug,short_description:shortDescription,description,
       price:Number.parseFloat(price),compare_at_price:compareAt?Number.parseFloat(compareAt):null,cost:cost?Number.parseFloat(cost):null,
       sku,stock:(mode==="create"||allowStockEdit)?(Number.parseInt(stock,10)||0):undefined,low_stock_threshold:Number.parseInt(threshold,10)||0,
-      stock_tracking_mode:stockTracking,is_active:isActive,is_featured:isFeatured,is_digital:isDigital,category_id:categoryId||null,
+      stock_tracking_mode:stockTracking,is_active:isActive,is_featured:isFeatured,is_digital:isDigital,free_shipping:freeShipping,category_id:categoryId,
       images,landing_images:landingImages,gallery_mode:galleryMode,min_order_quantity:Number.parseInt(minOrderQuantity,10)||1,
       shipping_label:shippingLabel,related_product_ids:relatedIds,cross_sell_product_ids:crossSellIds,page_element_order:pageOrder,
       option_groups:cleanGroups,seo_title:seoTitle,seo_description:seoDescription,
@@ -236,7 +237,7 @@ export function ProductForm({
     };
     const cleanOffers=offers.filter(o=>o.min_quantity&&o.total_price).map(o=>({
       min_quantity:Number.parseInt(o.min_quantity,10),total_price_cents:Math.round(Number.parseFloat(o.total_price)*100),
-      label:o.label.trim()||null,is_active:true,
+      label:o.label.trim()||null,is_active:true,free_shipping:o.free_shipping,
     }));
     parsed.offers=cleanOffers;
     if(mode==="edit"&&initial.id) parsed.remove_variant_ids=initial.variants.filter(v=>!variants.some(x=>x.id===v.id)).map(v=>v.id).filter(Boolean);
@@ -264,7 +265,7 @@ export function ProductForm({
       <div className="grid gap-4 md:grid-cols-2">
         <div className="md:col-span-2"><label className={label}>Nom du produit *</label><input className={input} value={name} onChange={e=>setName(e.target.value)} required maxLength={120}/></div>
         <div><label className={label}>Slug (URL)</label><input className={input} value={shownSlug} onChange={e=>{setSlugTouched(true);setSlug(e.target.value)}}/></div>
-        <div><label className={label}>Catégorie</label><select className={input} value={categoryId} onChange={e=>setCategoryId(e.target.value)}><option value="">— Aucune —</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+        <div><label className={label}>Catégorie *</label><select required disabled={categories.length===0} className={input} value={categoryId} onChange={e=>setCategoryId(e.target.value)}><option value="">{categories.length?"Choisir une catégorie":"Créez d’abord une catégorie"}</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
         <div className="md:col-span-2"><label className={label}>Brève description</label><textarea className={input} rows={2} maxLength={500} value={shortDescription} onChange={e=>setShortDescription(e.target.value)} placeholder="Résumé visible près du titre…"/></div>
         <div className="md:col-span-2"><label className={label}>Description complète</label><textarea className={input} rows={7} maxLength={12000} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Description détaillée du produit…"/></div>
         <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={isDigital} onChange={e=>setIsDigital(e.target.checked)}/> Produit digital</label>
@@ -339,6 +340,18 @@ export function ProductForm({
     </section>
 
     <section className={section}>
+      <div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="text-base font-bold text-slate-900">Variantes</h3><p className="mt-1 text-xs text-slate-500">Combinaisons vendables avec prix, SKU et stock propres.</p></div><button type="button" className={subtleBtn} onClick={()=>variants.length<50&&setVariants([...variants,{name:"",options_text:"",price:"",sku:"",stock:"0",is_active:true}])}>+ Variante</button></div>
+      <div className="space-y-2">{variants.map((v,idx)=><div key={idx} className="grid gap-2 rounded-xl border bg-slate-50 p-3 md:grid-cols-[1fr_1.3fr_110px_110px_90px_auto]">
+        <input className="rounded-lg border px-3 py-2 text-sm" placeholder="Nom ex: Rouge / M" value={v.name} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,name:e.target.value}:x))}/>
+        <input className="rounded-lg border px-3 py-2 text-sm" placeholder="Couleur: Rouge, Taille: M" value={v.options_text} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,options_text:e.target.value}:x))}/>
+        <input type="number" className="rounded-lg border px-3 py-2 text-sm" placeholder="Prix DA" value={v.price} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,price:e.target.value}:x))}/>
+        <input className="rounded-lg border px-3 py-2 text-sm" placeholder="SKU" value={v.sku} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,sku:e.target.value}:x))}/>
+        <input type="number" min="0" className="rounded-lg border px-3 py-2 text-sm" placeholder="Stock" value={v.stock} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,stock:e.target.value}:x))}/>
+        <button type="button" className="text-sm font-semibold text-red-500" onClick={()=>setVariants(variants.filter((_,i)=>i!==idx))}>Retirer</button>
+      </div>)}</div>
+    </section>
+
+    <section className={section}>
       <div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="text-base font-bold text-slate-900">Options / choix client</h3><p className="mt-1 text-xs text-slate-500">Créez Couleur, Taille, Accessoires… et choisissez mono-choix ou multi-choix.</p></div><button type="button" className={subtleBtn} onClick={()=>setOptionGroups([...optionGroups,emptyOptionGroup()])}>+ Groupe</button></div>
       <div className="space-y-3">
         {optionGroups.map((g,gi)=><div key={gi} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -348,7 +361,7 @@ export function ProductForm({
             <select className={input} value={g.selection_mode} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,selection_mode:e.target.value as SelectionMode,max_selections:e.target.value==="single"?1:x.max_selections}:x))}><option value="single">Un seul choix</option><option value="multiple">Choix multiples</option></select>
             <select className={input} value={g.display_type} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,display_type:e.target.value as DisplayType}:x))}><option value="buttons">Boutons</option><option value="color_swatch">Pastilles couleur</option><option value="image">Images</option><option value="checkbox">Cases à cocher</option><option value="dropdown">Liste</option></select>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs"><label><input type="checkbox" checked={g.required} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,required:e.target.checked}:x))}/> Obligatoire</label>{g.selection_mode==="multiple"&&<><label>Min <input type="number" min="0" max="20" className="ml-1 w-16 rounded border px-2 py-1" value={g.min_selections} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,min_selections:Number(e.target.value)}:x))}/></label><label>Max <input type="number" min="1" max="20" className="ml-1 w-16 rounded border px-2 py-1" value={g.max_selections} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,max_selections:Number(e.target.value)}:x))}/></label></>}</div>
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs"><label><input type="checkbox" checked={g.required} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,required:e.target.checked}:x))}/> Obligatoire</label>{g.selection_mode==="multiple"&&<><select className="rounded border px-2 py-1" value={g.selection_count_mode??"fixed"} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,selection_count_mode:e.target.value as SelectionCountMode}:x))}><option value="fixed">Nombre de choix fixe</option><option value="order_quantity">Exactement la quantité commandée</option></select>{g.selection_count_mode!=="order_quantity"&&<><label>Min <input type="number" min="0" max="20" className="ml-1 w-16 rounded border px-2 py-1" value={g.min_selections} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,min_selections:Number(e.target.value)}:x))}/></label><label>Max <input type="number" min="1" max="20" className="ml-1 w-16 rounded border px-2 py-1" value={g.max_selections} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,max_selections:Number(e.target.value)}:x))}/></label></>}</>}</div>
           <div className="mt-3 space-y-2">
             {g.values.map((v,vi)=><div key={vi} className="grid gap-2 md:grid-cols-[1fr_1fr_100px_1fr_1fr_auto]">
               <input className="rounded-lg border px-2 py-1.5 text-sm" placeholder="Valeur" value={v.value} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:x.values.map((vv,j)=>j===vi?{...vv,value:e.target.value}:vv)}:x))}/>
@@ -366,23 +379,12 @@ export function ProductForm({
     </section>
 
     <section className={section}>
-      <div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="text-base font-bold text-slate-900">Variantes</h3><p className="mt-1 text-xs text-slate-500">Combinaisons vendables avec prix, SKU et stock propres.</p></div><button type="button" className={subtleBtn} onClick={()=>variants.length<50&&setVariants([...variants,{name:"",options_text:"",price:"",sku:"",stock:"0",is_active:true}])}>+ Variante</button></div>
-      <div className="space-y-2">{variants.map((v,idx)=><div key={idx} className="grid gap-2 rounded-xl border bg-slate-50 p-3 md:grid-cols-[1fr_1.3fr_110px_110px_90px_auto]">
-        <input className="rounded-lg border px-3 py-2 text-sm" placeholder="Nom ex: Rouge / M" value={v.name} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,name:e.target.value}:x))}/>
-        <input className="rounded-lg border px-3 py-2 text-sm" placeholder="Couleur: Rouge, Taille: M" value={v.options_text} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,options_text:e.target.value}:x))}/>
-        <input type="number" className="rounded-lg border px-3 py-2 text-sm" placeholder="Prix DA" value={v.price} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,price:e.target.value}:x))}/>
-        <input className="rounded-lg border px-3 py-2 text-sm" placeholder="SKU" value={v.sku} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,sku:e.target.value}:x))}/>
-        <input type="number" min="0" className="rounded-lg border px-3 py-2 text-sm" placeholder="Stock" value={v.stock} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,stock:e.target.value}:x))}/>
-        <button type="button" className="text-sm font-semibold text-red-500" onClick={()=>setVariants(variants.filter((_,i)=>i!==idx))}>Retirer</button>
-      </div>)}</div>
-    </section>
-
-    <section className={section}>
-      <div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="text-base font-bold text-slate-900">Offres</h3><p className="mt-1 text-xs text-slate-500">Ex : 2 pièces = 3 900 DA.</p></div><button type="button" className={subtleBtn} onClick={()=>offers.length<10&&setOffers([...offers,{min_quantity:"2",total_price:"",label:""}])}>+ Offre</button></div>
+      <div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="text-base font-bold text-slate-900">Offres</h3><p className="mt-1 text-xs text-slate-500">Ex : 2 pièces = 3 900 DA.</p></div><button type="button" className={subtleBtn} onClick={()=>offers.length<10&&setOffers([...offers,{min_quantity:"2",total_price:"",label:"",free_shipping:false}])}>+ Offre</button></div>
       <div className="space-y-2">{offers.map((o,idx)=><div key={idx} className="grid gap-2 rounded-xl border bg-slate-50 p-3 md:grid-cols-[100px_160px_1fr_auto]">
         <input type="number" min="2" max="50" className="rounded-lg border px-3 py-2 text-sm" value={o.min_quantity} onChange={e=>setOffers(offers.map((x,i)=>i===idx?{...x,min_quantity:e.target.value}:x))}/>
         <input type="number" min="0" step=".01" className="rounded-lg border px-3 py-2 text-sm" placeholder="Total DA" value={o.total_price} onChange={e=>setOffers(offers.map((x,i)=>i===idx?{...x,total_price:e.target.value}:x))}/>
         <input className="rounded-lg border px-3 py-2 text-sm" placeholder="Libellé" value={o.label} onChange={e=>setOffers(offers.map((x,i)=>i===idx?{...x,label:e.target.value}:x))}/>
+        <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={o.free_shipping} onChange={e=>setOffers(offers.map((x,i)=>i===idx?{...x,free_shipping:e.target.checked}:x))}/> Livraison gratuite</label>
         <button type="button" className="text-sm font-semibold text-red-500" onClick={()=>setOffers(offers.filter((_,i)=>i!==idx))}>Retirer</button>
       </div>)}</div>
     </section>
@@ -400,8 +402,8 @@ export function ProductForm({
     <section className={section}>
       <div className="mb-4"><h3 className="text-base font-bold text-slate-900">Produits connexes & cross-selling</h3><p className="mt-1 text-xs text-slate-500">Les produits connexes sont affichés dans la fiche. Le cross-selling sert aux suggestions additionnelles.</p></div>
       {choiceRows.length===0?<p className="text-sm text-slate-400">Créez d'autres produits pour utiliser cette section.</p>:<div className="grid gap-4 md:grid-cols-2">
-        <div><div className="mb-2 text-sm font-bold">Produits connexes</div><div className="max-h-52 space-y-1 overflow-auto rounded-xl border p-2">{choiceRows.map(p=><label key={p.id} className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-slate-50"><input type="checkbox" checked={relatedIds.includes(p.id)} onChange={()=>toggleId(relatedIds,p.id,setRelatedIds)}/>{p.name}</label>)}</div></div>
-        <div><div className="mb-2 text-sm font-bold">Cross-selling</div><div className="max-h-52 space-y-1 overflow-auto rounded-xl border p-2">{choiceRows.map(p=><label key={p.id} className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-slate-50"><input type="checkbox" checked={crossSellIds.includes(p.id)} onChange={()=>toggleId(crossSellIds,p.id,setCrossSellIds)}/>{p.name}</label>)}</div></div>
+        <div><label className={label}>Produits connexes (Ctrl/Cmd pour plusieurs)</label><select multiple className={input+" min-h-32"} value={relatedIds} onChange={e=>setRelatedIds(Array.from(e.currentTarget.selectedOptions,option=>option.value))}>{choiceRows.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
+        <div><label className={label}>Cross-selling (Ctrl/Cmd pour plusieurs)</label><select multiple className={input+" min-h-32"} value={crossSellIds} onChange={e=>setCrossSellIds(Array.from(e.currentTarget.selectedOptions,option=>option.value))}>{choiceRows.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
       </div>}
     </section>
 
@@ -410,6 +412,7 @@ export function ProductForm({
       <div className="grid gap-4 md:grid-cols-2">
         <div><label className={label}>Nom sur bordereau livraison</label><input className={input} value={shippingLabel} onChange={e=>setShippingLabel(e.target.value)} placeholder="Optionnel"/></div>
         <div><label className={label}>Quantité minimale par commande</label><input type="number" min="1" max="50" className={input} value={minOrderQuantity} onChange={e=>setMinOrderQuantity(e.target.value)}/></div>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={freeShipping} onChange={e=>setFreeShipping(e.target.checked)}/> Livraison gratuite pour ce produit</label>
       </div>
       <div className="mt-5"><div className="mb-2 text-sm font-bold">Ordre des éléments dans la page produit</div><div className="space-y-2">{pageOrder.map((key,idx)=><div key={key} className="flex items-center justify-between rounded-xl border bg-slate-50 px-3 py-2"><span className="text-sm font-medium">{ORDER_LABELS[key]??key}</span><div className="flex gap-1"><button type="button" className={subtleBtn} disabled={idx===0} onClick={()=>setPageOrder(move(pageOrder,idx,idx-1))}>↑</button><button type="button" className={subtleBtn} disabled={idx===pageOrder.length-1} onClick={()=>setPageOrder(move(pageOrder,idx,idx+1))}>↓</button></div></div>)}</div></div>
     </section>

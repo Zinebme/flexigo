@@ -10,11 +10,23 @@ export interface OrderFilters {
   from?: string; // ISO date
   to?: string; // ISO date
   q?: string; // name / phone / order number
+  product_id?: string;
 }
+
+export type OrderListRow = OrderRow & { product_names: string[]; has_shipment: boolean };
 
 export async function listOrders(storeId: string, f: OrderFilters, limit = 200) {
   const admin = getAdminSupabase();
+  let matchingIds: string[] | null = null;
+  if (f.product_id) {
+    const { data: productItems, error: productError } = await admin.from("order_items")
+      .select("order_id").eq("product_id", f.product_id).limit(1000);
+    if (productError) throw new Error(productError.message);
+    matchingIds = [...new Set((productItems ?? []).map((item) => item.order_id))];
+    if (!matchingIds.length) return [] as OrderListRow[];
+  }
   let q = admin.from("orders").select("*").eq("store_id", storeId).order("created_at", { ascending: false }).limit(limit);
+  if (matchingIds) q = q.in("id", matchingIds);
   if (f.status) q = q.eq("status", f.status);
   if (f.wilaya_code) q = q.eq("wilaya_code", f.wilaya_code);
   if (f.from) q = q.gte("created_at", f.from);
@@ -26,7 +38,19 @@ export async function listOrders(storeId: string, f: OrderFilters, limit = 200) 
   }
   const { data, error } = await q;
   if (error) throw new Error(error.message);
-  return (data ?? []) as OrderRow[];
+  const orders = (data ?? []) as OrderRow[];
+  if (!orders.length) return [] as OrderListRow[];
+  const ids = orders.map((order) => order.id);
+  const [{ data: items, error: itemError }, { data: shipments, error: shipmentError }] = await Promise.all([
+    admin.from("order_items").select("order_id, product_name").in("order_id", ids),
+    admin.from("shipments").select("order_id").eq("store_id", storeId).in("order_id", ids),
+  ]);
+  if (itemError) throw new Error(itemError.message);
+  if (shipmentError) throw new Error(shipmentError.message);
+  const nameMap = new Map<string, string[]>();
+  for (const item of items ?? []) nameMap.set(item.order_id, [...(nameMap.get(item.order_id) ?? []), item.product_name]);
+  const shippedIds = new Set((shipments ?? []).map((shipment) => shipment.order_id));
+  return orders.map((order) => ({ ...order, product_names: [...new Set(nameMap.get(order.id) ?? [])], has_shipment: shippedIds.has(order.id) }));
 }
 
 export async function getOrderDetail(storeId: string, orderId: string) {

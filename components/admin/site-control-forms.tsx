@@ -107,7 +107,7 @@ export function AdminProductCreateForm({ storeId, products, categories }: { stor
     categories={categories.map((category)=>({id:String(category.id),name:String(category.name)}))}
     productChoices={products.map((product)=>({id:String(product.id),name:String(product.name)}))}
     initial={{
-      name:"",slug:"",description:"",short_description:"",price:0,cost:null,is_digital:false,
+      name:"",slug:"",description:"",short_description:"",price:0,cost:null,is_digital:false,free_shipping:false,
       gallery_mode:"slideshow",landing_images:[],min_order_quantity:1,shipping_label:"",
       stock_tracking_mode:"global",related_product_ids:[],cross_sell_product_ids:[],
       page_element_order:["gallery","title","price","variants","offers","description","order_form","landing","reviews","related"],
@@ -147,6 +147,7 @@ export function ProductQuickEditor({ storeId, products, categories }: { storeId:
       min_quantity:Number(row.min_quantity??2),
       total_price:Number(row.total_price_cents??0)/100,
       label:String(row.label??""),
+      free_shipping:Boolean(row.free_shipping),
     })):[];
     return {
       id:String(product.id),
@@ -163,6 +164,7 @@ export function ProductQuickEditor({ storeId, products, categories }: { storeId:
       is_active:Boolean(product.is_active),
       is_featured:Boolean(product.is_featured),
       is_digital:Boolean(product.is_digital),
+      free_shipping:Boolean(product.free_shipping),
       category_id:product.category_id?String(product.category_id):null,
       images,
       landing_images:stringArray(product.landing_images),
@@ -344,7 +346,8 @@ export function IntegrationsEditor({ storeId, shipping, marketing, sheets, teleg
   const [message,setMessage]=useState("");
   async function run(payload:Record<string,unknown>){setMessage("");try{await save(storeId,payload);setMessage("Configuration enregistrée.");router.refresh();}catch(err){setMessage(err instanceof Error?err.message:"Erreur");}}
   return <div className="space-y-5">{message&&<p className="rounded-lg bg-slate-100 p-3 text-sm">{message}</p>}
-    <section className="rounded-xl border p-4"><h4 className="font-bold">Livraison</h4><div className="mt-3 grid gap-2 md:grid-cols-2"><select className={input} value={ship.provider_key} onChange={(e)=>setShip({...ship,provider_key:e.target.value})}>{["manual","navex","yalidine","ecotrack","zr","generic"].map(x=><option key={x} value={x}>{x}</option>)}</select><input className={input} placeholder="API base URL" value={ship.api_base_url} onChange={(e)=>setShip({...ship,api_base_url:e.target.value})}/><input className={input} type="password" placeholder="Token (laisser vide si inchangé)" value={ship.api_token} onChange={(e)=>setShip({...ship,api_token:e.target.value})}/><input className={input} placeholder="Compte / référence" value={ship.account} onChange={(e)=>setShip({...ship,account:e.target.value})}/></div><button className={button+" mt-3"} onClick={()=>run({action:"shipping",...ship})}>Enregistrer livraison</button></section>
+    <section className="rounded-xl border p-4"><h4 className="font-bold">Livraison manuelle</h4><p className="text-sm text-slate-500">Utilise les tarifs configurés par wilaya. {activeShipping?.provider_key === "manual" ? "Mode actif." : "Mode inactif."}</p><button className={button+" mt-3"} onClick={()=>run({action:"shipping",provider_key:"manual",is_active:true})}>Activer le mode manuel</button></section>
+    <section className="rounded-xl border p-4"><h4 className="font-bold">Transporteur API</h4><p className="text-sm text-slate-500">{shipping.filter(sh=>sh.provider_key!=="manual" && sh.provider_key!=="mock").map(sh=>`${sh.provider_key} : ${sh.status}${sh.is_active?" (actif)":""}`).join(" · ")||"Aucune connexion configurée"}</p><div className="mt-3 grid gap-2 md:grid-cols-2"><select className={input} value={ship.provider_key==="manual"?"generic":ship.provider_key} onChange={(e)=>setShip({...ship,provider_key:e.target.value})}>{["navex","yalidine","ecotrack","zr","generic"].map(x=><option key={x} value={x}>{x}</option>)}</select><input className={input} placeholder="API base URL" value={ship.api_base_url} onChange={e=>setShip({...ship,api_base_url:e.target.value})}/><input className={input} type="password" placeholder="Token (laisser vide si inchangé)" value={ship.api_token} onChange={e=>setShip({...ship,api_token:e.target.value})}/><input className={input} placeholder="Compte / référence" value={ship.account} onChange={e=>setShip({...ship,account:e.target.value})}/></div><button className={button+" mt-3"} onClick={()=>run({action:"shipping",...ship,provider_key:ship.provider_key==="manual"?"generic":ship.provider_key})}>Enregistrer transporteur</button></section>
     <section className="rounded-xl border p-4"><h4 className="font-bold">Pixel marketing</h4><div className="mt-3 grid gap-2 md:grid-cols-2"><select className={input} value={pixel.provider_key} onChange={(e)=>setPixel({...pixel,provider_key:e.target.value})}>{["meta_pixel","tiktok_pixel","snapchat_pixel","pinterest_tag","ga4","gtm","google_ads"].map(x=><option key={x} value={x}>{x}</option>)}</select><input className={input} placeholder="ID" value={pixel.pixel_id} onChange={(e)=>setPixel({...pixel,pixel_id:e.target.value})}/></div><button className={button+" mt-3"} onClick={()=>run({action:"marketing",...pixel})}>Enregistrer pixel</button></section>
     <section className="rounded-xl border p-4"><h4 className="font-bold">Google Sheets</h4><div className="mt-3 grid gap-2"><input className={input} placeholder="Spreadsheet ID" value={sheet.spreadsheet_id} onChange={(e)=>setSheet({...sheet,spreadsheet_id:e.target.value})}/><textarea className={input} rows={4} placeholder="Service account JSON — laisser vide si inchangé" value={sheet.service_account_json} onChange={(e)=>setSheet({...sheet,service_account_json:e.target.value})}/></div><button className={button+" mt-3"} onClick={()=>run({action:"sheets",...sheet})}>Enregistrer Sheets</button></section>
     <section className="rounded-xl border p-4"><h4 className="font-bold">Telegram</h4><div className="mt-3 grid gap-2 md:grid-cols-2"><input className={input} type="password" placeholder="Bot token — laisser vide si inchangé" value={tg.bot_token} onChange={(e)=>setTg({...tg,bot_token:e.target.value})}/><input className={input} placeholder="Chat ID" value={tg.chat_id} onChange={(e)=>setTg({...tg,chat_id:e.target.value})}/></div><button className={button+" mt-3"} onClick={()=>run({action:"telegram",...tg})}>Enregistrer Telegram</button></section>

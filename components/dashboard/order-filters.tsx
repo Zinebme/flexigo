@@ -6,7 +6,7 @@ import { btnSecondary, inputCls } from "../ui";
 /**
  * Order list filters — URL-driven (shareable, refresh-safe).
  */
-export function OrderFilters({ statuses, wilayas }: { statuses: Array<{ value: string; label: string }>; wilayas: Array<{ code: number; name: string }> }) {
+export function OrderFilters({ statuses, wilayas, products = [] }: { statuses: Array<{ value: string; label: string }>; wilayas: Array<{ code: number; name: string }>; products?: Array<{ id: string; name: string }> }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -29,6 +29,13 @@ export function OrderFilters({ statuses, wilayas }: { statuses: Array<{ value: s
           onBlur={(e) => update("q", e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && update("q", (e.target as HTMLInputElement).value)}
         />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-semibold text-slate-500">Produit</label>
+        <select className={`${inputCls} w-44`} value={params.get("product") ?? ""} onChange={(e) => update("product", e.target.value)}>
+          <option value="">Tous les produits</option>
+          {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+        </select>
       </div>
       <div>
         <label className="mb-1 block text-xs font-semibold text-slate-500">Statut</label>

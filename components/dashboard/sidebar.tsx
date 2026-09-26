@@ -21,6 +21,7 @@ interface NavGroup {
 const HOME: NavItem[] = [
   { href: "/dashboard", key: "nav.dashboard", icon: "⌂" },
   { href: "/dashboard/commandes", key: "nav.orders", icon: "▢", roles: ["OWNER", "MANAGER", "ORDER_MANAGER", "VIEWER"] },
+  { href: "/dashboard/commandes-abandonnees", key: "nav.abandonedOrders", icon: "◫", roles: ["OWNER", "MANAGER", "ORDER_MANAGER", "VIEWER"] },
 ];
 
 const GROUPS: NavGroup[] = [
@@ -72,7 +73,7 @@ function visible(item: NavItem, role: string) {
 }
 
 function NavLink({ item, pathname, dict }: { item: NavItem; pathname: string; dict: Record<string, string> }) {
-  const active = item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href);
+  const active = item.href === "/dashboard" ? pathname === "/dashboard" : item.href === "/dashboard/commandes" ? pathname === item.href || pathname.startsWith(`${item.href}/`) : pathname.startsWith(item.href);
   return (
     <Link
       href={item.href}

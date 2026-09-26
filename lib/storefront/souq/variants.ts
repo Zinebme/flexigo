@@ -21,6 +21,7 @@ import { z } from "zod";
 
 export const SOUQ_SELECTION_MODES = ["single", "multiple"] as const;
 export type SouqSelectionMode = (typeof SOUQ_SELECTION_MODES)[number];
+export type SouqSelectionCountMode = "fixed" | "order_quantity";
 
 export const SOUQ_DISPLAY_TYPES = ["buttons", "color_swatch", "image", "checkbox", "dropdown"] as const;
 export type SouqDisplayType = (typeof SOUQ_DISPLAY_TYPES)[number];
@@ -56,6 +57,7 @@ const optionGroupSchema = z.object({
   label_fr: z.string().trim().max(80).optional().nullable(),
   label_en: z.string().trim().max(80).optional().nullable(),
   selection_mode: z.enum(SOUQ_SELECTION_MODES).optional(),
+  selection_count_mode: z.enum(["fixed", "order_quantity"]).optional(),
   display_type: z.enum(SOUQ_DISPLAY_TYPES).optional(),
   required: z.boolean().optional(),
   min_selections: z.number().int().min(0).max(20).optional().nullable(),
@@ -103,6 +105,7 @@ export interface SouqOptionGroup {
   optionKey: string | null;
   label: string;
   selectionMode: SouqSelectionMode;
+  selectionCountMode: SouqSelectionCountMode;
   displayType: SouqDisplayType;
   required: boolean;
   minSelections: number;
@@ -252,6 +255,7 @@ export function deriveOptionGroups(variants: SouqVariantInput[]): SouqOptionGrou
       optionKey: key,
       label: key,
       selectionMode: "single" as SouqSelectionMode,
+      selectionCountMode: "fixed" as SouqSelectionCountMode,
       displayType,
       required: true,
       minSelections: 1,
@@ -324,6 +328,7 @@ export function buildOptionGroups(
       optionKey: selectionMode === "single" ? group.option_key ?? group.key : null,
       label: group.label,
       selectionMode,
+      selectionCountMode: selectionMode === "multiple" && group.selection_count_mode === "order_quantity" ? "order_quantity" : "fixed",
       displayType: group.display_type ?? defaultType,
       required: group.required ?? selectionMode === "single",
       minSelections:
@@ -368,6 +373,7 @@ export function applySelection(
   group: SouqOptionGroup,
   selections: SouqSelections,
   value: string,
+  quantity = 1,
 ): SouqSelections {
   const current = selectedValues(selections, group);
   if (group.selectionMode === "single") {
@@ -375,7 +381,8 @@ export function applySelection(
   }
   const exists = current.includes(value);
   let next = exists ? current.filter((v) => v !== value) : [...current, value];
-  if (!exists && group.maxSelections !== null && next.length > group.maxSelections) {
+  const maximum = group.selectionCountMode === "order_quantity" ? Math.max(1, quantity) : group.maxSelections;
+  if (!exists && maximum !== null && next.length > maximum) {
     next = [...next.slice(1)];
   }
   return { ...selections, [group.key]: next };
@@ -422,12 +429,18 @@ export interface SouqSelectionIssue {
 }
 
 /** Validate selections client-side with machine codes (copy lives in copy.ts). */
-export function validateSelections(groups: SouqOptionGroup[], selections: SouqSelections): SouqSelectionIssue[] {
+export function validateSelections(groups: SouqOptionGroup[], selections: SouqSelections, quantity = 1): SouqSelectionIssue[] {
   const issues: SouqSelectionIssue[] = [];
   for (const group of groups) {
     const chosen = selectedValues(selections, group);
     if (group.selectionMode === "single") {
       if (group.required && chosen.length === 0) issues.push({ groupKey: group.key, code: "required", label: group.label });
+      continue;
+    }
+    if (group.selectionCountMode === "order_quantity") {
+      const expected = Math.max(1, quantity);
+      if (chosen.length < expected) issues.push({ groupKey: group.key, code: "min", label: group.label, count: expected });
+      else if (chosen.length > expected) issues.push({ groupKey: group.key, code: "max", label: group.label, count: expected });
       continue;
     }
     if (group.required && chosen.length < Math.max(1, group.minSelections)) {

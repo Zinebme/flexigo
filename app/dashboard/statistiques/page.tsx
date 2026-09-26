@@ -3,12 +3,14 @@ import { can } from "@/lib/types";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/lib/types";
 import { formatDA, formatDateFr } from "@/lib/utils";
 import { getAnalytics } from "@/lib/dashboard/analytics";
+import { getAdminSupabase } from "@/lib/supabase/admin";
+import { ORDER_STATUSES } from "@/lib/types";
 import { PageHeader, Card, CardHeader, Stat, Table, Th, Td, EmptyState, Badge } from "@/components/ui";
 import { BarChart } from "@/components/dashboard/bar-chart";
 
 export const dynamic = "force-dynamic";
 
-export default async function StatsPage() {
+export default async function StatsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const ctx = await getMerchantContext();
   if (!can(ctx.role, "stats.view")) {
     return (
@@ -19,11 +21,29 @@ export default async function StatsPage() {
     );
   }
 
-  const a = await getAnalytics(ctx.store.id);
+  const params = await searchParams;
+  const first = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
+  const admin = getAdminSupabase();
+  const { data: products } = await admin.from("products").select("id, name").eq("store_id", ctx.store.id).is("deleted_at", null).order("name");
+  const product = first(params.product);
+  const safeProduct = (products ?? []).some((item) => item.id === product) ? product : undefined;
+  const status = first(params.status);
+  const safeStatus = ORDER_STATUSES.includes(status as (typeof ORDER_STATUSES)[number]) ? status : undefined;
+  const from = /^\d{4}-\d{2}-\d{2}$/.test(first(params.from) ?? "") ? first(params.from) : undefined;
+  const to = /^\d{4}-\d{2}-\d{2}$/.test(first(params.to) ?? "") ? first(params.to) : undefined;
+  const a = await getAnalytics(ctx.store.id, { product_id: safeProduct, status: safeStatus, from, to });
 
   return (
     <>
       <PageHeader title="Statistiques" subtitle="Performance de votre site — données recalculées côté serveur." />
+
+      <form className="mb-4 flex flex-wrap items-end gap-2 rounded-xl border bg-white p-3">
+        <label className="text-xs">Produit<select name="product" defaultValue={safeProduct ?? ""} className="mt-1 block rounded-lg border px-3 py-2 text-sm"><option value="">Tous les produits</option>{(products ?? []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+        <label className="text-xs">Statut<select name="status" defaultValue={safeStatus ?? ""} className="mt-1 block rounded-lg border px-3 py-2 text-sm"><option value="">Tous</option>{ORDER_STATUSES.map((item) => <option key={item} value={item}>{ORDER_STATUS_LABELS[item]}</option>)}</select></label>
+        <label className="text-xs">Du<input type="date" name="from" defaultValue={from} className="mt-1 block rounded-lg border px-3 py-2 text-sm" /></label>
+        <label className="text-xs">Au<input type="date" name="to" defaultValue={to} className="mt-1 block rounded-lg border px-3 py-2 text-sm" /></label>
+        <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Filtrer</button>
+      </form>
 
       <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
         💡 Le <span className="font-semibold">CA (GMV)</span> ci-dessous est le montant total de vos commandes clients.

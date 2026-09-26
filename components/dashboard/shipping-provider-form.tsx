@@ -25,9 +25,25 @@ export interface ProviderInfo {
  * Carrier config UI. Secrets are entered once and only ever echoed back as a
  * masked preview; the server encrypts before storage.
  */
+export function ManualShippingMode({ active, canManage }: { active: boolean; canManage: boolean }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function activate() {
+    setBusy(true); setError(null);
+    try {
+      const res = await fetch("/api/dashboard/integrations/shipping", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider_key: "manual", is_active: true, fields: {} }) });
+      if (!res.ok) throw new Error("Activation impossible");
+      router.refresh();
+    } catch (e) { setError(e instanceof Error ? e.message : "Erreur"); }
+    finally { setBusy(false); }
+  }
+  return <div className="space-y-2 text-sm"><p>{active ? "Mode manuel actif" : "Le mode manuel utilise les tarifs par wilaya ci-dessous."}</p>{canManage && !active && <button type="button" disabled={busy} onClick={activate} className="rounded-lg bg-slate-900 px-3 py-2 font-semibold text-white">Activer le mode manuel</button>}{error && <p role="alert" className="text-red-600">{error}</p>}</div>;
+}
+
 export function ShippingProviderForm({ providers, canManage }: { providers: ProviderInfo[]; canManage: boolean }) {
   const router = useRouter();
-  const [selected, setSelected] = useState(providers.find((p) => p.is_active)?.key ?? providers[0]?.key ?? "manual");
+  const [selected, setSelected] = useState(providers.find((p) => p.is_active && p.key !== "manual")?.key ?? providers.find((p) => p.key !== "manual" && p.key !== "mock")?.key ?? "generic");
   const [values, setValues] = useState<Record<string, string>>(() => {
     const v: Record<string, string> = {};
     for (const p of providers) for (const f of p.fields) if (f.value) v[`${p.key}:${f.key}`] = f.value;
@@ -94,7 +110,7 @@ export function ShippingProviderForm({ providers, canManage }: { providers: Prov
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {providers.filter((p) => p.key !== "mock").map((p, index) => {
+        {providers.filter((p) => p.key !== "mock" && p.key !== "manual").map((p, index) => {
           const selectedCard = selected === p.key;
           const initials = p.label
             .split(/\s+/)

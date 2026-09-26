@@ -180,6 +180,7 @@ export interface ProductRow {
   price_cents: number;
   cost_cents: number | null;
   is_digital: boolean;
+  free_shipping: boolean;
   gallery_mode: "slideshow" | "stacked";
   landing_images: string[];
   min_order_quantity: number;
@@ -236,6 +237,7 @@ export interface QuantityOfferRow {
   total_price_cents: number;
   label: string | null;
   is_active: boolean;
+  free_shipping: boolean;
   position: number;
   created_at: string;
 }
@@ -358,6 +360,27 @@ export interface OrderItemRow {
   quantity: number;
   unit_price_cents: number;
   line_total_cents: number;
+  selected_options: Record<string, string[]>;
+}
+
+export interface AbandonedCheckoutRow {
+  id: string;
+  store_id: string;
+  session_key: string;
+  product_id: string | null;
+  variant_id: string | null;
+  product_name: string | null;
+  full_name: string | null;
+  phone: string | null;
+  wilaya_code: number | null;
+  quantity: number;
+  selected_options: Record<string, string[]>;
+  estimated_total_cents: number | null;
+  stage: string;
+  reason_code: string | null;
+  converted_order_id: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface OrderStatusHistoryRow {
@@ -541,6 +564,7 @@ export interface Database {
       customers: T<CustomerRow>;
       orders: T<OrderRow>;
       order_items: T<OrderItemRow>;
+      abandoned_checkouts: T<AbandonedCheckoutRow>;
       order_status_history: T<OrderStatusHistoryRow>;
       inventory_movements: T<InventoryMovementRow>;
       shipping_integrations: T<ShippingIntegrationRow>;

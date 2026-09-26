@@ -259,8 +259,9 @@ describe("SOUQ — COD form interactions", () => {
     await user.click(packButton(copy.product.twoUnits, "5 200 دج"));
     await user.click(submitButton());
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/checkout/abandoned");
+    const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(url).toBe("/api/checkout");
     const body = JSON.parse(String(init.body)) as Record<string, unknown>;
 

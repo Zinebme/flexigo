@@ -17,6 +17,7 @@ export default async function AdminSiteDetailPage({ params }: { params: Promise<
     { data: domains },
     { data: pages },
     { data: orders },
+    { data: abandoned },
     { data: products },
     { data: categories },
     { data: customers },
@@ -34,8 +35,9 @@ export default async function AdminSiteDetailPage({ params }: { params: Promise<
     admin.from("store_members").select("id, user_id, role, status, created_at").eq("store_id", id).order("created_at"),
     admin.from("domains").select("*").eq("store_id", id),
     admin.from("pages").select("*").eq("store_id", id).order("key"),
-    admin.from("orders").select("id, order_number, total_cents, status, created_at").eq("store_id", id).order("created_at", { ascending: false }).limit(100),
-    admin.from("products").select("*, product_images(id, url, position), product_variants(id, name, options, price_cents, sku, stock, is_active, position), quantity_offers(id, min_quantity, total_price_cents, label, is_active, position)").eq("store_id", id).is("deleted_at", null).order("created_at", { ascending: false }).limit(100),
+    admin.from("orders").select("id, order_number, total_cents, status, created_at, order_items(product_id, product_name), shipments(id)").eq("store_id", id).order("created_at", { ascending: false }).limit(100),
+    admin.from("abandoned_checkouts").select("id, product_name, phone, full_name, stage, reason_code, created_at, estimated_total_cents, converted_order_id").eq("store_id", id).is("converted_order_id", null).order("created_at", { ascending: false }).limit(100),
+    admin.from("products").select("*, product_images(id, url, position), product_variants(id, name, options, price_cents, sku, stock, is_active, position), quantity_offers(id, min_quantity, total_price_cents, label, is_active, free_shipping, position)").eq("store_id", id).is("deleted_at", null).order("created_at", { ascending: false }).limit(100),
     admin.from("categories").select("*").eq("store_id", id).is("deleted_at", null).order("position"),
     admin.from("customers").select("id, name, phone, normalized_phone, email, notes, status, order_count, total_spent_cents, last_order_at").eq("store_id", id).is("deleted_at", null).order("created_at", { ascending: false }).limit(100),
     admin.from("themes").select("*").eq("store_id", id).maybeSingle(),
@@ -67,6 +69,7 @@ export default async function AdminSiteDetailPage({ params }: { params: Promise<
       domains={(domains ?? []) as Array<Record<string, unknown>>}
       pages={(pages ?? []) as Array<Record<string, unknown>>}
       orders={(orders ?? []) as Array<Record<string, unknown>>}
+      abandoned={(abandoned ?? []) as Array<Record<string, unknown>>}
       products={(products ?? []) as Array<Record<string, unknown>>}
       categories={(categories ?? []) as Array<Record<string, unknown>>}
       customers={(customers ?? []) as Array<Record<string, unknown>>}
