@@ -141,7 +141,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </div>
               <div><dt className="text-slate-400">Livraison</dt>
                 <dd className="font-medium text-slate-800">
-                  {order.delivery_type === "office" ? `🏢 Bureau ${order.office ?? ""} — ${order.commune}, ${order.wilaya}` : `🏠 ${order.address ?? ""}, ${order.commune}, ${order.wilaya}`}
+                  {order.delivery_type === "office" ? `🏢 ${order.office ?? "Bureau à confirmer"} — ${order.commune}, ${order.wilaya}` : `🏠 ${order.address ?? ""}, ${order.commune}, ${order.wilaya}`}
                 </dd>
               </div>
             </dl>

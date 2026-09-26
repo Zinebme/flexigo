@@ -177,9 +177,11 @@ describe("SOUQ — COD form rendering", () => {
     expect(html).toContain("31 - وهران");
   });
 
-  it("offers home delivery initially, without an unverified office address field", () => {
+  it("shows both delivery choices without inventing an office address", () => {
     expect(html).toContain('id="souq-address"');
     expect(html).not.toContain('id="souq-office"');
+    expect(html).toMatch(/<input[^>]*type="radio"[^>]*name="souq-delivery"[^>]*value="home"/);
+    expect(html).toMatch(/<input[^>]*type="radio"[^>]*name="souq-delivery"[^>]*value="office"/);
   });
 
   it("renders the display-only summary lines and the amber CTA", () => {

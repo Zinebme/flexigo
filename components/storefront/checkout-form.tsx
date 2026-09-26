@@ -51,6 +51,7 @@ export function CheckoutForm({
   const [deliveryType, setDeliveryType] = useState<"home" | "office">("home");
   const [office, setOffice] = useState("");
   const [offices, setOffices] = useState<Array<{ value: string; name: string; address: string }>>([]);
+  const [officeAvailable, setOfficeAvailable] = useState(false);
   // Honeypot — humans never see or fill this.
   const [website, setWebsite] = useState("");
   const [state, setState] = useState<SubmitState>({ status: "idle" });
@@ -59,9 +60,9 @@ export function CheckoutForm({
   useEffect(() => {
     const controller = new AbortController();
     void fetch(`/api/storefront/offices?store_slug=${encodeURIComponent(storeSlug)}&wilaya_code=${wilayaCode}`, { signal: controller.signal })
-      .then(async response => response.ok ? await response.json() as { offices?: Array<{ value: string; name: string; address: string }> } : { offices: [] })
-      .then(result => { if (!controller.signal.aborted) setOffices(result.offices ?? []); })
-      .catch(() => { if (!controller.signal.aborted) setOffices([]); });
+      .then(async response => response.ok ? await response.json() as { available?: boolean; offices?: Array<{ value: string; name: string; address: string }> } : { available: false, offices: [] })
+      .then(result => { if (!controller.signal.aborted) { setOfficeAvailable(Boolean(result.available)); setOffices(result.offices ?? []); } })
+      .catch(() => { if (!controller.signal.aborted) { setOfficeAvailable(false); setOffices([]); } });
     return () => controller.abort();
   }, [storeSlug, wilayaCode]);
   const finalCommune = commune === "__other__" ? otherCommune : commune;
@@ -81,7 +82,7 @@ export function CheckoutForm({
       setState({ status: "error", message: dict.checkout.commune + " requise." });
       return;
     }
-    if (deliveryType === "office" && !offices.some(item => item.value === office)) {
+    if (deliveryType === "office" && (!officeAvailable || (offices.length > 0 && !offices.some(item => item.value === office)))) {
       setState({ status: "error", message: dict.checkout.office + " requis." });
       return;
     }
@@ -105,7 +106,7 @@ export function CheckoutForm({
         commune: finalCommune.trim(),
         address: deliveryType === "home" ? address.trim() || null : null,
         delivery_type: deliveryType,
-        office: deliveryType === "office" ? office.trim() : null,
+        office: deliveryType === "office" && offices.length > 0 ? office.trim() : null,
         utm_source: url.searchParams.get("utm_source"),
         utm_medium: url.searchParams.get("utm_medium"),
         utm_campaign: url.searchParams.get("utm_campaign"),
@@ -183,7 +184,7 @@ export function CheckoutForm({
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label className={label} htmlFor="co-wilaya">{dict.checkout.wilaya} *</label>
-          <select id="co-wilaya" className={input} value={wilayaCode} onChange={(e) => { setWilayaCode(Number(e.target.value)); setCommune(""); setOffice(""); setOffices([]); setDeliveryType("home"); }}>
+          <select id="co-wilaya" className={input} value={wilayaCode} onChange={(e) => { setWilayaCode(Number(e.target.value)); setCommune(""); setOffice(""); setOffices([]); setOfficeAvailable(false); setDeliveryType("home"); }}>
             {WILAYAS.map((w) => (
               <option key={w.code} value={w.code}>{w.name}</option>
             ))}
@@ -211,12 +212,10 @@ export function CheckoutForm({
         </div>
       </div>
 
-      <div>
-        <label className={label} htmlFor="co-address">
-          {deliveryType === "home" ? dict.checkout.address : dict.checkout.addressOptional}
-        </label>
+      {deliveryType === "home" && <div>
+        <label className={label} htmlFor="co-address">{dict.checkout.address}</label>
         <input id="co-address" className={input} value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" maxLength={200} />
-      </div>
+      </div>}
 
       <div>
         <span className={label}>{dict.checkout.deliveryType}</span>
@@ -228,13 +227,14 @@ export function CheckoutForm({
           >
             🏠 {dict.checkout.homeDelivery}
           </button>
-          {offices.length > 0 && <button
+          <button
             type="button"
+            disabled={!officeAvailable}
             onClick={() => setDeliveryType("office")}
-            className={`rounded-lg border px-4 py-3 text-sm font-semibold transition ${deliveryType === "office" ? "border-[var(--fx-primary)] bg-[var(--fx-primary)]/5 text-[var(--fx-primary)]" : "border-slate-200 text-slate-600"}`}
+            className={`rounded-lg border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${deliveryType === "office" ? "border-[var(--fx-primary)] bg-[var(--fx-primary)]/5 text-[var(--fx-primary)]" : "border-slate-200 text-slate-600"}`}
           >
             🏢 {dict.checkout.officeDelivery}
-          </button>}
+          </button>
         </div>
         {deliveryType === "office" && offices.length > 0 ? (
           <div className="mt-3"><label className={label} htmlFor="co-office">Choisir un bureau de retrait *</label>
@@ -244,7 +244,7 @@ export function CheckoutForm({
             </select>
             {office && <p className="mt-2 text-sm text-slate-600">Adresse du bureau : {offices.find(item => item.value === office)?.address}</p>}
           </div>
-        ) : null}
+        ) : deliveryType === "office" && officeAvailable ? <p className="mt-3 text-sm text-slate-600">La boutique confirmera le bureau et son adresse après votre commande.</p> : null}
       </div>
 
       {state.status === "error" ? (

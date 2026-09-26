@@ -2,7 +2,7 @@ import { type NextRequest } from "next/server";
 import { z } from "zod";
 import { getAnonSupabase } from "../../../lib/supabase/anon";
 import { getAdminSupabase } from "../../../lib/supabase/admin";
-import { getAvailableOffices } from "../../../lib/providers/shipping/offices";
+import { getAvailableOffices, isOfficeDeliveryAvailable } from "../../../lib/providers/shipping/offices";
 import { resolveStoreBySlug } from "../../../lib/storefront/resolve";
 import { hit, clientIpFromHeaders } from "../../../lib/rate-limit";
 import { normalizeDZPhone } from "../../../lib/phone";
@@ -156,10 +156,18 @@ export async function POST(req: NextRequest) {
       return Response.json({ ok: false, error: messageFor("STORE_NOT_ACTIVE", locale) }, { status: 400 });
     }
 
+    let selectedOffice: string | null = null;
     if (body.delivery_type === "office") {
-      const offices = await getAvailableOffices(store.id, body.wilaya_code);
-      if (!body.office || !offices.some((office) => office.value === body.office)) {
+      if (!await isOfficeDeliveryAvailable(store.id, body.wilaya_code)) {
         return Response.json({ ok: false, error: locale === "ar" ? "التوصيل إلى المكتب غير متاح لهذه الولاية حالياً" : "Aucun bureau de livraison disponible pour cette wilaya." }, { status: 400 });
+      }
+      const offices = await getAvailableOffices(store.id, body.wilaya_code);
+      if (offices.length > 0) {
+        const selected = offices.find((office) => office.value === body.office);
+        if (!selected) return Response.json({ ok: false, error: locale === "ar" ? "يرجى اختيار مكتب الاستلام" : "Choisissez un bureau de retrait." }, { status: 400 });
+        selectedOffice = `${selected.name} — ${selected.address}`.slice(0, 120);
+      } else if (body.office) {
+        return Response.json({ ok: false, error: locale === "ar" ? "مكتب غير متاح" : "Bureau non disponible." }, { status: 400 });
       }
     }
 
@@ -234,7 +242,7 @@ export async function POST(req: NextRequest) {
       p_commune: body.commune,
       p_address: body.address ?? null,
       p_delivery_type: body.delivery_type,
-      p_office: body.office ?? null,
+      p_office: selectedOffice,
       p_utm_source: body.utm_source ?? null,
       p_utm_medium: body.utm_medium ?? null,
       p_utm_campaign: body.utm_campaign ?? null,

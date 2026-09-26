@@ -106,6 +106,7 @@ const editSchema = z.object({
   phone: z.string().trim().min(8).max(24).regex(/^[+\d\s().-]+$/),
   commune: z.string().trim().min(2).max(120),
   address: z.string().trim().max(500).nullable(),
+  office: z.string().trim().max(120).nullable(),
   status: z.enum(ORDER_STATUSES),
   note: z.string().trim().max(2000).optional(),
 });
@@ -131,6 +132,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       normalized_phone: normalizedPhone,
       commune: body.commune,
       address: order.delivery_type === "home" ? body.address : order.address,
+      office: order.delivery_type === "office" ? body.office : order.office,
       status: body.status,
       ...(entry ? { internal_notes: order.internal_notes ? `${order.internal_notes}\n${entry}` : entry } : {}),
       updated_at: now,

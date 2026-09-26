@@ -165,6 +165,31 @@ describe("SOUQ — COD form interactions", () => {
     expect(document.getElementById("souq-office")).toBeInstanceOf(HTMLSelectElement);
   });
 
+  it("allows an office request without inventing a pickup address when none is configured", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockImplementation((url: string) => Promise.resolve(url.startsWith("/api/storefront/offices")
+      ? { ok: true, json: async () => ({ available: true, offices: [] }) }
+      : { ok: true, json: async () => ({ ok: true, order_number: "ORD-OFFICE", total_cents: 320000 }) }));
+    vi.stubGlobal("fetch", fetchMock);
+    renderForm();
+    await chooseInStockVariant(user);
+    await user.type(screen.getByLabelText(new RegExp(copy.checkout.firstName)), "أمين");
+    await user.type(screen.getByLabelText(new RegExp(copy.checkout.lastName)), "بن علي");
+    await user.type(screen.getByLabelText(new RegExp(copy.checkout.phone)), "0550445566");
+    await user.selectOptions(wilayaSelect(), "16");
+    await user.selectOptions(communeSelect(), "Bab El Oued");
+    await user.click(screen.getByRole("radio", { name: new RegExp(copy.checkout.office) }));
+    expect(document.getElementById("souq-office")).toBeNull();
+    expect(document.getElementById("souq-address")).toBeNull();
+    expect(await screen.findByText(/سيتم تأكيد مكتب الاستلام/)).not.toBeNull();
+    await user.click(submitButton());
+    const checkoutCall = fetchMock.mock.calls.find(([url]) => url === "/api/checkout") as [string, RequestInit] | undefined;
+    expect(checkoutCall).toBeDefined();
+    const payload = JSON.parse(String(checkoutCall![1].body));
+    expect(payload.delivery_type).toBe("office");
+    expect(payload.office).toBeNull();
+  });
+
   it("applies a quantity pack to the order and to the summary", async () => {
     const user = userEvent.setup();
     renderForm();

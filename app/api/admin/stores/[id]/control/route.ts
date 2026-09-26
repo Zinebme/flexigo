@@ -114,6 +114,14 @@ export const adminStoreControlActionSchema = z.discriminatedUnion("action", [
     account: z.string().max(120).optional().or(z.literal("")).nullable(),
   }),
   z.object({
+    action: z.literal("shipping_offices"),
+    offices: z.array(z.object({
+      wilaya_code: z.number().int().min(1).max(58),
+      name: z.string().trim().min(2).max(40),
+      address: z.string().trim().min(5).max(75),
+    })).max(200),
+  }),
+  z.object({
     action: z.literal("marketing"),
     provider_key: z.enum(MARKETING_PROVIDER_KEYS),
     is_active: z.boolean(),
@@ -438,6 +446,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         await admin.from("shipping_integrations").update({ is_active: false } as never).eq("store_id", storeId).neq("provider_key", input.provider_key);
       }
       await logAudit({ actorId: ctx.user.id, storeId, action: "integration.changed", entity: "shipping_integration", entityId: input.provider_key, metadata: { provider: input.provider_key, active: input.is_active } });
+    }
+
+    if (input.action === "shipping_offices") {
+      const unique = new Set(input.offices.map((office) => `${office.wilaya_code}:${office.name.toLocaleLowerCase("fr")}:${office.address.toLocaleLowerCase("fr")}`));
+      if (unique.size !== input.offices.length) throw err("VALIDATION", "Ce bureau est présent plusieurs fois.");
+      const { data: manual, error: manualReadError } = await admin.from("shipping_integrations")
+        .select("config, is_active").eq("store_id", storeId).eq("provider_key", "manual").maybeSingle();
+      if (manualReadError) throw manualReadError;
+      const { data: active, error: activeError } = await admin.from("shipping_integrations")
+        .select("provider_key").eq("store_id", storeId).eq("is_active", true).limit(1).maybeSingle();
+      if (activeError) throw activeError;
+      const config = { ...((manual?.config as Record<string, unknown> | null) ?? {}), pickup_offices: input.offices };
+      const { error: saveError } = await admin.from("shipping_integrations").upsert({
+        store_id: storeId, provider_key: "manual", is_active: manual?.is_active ?? !active,
+        status: "configured", config, updated_at: new Date().toISOString(),
+      } as never, { onConflict: "store_id,provider_key" });
+      if (saveError) throw saveError;
+      await logAudit({ actorId: ctx.user.id, storeId, action: "integration.changed", entity: "shipping_integration", entityId: "manual", metadata: { pickup_offices_count: input.offices.length } });
     }
 
     if (input.action === "marketing") {

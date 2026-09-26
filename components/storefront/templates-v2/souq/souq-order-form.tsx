@@ -336,7 +336,7 @@ export function useSouqOrderState(
       if (deliveryType === "home" && addressField.enabled && addressField.required && addressValue.length < 4) {
         errors.address = data.copy.errors.address;
       }
-      if (deliveryType === "office" && officeValue.length < 2) {
+      if (deliveryType === "office" && event.currentTarget.querySelector('select[name="souq-office"]') && officeValue.length < 2) {
         errors.office = data.copy.errors.office;
       }
       if (optionIssues.length > 0) {
@@ -832,7 +832,7 @@ export function SouqOrderFormView({
   const address = fieldSetting(settings, "address");
 
   const homeAvailable = settings.showDeliveryChoice;
-  const officeAvailable = settings.showDeliveryChoice && data.officeDeliveryEnabled && offices.length > 0;
+  const officeAvailable = settings.showDeliveryChoice && data.officeDeliveryEnabled && !outOfRangeDelivery("office", zones, form.wilayaCode);
   useEffect(() => {
     if (!data.officeDeliveryEnabled || !form.wilayaCode) return;
     if (data.previewMode) {
@@ -996,7 +996,7 @@ export function SouqOrderFormView({
 
         {/* Delivery */}
         <div className="space-y-4">
-          {settings.showDeliveryChoice && officeAvailable ? (
+          {settings.showDeliveryChoice ? (
             <div data-field="delivery">
               <span className="souq-label">{copy.checkout.deliveryMethod}</span>
               <div className="grid grid-cols-2 gap-2.5">
@@ -1140,7 +1140,7 @@ export function SouqOrderFormView({
             </div>
           ) : null}
 
-          {form.deliveryType === "office" && officeAvailable ? (
+          {form.deliveryType === "office" && officeAvailable && offices.length > 0 ? (
             <div data-field="office">
               <label className="souq-label" htmlFor="souq-office">
                 {lang === "ar" ? "اختر مكتب الاستلام" : lang === "en" ? "Choose a pickup office" : "Choisir un bureau de retrait"}
@@ -1153,7 +1153,7 @@ export function SouqOrderFormView({
               {fieldErrors.office && <p role="alert" className="souq-error">{fieldErrors.office}</p>}
             </div>
           ) : null}
-          {data.officeDeliveryEnabled && form.wilayaCode && offices.length === 0 && !data.previewMode ? <p className="text-xs text-slate-500">{lang === "ar" ? "لا توجد مكاتب متاحة في هذه الولاية حالياً؛ التوصيل إلى المنزل متاح." : "Aucun bureau disponible dans cette wilaya ; choisissez la livraison à domicile."}</p> : null}
+          {form.deliveryType === "office" && officeAvailable && offices.length === 0 && !data.previewMode ? <p className="text-xs text-slate-500">{lang === "ar" ? "سيتم تأكيد مكتب الاستلام وعنوانه معك بعد الطلب." : lang === "en" ? "The store will confirm your pickup office and address after the order." : "La boutique confirmera le bureau et son adresse après votre commande."}</p> : null}
         </div>
 
         {/* Quantity (when no bundle offer is selected) */}

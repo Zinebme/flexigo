@@ -1,5 +1,5 @@
 import { resolveStoreBySlug } from "@/lib/storefront/resolve";
-import { getAvailableOffices } from "@/lib/providers/shipping/offices";
+import { getAvailableOffices, isOfficeDeliveryAvailable } from "@/lib/providers/shipping/offices";
 import { clientIpFromHeaders, hit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +18,9 @@ export async function GET(req: Request) {
   try {
     const store = await resolveStoreBySlug(slug);
     if (!store || store.status !== "active") return Response.json({ offices: [] }, { status: 404 });
-    const offices = await getAvailableOffices(store.id, wilayaCode);
-    return Response.json({ offices }, { headers: { "Cache-Control": "private, max-age=60" } });
+    const available = await isOfficeDeliveryAvailable(store.id, wilayaCode);
+    const offices = available ? await getAvailableOffices(store.id, wilayaCode) : [];
+    return Response.json({ available, offices }, { headers: { "Cache-Control": "private, max-age=60" } });
   } catch {
     return Response.json({ offices: [] }, { status: 503 });
   }
