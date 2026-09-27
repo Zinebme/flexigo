@@ -115,7 +115,7 @@ export const productSchema = z.object({
   is_featured: z.boolean().default(false),
   category_id: uuid,
   images: z.array(imageUrl).max(12).optional().default([]),
-  variants: z.array(variantSchema).max(12).optional().default([]),
+  variants: z.array(variantSchema).max(50, "50 variantes maximum").optional().default([]),
   seo_title: z.string().max(160).optional().or(z.literal("")).nullable(),
   seo_description: z.string().max(300).optional().or(z.literal("")).nullable(),
 });

@@ -226,7 +226,10 @@ export function ProductForm({
       name,slug:shownSlug,short_description:shortDescription,description,
       price:Number.parseFloat(price),compare_at_price:compareAt?Number.parseFloat(compareAt):null,cost:cost?Number.parseFloat(cost):null,
       sku,stock:(mode==="create"||allowStockEdit)?(Number.parseInt(stock,10)||0):undefined,low_stock_threshold:Number.parseInt(threshold,10)||0,
-      stock_tracking_mode:stockTracking,is_active:isActive,is_featured:isFeatured,is_digital:isDigital,free_shipping:freeShipping,category_id:categoryId,
+      stock_tracking_mode:stockTracking,is_active:isActive,is_featured:isFeatured,is_digital:isDigital,free_shipping:freeShipping,
+      // Legacy products can be uncategorized. Keep their category unchanged when
+      // editing; new products still require a category in the form and API.
+      category_id:mode==="edit"&&!categoryId?undefined:categoryId,
       images,landing_images:landingImages,gallery_mode:galleryMode,min_order_quantity:Number.parseInt(minOrderQuantity,10)||1,
       shipping_label:shippingLabel,related_product_ids:relatedIds,cross_sell_product_ids:crossSellIds,page_element_order:pageOrder,
       option_groups:cleanGroups,seo_title:seoTitle,seo_description:seoDescription,

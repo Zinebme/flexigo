@@ -3,7 +3,7 @@ import { getAdminContext } from "@/lib/auth/admin-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { toErrorResponse, err } from "@/lib/errors";
-import { productSchema, quantityOfferSchema } from "@/lib/schemas";
+import { productSchema, quantityOfferSchema, parseBody } from "@/lib/schemas";
 import { validateProductLinks } from "@/lib/catalog/validate-product-links";
 
 export const dynamic = "force-dynamic";
@@ -19,11 +19,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const { id: storeId, productId } = await params;
     const ctx = await getAdminContext();
 
-    const body = (await req.json().catch(() => null)) as Record<string, unknown>;
+    const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
     // Strip unknown keys; use productSchema.partial() semantics.
-    const input = productSchema.partial().parse(body);
-    const offers = body.offers ? quantityOfferSchema.array().max(10).parse(body.offers) : undefined;
-    const removeVariantIds: string[] = Array.isArray(body.remove_variant_ids)
+    const input = parseBody(productSchema.partial(), body);
+    const offers = body?.offers ? parseBody(quantityOfferSchema.array().max(10), body.offers) : undefined;
+    const removeVariantIds: string[] = Array.isArray(body?.remove_variant_ids)
       ? body.remove_variant_ids.filter((v) => typeof v === "string")
       : [];
 

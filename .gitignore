@@ -9,6 +9,8 @@ next-env.d.ts
 # Production build output
 build
 dist
+.open-next
+.sites-worker
 
 # Environment — NEVER commit real secrets
 .env
