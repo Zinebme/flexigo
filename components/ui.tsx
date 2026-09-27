@@ -90,6 +90,7 @@ export function Button({
   title,
   external,
   download,
+  ariaLabel,
 }: {
   children?: React.ReactNode;
   href?: string;
@@ -105,6 +106,8 @@ export function Button({
   title?: string;
   external?: boolean;
   download?: boolean;
+  /** Explicit accessible name (used when the visible label is shortened by an icon). */
+  ariaLabel?: string;
 }) {
   const classes = cn(
     TONE_CLASS[tone],
@@ -123,20 +126,20 @@ export function Button({
   if (href) {
     if (external) {
       return (
-        <a href={href} target="_blank" rel="noopener noreferrer" download={download} className={classes} title={title} aria-disabled={disabled}>
+        <a href={href} target="_blank" rel="noopener noreferrer" download={download} className={classes} title={title} aria-label={ariaLabel} aria-disabled={disabled}>
           {content}
         </a>
       );
     }
     return (
-      <Link href={href} className={classes} title={title} download={download} aria-disabled={disabled}>
+      <Link href={href} className={classes} title={title} download={download} aria-label={ariaLabel} aria-disabled={disabled}>
         {content}
       </Link>
     );
   }
 
   return (
-    <button type={type} onClick={onClick} disabled={disabled || loading} className={classes} title={title}>
+    <button type={type} onClick={onClick} disabled={disabled || loading} className={classes} title={title} aria-label={ariaLabel}>
       {content}
     </button>
   );

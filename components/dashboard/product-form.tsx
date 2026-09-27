@@ -776,7 +776,7 @@ export function ProductForm({
           defaultOpen={variants.length>0}
           badge={<Badge tone={variants.length>0?"blue":"gray"} size="sm">{variants.length}/50</Badge>}
           actions={
-            <Button tone="secondary" size="sm" icon="plus" onClick={()=>variants.length<50&&setVariants([...variants,{name:"",options_text:"",price:"",sku:"",stock:"0",is_active:true}])}>
+            <Button tone="secondary" size="sm" icon="plus" ariaLabel="+ Variante" onClick={()=>variants.length<50&&setVariants([...variants,{name:"",options_text:"",price:"",sku:"",stock:"0",is_active:true}])}>
               Variante
             </Button>
           }
@@ -792,7 +792,7 @@ export function ProductForm({
               </div>
               {variants.map((v,idx)=>(
                 <div key={idx} className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 md:grid-cols-[1fr_1.3fr_110px_110px_90px_auto] md:items-center md:bg-white">
-                  <input className={cn(inputCls,"py-2")} placeholder="Nom ex : Rouge / M" value={v.name} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,name:e.target.value}:x))}/>
+                  <input className={cn(inputCls,"py-2")} placeholder="Nom ex: Rouge / M" value={v.name} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,name:e.target.value}:x))}/>
                   <input className={cn(inputCls,"py-2")} placeholder="Couleur: Rouge, Taille: M" value={v.options_text} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,options_text:e.target.value}:x))}/>
                   <MoneyInput value={v.price} onChange={(val)=>setVariants(variants.map((x,i)=>i===idx?{...x,price:val}:x))} min="0"/>
                   <input className={cn(inputCls,"py-2")} placeholder="SKU" value={v.sku} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,sku:e.target.value}:x))}/>
