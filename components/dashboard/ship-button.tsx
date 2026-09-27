@@ -1,19 +1,32 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button, Spinner } from "@/components/ui";
+import { apiErrorMessage, useToast } from "@/components/ui/toast";
 
 /**
  * "Envoyer au transporteur" — creates a shipment via the store's active
  * provider (mock/manual). POST /api/dashboard/orders/[id]/ship.
+ * Same endpoint/payload as before; feedback now goes through a toast and the
+ * page refreshes so the tracking panel appears immediately.
  */
-export function ShipButton({ orderId, providerKey, enabled }: { orderId: string; providerKey: string; enabled: boolean }) {
+export function ShipButton({
+  orderId,
+  providerKey,
+  enabled,
+  full = true,
+}: {
+  orderId: string;
+  providerKey: string;
+  enabled: boolean;
+  full?: boolean;
+}) {
+  const router = useRouter();
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [okMsg, setOkMsg] = useState<string | null>(null);
 
   async function ship() {
-    setError(null);
-    setOkMsg(null);
     setBusy(true);
     const res = await fetch(`/api/dashboard/orders/${orderId}/ship`, {
       method: "POST",
@@ -22,22 +35,33 @@ export function ShipButton({ orderId, providerKey, enabled }: { orderId: string;
     });
     const data = (await res.json().catch(() => ({}))) as { error?: string; tracking_number?: string };
     setBusy(false);
-    if (!res.ok) setError(data.error ?? "Erreur inconnue");
-    else setOkMsg(`Étiquette créée${data.tracking_number ? ` — n° ${data.tracking_number}` : ""}.`);
+    if (!res.ok) {
+      toast.error("Envoi impossible", apiErrorMessage(data, "Erreur inconnue"));
+      return;
+    }
+    toast.success(
+      "Colis transmis au transporteur",
+      data.tracking_number ? `Numéro de suivi : ${data.tracking_number}` : undefined,
+    );
+    router.refresh();
   }
 
   if (!enabled) return null;
+
   return (
-    <div className="space-y-2">
-      <button
-        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50"
-        onClick={ship}
-        disabled={busy}
-      >
-        {busy ? "Envoi…" : `🚚 Envoyer au transporteur (${providerKey})`}
-      </button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {okMsg && <p className="text-sm text-emerald-600">{okMsg}</p>}
+    <div>
+      <Button tone="primary" onClick={() => void ship()} disabled={busy} className={full ? "w-full" : ""} icon={busy ? undefined : "truck"}>
+        {busy ? (
+          <>
+            <Spinner size={15} /> Envoi au transporteur…
+          </>
+        ) : (
+          "Envoyer au transporteur"
+        )}
+      </Button>
+      <p className="mt-2 text-center text-xs text-slate-400">
+        Transporteur configuré : <span className="font-semibold text-slate-600">{providerKey}</span>
+      </p>
     </div>
   );
 }

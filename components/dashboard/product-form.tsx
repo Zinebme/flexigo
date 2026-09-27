@@ -2,6 +2,20 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Badge,
+  Button,
+  Field,
+  Spinner,
+  Switch,
+  btnGhost,
+  btnSm,
+  inputCls,
+  selectCls,
+} from "@/components/ui";
+import { Icon, type IconName } from "@/components/ui/icons";
+import { useToast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
 
 type SelectionMode = "single" | "multiple";
 type DisplayType = "buttons" | "color_swatch" | "image" | "checkbox" | "dropdown";
@@ -108,6 +122,119 @@ function emptyOptionValue():OptionValueDraft {
   return { value:"",label:"",color:"",image:"",addon_product_id:"" };
 }
 
+// ---------------------------------------------------------------------------
+// Presentational helpers (module scope so they never remount the form state)
+// ---------------------------------------------------------------------------
+
+const sectionCls = "rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.03]";
+
+function Section({
+  step,
+  icon,
+  title,
+  description,
+  badge,
+  actions,
+  children,
+  collapsible = false,
+  defaultOpen = false,
+}: {
+  step?: number;
+  icon?: IconName;
+  title: string;
+  description?: string;
+  badge?: React.ReactNode;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+}) {
+  const header = (
+    <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-white">
+          {step ?? (icon ? <Icon name={icon} size={16} /> : null)}
+        </span>
+        <div className="min-w-0">
+          <h3 className="flex flex-wrap items-center gap-2 text-sm font-bold tracking-tight text-slate-900">
+            {title}
+            {badge}
+          </h3>
+          {description ? <p className="mt-0.5 text-xs leading-5 text-slate-500">{description}</p> : null}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        {actions ? (
+          <div
+            className="flex flex-wrap items-center gap-2"
+            // Buttons inside a <summary> would otherwise also toggle the section.
+            onClick={collapsible ? (e) => e.preventDefault() : undefined}
+          >
+            {actions}
+          </div>
+        ) : null}
+        {collapsible ? (
+          <Icon name="chevronDown" size={16} className="mt-1.5 text-slate-400 transition group-open:rotate-180" />
+        ) : null}
+      </div>
+    </div>
+  );
+
+  if (!collapsible) {
+    return (
+      <section className={sectionCls}>
+        {header}
+        <div className="border-t border-slate-100 px-5 py-4">{children}</div>
+      </section>
+    );
+  }
+  return (
+    <details open={defaultOpen} className={cn(sectionCls, "group")}>
+      <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">{header}</summary>
+      <div className="border-t border-slate-100 px-5 py-4">{children}</div>
+    </details>
+  );
+}
+
+function MoneyInput({
+  value,
+  onChange,
+  placeholder,
+  required,
+  min,
+  step = ".01",
+  id,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  required?: boolean;
+  min?: string;
+  step?: string;
+  id?: string;
+}) {
+  return (
+    <div className="relative">
+      <input
+        id={id}
+        type="number"
+        inputMode="decimal"
+        min={min}
+        step={step}
+        required={required}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn(inputCls, "fx-num pe-11")}
+      />
+      <span className="pointer-events-none absolute top-1/2 end-3 -translate-y-1/2 text-xs font-bold text-slate-400">DA</span>
+    </div>
+  );
+}
+
+const fileInputCls =
+  "block w-full cursor-pointer text-sm text-slate-500 file:me-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-slate-900 file:px-3.5 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800";
+
 export function ProductForm({
   initial,
   categories,
@@ -120,6 +247,7 @@ export function ProductForm({
   allowStockEdit = false,
 }: Props) {
   const router=useRouter();
+  const toast=useToast();
   const [name,setName]=useState(initial.name);
   const [slug,setSlug]=useState(initial.slug);
   const [slugTouched,setSlugTouched]=useState(mode==="edit");
@@ -157,6 +285,7 @@ export function ProductForm({
   const [uploading,setUploading]=useState<"gallery"|"landing"|null>(null);
   const [uploadProgress,setUploadProgress]=useState<{done:number;total:number}|null>(null);
   const [draggedImageIndex,setDraggedImageIndex]=useState<number|null>(null);
+  const [dragOver,setDragOver]=useState(false);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState<string|null>(null);
   const [okMsg,setOkMsg]=useState<string|null>(null);
@@ -182,10 +311,16 @@ export function ProductForm({
         else setLandingImages(prev=>[...prev,data.url!].slice(0,limit));
         setUploadProgress({done:index+1,total:accepted.length});
       }
-    }catch(e){setError(e instanceof Error?e.message:"Téléversement impossible");}
+      toast.success(target==="gallery"?"Photos ajoutées":"Images landing ajoutées",`${accepted.length} fichier(s) téléversé(s).`);
+    }catch(e){
+      const message=e instanceof Error?e.message:"Téléversement impossible";
+      setError(message);
+      toast.error("Téléversement impossible",message);
+    }
     finally{
       setUploading(null);
       setUploadProgress(null);
+      setDragOver(false);
       if(galleryRef.current) galleryRef.current.value="";
       if(landingRef.current) landingRef.current.value="";
     }
@@ -247,181 +382,666 @@ export function ProductForm({
     });
     const data=(await res.json().catch(()=>({}))) as {ok?:boolean;id?:string;error?:{message?:string}|string};
     setBusy(false);
-    if(!res.ok||!data.ok){setError(typeof data.error==="string"?data.error:(data.error?.message??"Enregistrement impossible"));return;}
-    if(mode==="create"&&data.id){router.push(successHref??`/dashboard/produits/${data.id}`);router.refresh();}
-    else {setOkMsg("Produit enregistré.");router.refresh();}
+    if(!res.ok||!data.ok){
+      const message=typeof data.error==="string"?data.error:(data.error?.message??"Enregistrement impossible");
+      setError(message);
+      toast.error("Enregistrement impossible",message);
+      return;
+    }
+    if(mode==="create"&&data.id){
+      toast.success("Produit créé",name||undefined);
+      router.push(successHref??`/dashboard/produits/${data.id}`);router.refresh();
+    }
+    else {
+      setOkMsg("Produit enregistré.");
+      toast.success("Produit enregistré",name||undefined);
+      router.refresh();
+    }
   }
 
-  const label="mb-1.5 block text-sm font-semibold text-slate-700";
-  const input="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100";
-  const section="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm";
-  const subtleBtn="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50";
+  const subtleBtn=cn(btnGhost,btnSm,"border border-slate-200 bg-white");
   const choiceRows=productChoices.filter(p=>p.id!==initial.id);
+  const priceNum=Number.parseFloat(price);
+  const costNum=Number.parseFloat(cost);
+  const margin=Number.isFinite(priceNum)&&Number.isFinite(costNum)&&priceNum>0?priceNum-costNum:null;
+  const marginPct=margin!=null&&priceNum>0?Math.round((margin/priceNum)*100):null;
+  const uploadPct=uploadProgress&&uploadProgress.total>0?Math.round((uploadProgress.done/uploadProgress.total)*100):0;
 
-  return <form onSubmit={submit} className="space-y-5">
-    <section className={section}>
-      <div className="mb-5"><h3 className="text-base font-bold text-slate-900">Général</h3><p className="mt-1 text-xs text-slate-500">Identité, descriptions, visibilité et type de produit.</p></div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="md:col-span-2"><label className={label}>Nom du produit *</label><input className={input} value={name} onChange={e=>setName(e.target.value)} required maxLength={120}/></div>
-        <div><label className={label}>Slug (URL)</label><input className={input} value={shownSlug} onChange={e=>{setSlugTouched(true);setSlug(e.target.value)}}/></div>
-        <div><label className={label}>Catégorie</label><select className={input} value={categoryId} onChange={e=>setCategoryId(e.target.value)}><option value="">— Aucune —</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-        <div className="md:col-span-2"><label className={label}>Brève description</label><textarea className={input} rows={2} maxLength={500} value={shortDescription} onChange={e=>setShortDescription(e.target.value)} placeholder="Résumé visible près du titre…"/></div>
-        <div className="md:col-span-2"><label className={label}>Description complète</label><textarea className={input} rows={7} maxLength={12000} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Description détaillée du produit…"/></div>
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={isDigital} onChange={e=>setIsDigital(e.target.checked)}/> Produit digital</label>
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={isActive} onChange={e=>setIsActive(e.target.checked)}/> Visible sur la boutique</label>
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={isFeatured} onChange={e=>setIsFeatured(e.target.checked)}/> Mis en avant</label>
-      </div>
-    </section>
-
-    <section className={section}>
-      <div className="mb-4"><h3 className="text-base font-bold text-slate-900">Photos & ordre d'affichage</h3><p className="mt-1 text-xs text-slate-500">La première image est la photo principale. Réordonnez sans réupload.</p></div>
-      <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
-        <div>
-          <div
-            className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-5 transition hover:border-slate-400"
-            onDragOver={(event)=>event.preventDefault()}
-            onDrop={(event)=>{event.preventDefault();if(uploading===null)void upload(Array.from(event.dataTransfer.files),"gallery");}}
-          >
-            <label className="block cursor-pointer text-sm font-semibold text-slate-800">
-              {uploading==="gallery"&&uploadProgress?`Téléversement ${uploadProgress.done}/${uploadProgress.total}…`:"Choisir des photos ou les déposer ici"}
+  return (
+    <form onSubmit={submit} className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+      {/* ------------------------------------------------------------ main -- */}
+      <div className="min-w-0 space-y-5">
+        <Section step={1} title="Informations générales" description="Identité du produit, URL et textes de vente.">
+          <div className="space-y-4">
+            <Field label="Nom du produit" required htmlFor="product-name">
               <input
-                ref={galleryRef}
-                type="file"
-                multiple
-                accept="image/jpeg,image/png,image/webp"
-                className="mt-2 block w-full text-sm font-normal"
-                disabled={uploading!==null||images.length>=12}
-                onChange={(event)=>void upload(Array.from(event.target.files??[]),"gallery")}
+                id="product-name"
+                className={cn(inputCls,"text-base font-semibold")}
+                value={name}
+                onChange={(e)=>setName(e.target.value)}
+                required
+                maxLength={120}
+                placeholder="Ex : Montre connectée AMOLED X2"
               />
-            </label>
-            <p className="mt-2 text-xs text-slate-500">Jusqu’à 12 images, 6 Mo maximum chacune. L’aperçu apparaît dès que le fichier est enregistré.</p>
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {images.map((url,idx)=><div
-              key={url+idx}
-              draggable
-              onDragStart={(event)=>{setDraggedImageIndex(idx);event.dataTransfer.effectAllowed="move";}}
-              onDragOver={(event)=>{event.preventDefault();event.stopPropagation();event.dataTransfer.dropEffect="move";}}
-              onDrop={(event)=>{event.preventDefault();event.stopPropagation();if(draggedImageIndex!==null)reorderGallery(draggedImageIndex,idx);setDraggedImageIndex(null);}}
-              onDragEnd={()=>setDraggedImageIndex(null)}
-              className={`cursor-grab rounded-xl border bg-white p-2 transition active:cursor-grabbing ${draggedImageIndex===idx?"border-blue-400 opacity-60 ring-2 ring-blue-100":"border-slate-200"}`}
+            </Field>
+
+            <Field
+              label="Slug (URL)"
+              htmlFor="product-slug"
+              hint={slugTouched?"Utilisé dans l'adresse de la fiche produit.":"Généré automatiquement à partir du nom."}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}<img src={url} alt="" className="aspect-square w-full rounded-lg object-cover"/>
-              <div className="mt-2 flex items-center justify-between gap-1">
-                <span className="text-[10px] font-bold text-slate-500">{idx===0?"PRINCIPALE":`#${idx+1}`} · glisser</span>
-                <div className="flex gap-1"><button type="button" className={subtleBtn} disabled={idx===0} onClick={()=>setImages(move(images,idx,idx-1))}>↑</button><button type="button" className={subtleBtn} disabled={idx===images.length-1} onClick={()=>setImages(move(images,idx,idx+1))}>↓</button><button type="button" className="rounded-lg px-2 py-1 text-xs font-bold text-red-500 hover:bg-red-50" onClick={()=>setImages(images.filter((_,i)=>i!==idx))}>×</button></div>
+              <div className="flex gap-2">
+                <div className="relative min-w-0 flex-1">
+                  <span className="pointer-events-none absolute top-1/2 start-3 -translate-y-1/2 text-xs font-medium text-slate-400">/produit/</span>
+                  <input
+                    id="product-slug"
+                    className={cn(inputCls,"fx-num ps-[74px]")}
+                    value={shownSlug}
+                    onChange={(e)=>{setSlugTouched(true);setSlug(e.target.value)}}
+                    placeholder="mon-produit"
+                  />
+                </div>
+                <Button
+                  tone="secondary"
+                  size="sm"
+                  icon="refresh"
+                  className="shrink-0"
+                  onClick={()=>{setSlugTouched(false);setSlug("");}}
+                  title="Régénérer depuis le nom"
+                >
+                  Auto
+                </Button>
               </div>
-            </div>)}
+            </Field>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Brève description" htmlFor="product-short" hint={`${shortDescription.length}/500`}>
+                <textarea
+                  id="product-short"
+                  className={cn(inputCls,"resize-y")}
+                  rows={2}
+                  maxLength={500}
+                  value={shortDescription}
+                  onChange={(e)=>setShortDescription(e.target.value)}
+                  placeholder="Résumé visible près du titre…"
+                />
+              </Field>
+              <Field label="Catégorie" htmlFor="product-category" hint="Facultatif — sert à la navigation de la boutique.">
+                <select id="product-category" className={selectCls} value={categoryId} onChange={(e)=>setCategoryId(e.target.value)}>
+                  <option value="">— Aucune —</option>
+                  {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </Field>
+            </div>
+
+            <Field label="Description complète" htmlFor="product-description" hint={`${description.length}/12 000 caractères`}>
+              <textarea
+                id="product-description"
+                className={cn(inputCls,"resize-y leading-6")}
+                rows={7}
+                maxLength={12000}
+                value={description}
+                onChange={(e)=>setDescription(e.target.value)}
+                placeholder="Matière, dimensions, conseils d'utilisation, contenu du colis…"
+              />
+            </Field>
           </div>
-        </div>
-        <div>
-          <label className={label}>Affichage des photos</label>
-          <label className="mb-2 flex gap-2 rounded-xl border p-3 text-sm"><input type="radio" checked={galleryMode==="slideshow"} onChange={()=>setGalleryMode("slideshow")}/><span><strong>Diaporama</strong><small className="block text-slate-500">Galerie compacte, recommandé.</small></span></label>
-          <label className="flex gap-2 rounded-xl border p-3 text-sm"><input type="radio" checked={galleryMode==="stacked"} onChange={()=>setGalleryMode("stacked")}/><span><strong>Images l'une après l'autre</strong><small className="block text-slate-500">Style landing page sur mobile.</small></span></label>
-        </div>
-      </div>
-    </section>
+        </Section>
 
-    <section className={section}>
-      <div className="mb-4"><h3 className="text-base font-bold text-slate-900">Landing images (optionnel)</h3><p className="mt-1 text-xs text-slate-500">Images longues affichées dans la fiche produit après le formulaire/description selon l'ordre choisi.</p></div>
-      <input ref={landingRef} type="file" multiple accept="image/jpeg,image/png,image/webp" className="block w-full text-sm"/>
-      <button type="button" className="mt-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold" onClick={()=>upload(Array.from(landingRef.current?.files??[]),"landing")} disabled={uploading!==null||landingImages.length>=20}>{uploading==="landing"?"Téléversement…":"Ajouter des images landing"}</button>
-      {landingImages.length>0&&<div className="mt-3 flex gap-2 overflow-x-auto">{landingImages.map((url,idx)=><div key={url+idx} className="relative shrink-0">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={url} alt="" className="h-24 w-20 rounded-lg border object-cover"/><button type="button" className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-red-500 text-xs text-white" onClick={()=>setLandingImages(landingImages.filter((_,i)=>i!==idx))}>×</button></div>)}</div>}
-    </section>
+        <Section
+          step={2}
+          title="Photos"
+          description="La première image est la photo principale. Glissez-déposez pour réordonner."
+          badge={<Badge tone={images.length>0?"blue":"gray"} size="sm">{images.length}/12</Badge>}
+        >
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+            <div className="min-w-0">
+              <div
+                onDragOver={(event)=>{event.preventDefault();setDragOver(true);}}
+                onDragLeave={()=>setDragOver(false)}
+                onDrop={(event)=>{event.preventDefault();setDragOver(false);if(uploading===null)void upload(Array.from(event.dataTransfer.files),"gallery");}}
+                className={cn(
+                  "rounded-xl border-2 border-dashed p-5 text-center transition",
+                  dragOver?"border-blue-500 bg-blue-50/70":"border-slate-300 bg-slate-50/60 hover:border-slate-400",
+                )}
+              >
+                <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm ring-1 ring-slate-200">
+                  <Icon name="upload" size={18} />
+                </span>
+                <p className="mt-3 text-sm font-semibold text-slate-800">
+                  {uploading==="gallery"&&uploadProgress?`Téléversement ${uploadProgress.done}/${uploadProgress.total}…`:"Glissez vos photos ici"}
+                </p>
+                <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                  <Icon name="image" size={15} />
+                  Choisir des fichiers
+                  <input
+                    ref={galleryRef}
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    disabled={uploading!==null||images.length>=12}
+                    onChange={(event)=>void upload(Array.from(event.target.files??[]),"gallery")}
+                  />
+                </label>
+                <p className="mt-2 text-xs text-slate-500">Jusqu’à 12 images · 6 Mo maximum chacune · JPG, PNG ou WebP</p>
+                {uploading==="gallery"&&uploadProgress? (
+                  <div className="mx-auto mt-3 h-1.5 max-w-xs overflow-hidden rounded-full bg-slate-200">
+                    <div className="h-full rounded-full bg-blue-600 transition-all" style={{width:`${uploadPct}%`}} />
+                  </div>
+                ) : null}
+              </div>
 
-    <section className={section}>
-      <div className="mb-4"><h3 className="text-base font-bold text-slate-900">Tarification</h3></div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <div><label className={label}>Prix (DA) *</label><input type="number" min=".01" step=".01" className={input} value={price} onChange={e=>setPrice(e.target.value)} required/></div>
-        <div><label className={label}>Prix de comparaison</label><input type="number" min="0" step=".01" className={input} value={compareAt} onChange={e=>setCompareAt(e.target.value)} placeholder="Optionnel"/></div>
-        <div><label className={label}>Coût produit</label><input type="number" min="0" step=".01" className={input} value={cost} onChange={e=>setCost(e.target.value)} placeholder="Pour calcul bénéfice"/></div>
-      </div>
-    </section>
+              {images.length>0? (
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {images.map((url,idx)=>(
+                    <div
+                      key={url+idx}
+                      draggable
+                      onDragStart={(event)=>{setDraggedImageIndex(idx);event.dataTransfer.effectAllowed="move";}}
+                      onDragOver={(event)=>{event.preventDefault();event.stopPropagation();event.dataTransfer.dropEffect="move";}}
+                      onDrop={(event)=>{event.preventDefault();event.stopPropagation();if(draggedImageIndex!==null)reorderGallery(draggedImageIndex,idx);setDraggedImageIndex(null);}}
+                      onDragEnd={()=>setDraggedImageIndex(null)}
+                      className={cn(
+                        "cursor-grab rounded-xl border bg-white p-2 transition active:cursor-grabbing",
+                        draggedImageIndex===idx?"border-blue-400 opacity-60 ring-2 ring-blue-100":"border-slate-200 hover:border-slate-300",
+                      )}
+                    >
+                      <div className="relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt="" className="aspect-square w-full rounded-lg bg-slate-50 object-cover"/>
+                        {idx===0? (
+                          <span className="absolute top-1.5 start-1.5 rounded-md bg-slate-900/85 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-white uppercase">
+                            Principale
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-1">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400">
+                          <Icon name="grip" size={11} />
+                          #{idx+1}
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          <button type="button" className={cn(subtleBtn,"px-1.5")} disabled={idx===0} title="Monter" onClick={()=>setImages(move(images,idx,idx-1))}>
+                            <Icon name="arrowUp" size={12} />
+                          </button>
+                          <button type="button" className={cn(subtleBtn,"px-1.5")} disabled={idx===images.length-1} title="Descendre" onClick={()=>setImages(move(images,idx,idx+1))}>
+                            <Icon name="arrowDown" size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            className="flex h-7 w-7 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50"
+                            title="Retirer cette photo"
+                            onClick={()=>setImages(images.filter((_,i)=>i!==idx))}
+                          >
+                            <Icon name="trash" size={13} />
+                          </button>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
 
-    <section className={section}>
-      <div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="text-base font-bold text-slate-900">Options / choix client</h3><p className="mt-1 text-xs text-slate-500">Créez Couleur, Taille, Accessoires… et choisissez mono-choix ou multi-choix.</p></div><button type="button" className={subtleBtn} onClick={()=>setOptionGroups([...optionGroups,emptyOptionGroup()])}>+ Groupe</button></div>
-      <div className="space-y-3">
-        {optionGroups.map((g,gi)=><div key={gi} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <div className="grid gap-3 md:grid-cols-4">
-            <input className={input} placeholder="Clé ex: Couleur" value={g.key} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,key:e.target.value}:x))}/>
-            <input className={input} placeholder="Libellé affiché" value={g.label} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,label:e.target.value}:x))}/>
-            <select className={input} value={g.selection_mode} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,selection_mode:e.target.value as SelectionMode,max_selections:e.target.value==="single"?1:x.max_selections}:x))}><option value="single">Un seul choix</option><option value="multiple">Choix multiples</option></select>
-            <select className={input} value={g.display_type} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,display_type:e.target.value as DisplayType}:x))}><option value="buttons">Boutons</option><option value="color_swatch">Pastilles couleur</option><option value="image">Images</option><option value="checkbox">Cases à cocher</option><option value="dropdown">Liste</option></select>
+            <div>
+              <div className="mb-2 text-sm font-semibold text-slate-700">Affichage des photos</div>
+              <div className="space-y-2">
+                {([
+                  {value:"slideshow" as GalleryMode,title:"Diaporama",text:"Galerie compacte, recommandé."},
+                  {value:"stacked" as GalleryMode,title:"Images à la suite",text:"Style landing page sur mobile."},
+                ]).map((option)=>(
+                  <label
+                    key={option.value}
+                    className={cn(
+                      "flex cursor-pointer gap-2.5 rounded-xl border p-3 text-sm transition",
+                      galleryMode===option.value?"border-blue-500 bg-blue-50/60 ring-1 ring-blue-500/20":"border-slate-200 hover:border-slate-300 hover:bg-slate-50",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="gallery_mode"
+                      className="mt-0.5"
+                      checked={galleryMode===option.value}
+                      onChange={()=>setGalleryMode(option.value)}
+                    />
+                    <span className="min-w-0">
+                      <strong className="block text-slate-800">{option.title}</strong>
+                      <small className="mt-0.5 block text-xs leading-5 text-slate-500">{option.text}</small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs"><label><input type="checkbox" checked={g.required} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,required:e.target.checked}:x))}/> Obligatoire</label>{g.selection_mode==="multiple"&&<><label>Min <input type="number" min="0" max="20" className="ml-1 w-16 rounded border px-2 py-1" value={g.min_selections} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,min_selections:Number(e.target.value)}:x))}/></label><label>Max <input type="number" min="1" max="20" className="ml-1 w-16 rounded border px-2 py-1" value={g.max_selections} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,max_selections:Number(e.target.value)}:x))}/></label></>}</div>
-          <div className="mt-3 space-y-2">
-            {g.values.map((v,vi)=><div key={vi} className="grid gap-2 md:grid-cols-[1fr_1fr_100px_1fr_1fr_auto]">
-              <input className="rounded-lg border px-2 py-1.5 text-sm" placeholder="Valeur" value={v.value} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:x.values.map((vv,j)=>j===vi?{...vv,value:e.target.value}:vv)}:x))}/>
-              <input className="rounded-lg border px-2 py-1.5 text-sm" placeholder="Libellé" value={v.label} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:x.values.map((vv,j)=>j===vi?{...vv,label:e.target.value}:vv)}:x))}/>
-              <input type="color" className="h-9 w-full rounded border" value={v.color||"#000000"} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:x.values.map((vv,j)=>j===vi?{...vv,color:e.target.value}:vv)}:x))}/>
-              <input className="rounded-lg border px-2 py-1.5 text-sm" placeholder="URL image" value={v.image} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:x.values.map((vv,j)=>j===vi?{...vv,image:e.target.value}:vv)}:x))}/>
-              <select className="rounded-lg border px-2 py-1.5 text-sm" value={v.addon_product_id} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:x.values.map((vv,j)=>j===vi?{...vv,addon_product_id:e.target.value}:vv)}:x))}><option value="">Pas d'add-on</option>{choiceRows.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
-              <button type="button" className="text-red-500" onClick={()=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:x.values.filter((_,j)=>j!==vi)}:x))}>×</button>
-            </div>)}
+        </Section>
+
+        <Section step={3} title="Tarification" description="Les totaux sont toujours recalculés côté serveur.">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Field label="Prix de vente" required htmlFor="product-price">
+              <MoneyInput id="product-price" value={price} onChange={setPrice} required min=".01" />
+            </Field>
+            <Field label="Prix barré" htmlFor="product-compare" hint="Affiché barré à côté du prix.">
+              <MoneyInput id="product-compare" value={compareAt} onChange={setCompareAt} placeholder="Optionnel" min="0" />
+            </Field>
+            <Field label="Coût d'achat" htmlFor="product-cost" hint="Sert au calcul de marge.">
+              <MoneyInput id="product-cost" value={cost} onChange={setCost} placeholder="Optionnel" min="0" />
+            </Field>
           </div>
-          <div className="mt-3 flex gap-2"><button type="button" className={subtleBtn} onClick={()=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:[...x.values,emptyOptionValue()]}:x))}>+ Valeur</button><button type="button" className="text-xs font-semibold text-red-600" onClick={()=>setOptionGroups(optionGroups.filter((_,i)=>i!==gi))}>Supprimer le groupe</button></div>
-        </div>)}
-        {optionGroups.length===0&&<p className="text-sm text-slate-400">Aucun groupe configuré. Les variantes ci-dessous peuvent aussi générer automatiquement les choix.</p>}
+          {margin!=null&&marginPct!=null? (
+            <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <Icon name="trendingUp" size={14} className={margin>=0?"text-emerald-500":"text-red-500"} />
+              Marge estimée :
+              <span className={cn("fx-num font-bold",margin>=0?"text-emerald-700":"text-red-700")}>{margin.toFixed(2)} DA</span>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{marginPct} %</span>
+            </p>
+          ) : null}
+        </Section>
+
+        <Section
+          step={4}
+          title="Options et choix du client"
+          description="Couleur, taille, accessoires… en choix unique ou multiple."
+          collapsible
+          defaultOpen={optionGroups.length>0}
+          badge={<Badge tone={optionGroups.length>0?"blue":"gray"} size="sm">{optionGroups.length} groupe(s)</Badge>}
+          actions={
+            <Button tone="secondary" size="sm" icon="plus" onClick={()=>setOptionGroups([...optionGroups,emptyOptionGroup()])}>
+              Groupe
+            </Button>
+          }
+        >
+          <div className="space-y-3">
+            {optionGroups.map((g,gi)=>(
+              <div key={gi} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                <div className="grid gap-3 md:grid-cols-4">
+                  <Field label="Clé">
+                    <input className={inputCls} placeholder="Couleur" value={g.key} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,key:e.target.value}:x))}/>
+                  </Field>
+                  <Field label="Libellé affiché">
+                    <input className={inputCls} placeholder="Couleur du produit" value={g.label} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,label:e.target.value}:x))}/>
+                  </Field>
+                  <Field label="Sélection">
+                    <select className={selectCls} value={g.selection_mode} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,selection_mode:e.target.value as SelectionMode,max_selections:e.target.value==="single"?1:x.max_selections}:x))}>
+                      <option value="single">Un seul choix</option>
+                      <option value="multiple">Choix multiples</option>
+                    </select>
+                  </Field>
+                  <Field label="Affichage">
+                    <select className={selectCls} value={g.display_type} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,display_type:e.target.value as DisplayType}:x))}>
+                      <option value="buttons">Boutons</option>
+                      <option value="color_swatch">Pastilles couleur</option>
+                      <option value="image">Images</option>
+                      <option value="checkbox">Cases à cocher</option>
+                      <option value="dropdown">Liste</option>
+                    </select>
+                  </Field>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-4 text-xs font-medium text-slate-600">
+                  <label className="inline-flex items-center gap-1.5">
+                    <input type="checkbox" className="rounded" checked={g.required} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,required:e.target.checked}:x))}/>
+                    Choix obligatoire
+                  </label>
+                  {g.selection_mode==="multiple"? (
+                    <>
+                      <label className="inline-flex items-center gap-1.5">
+                        Min
+                        <input type="number" min={0} max={20} className="w-16 rounded-lg border border-slate-300 px-2 py-1 text-xs" value={g.min_selections} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,min_selections:Number(e.target.value)}:x))}/>
+                      </label>
+                      <label className="inline-flex items-center gap-1.5">
+                        Max
+                        <input type="number" min={1} max={20} className="w-16 rounded-lg border border-slate-300 px-2 py-1 text-xs" value={g.max_selections} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,max_selections:Number(e.target.value)}:x))}/>
+                      </label>
+                    </>
+                  ) : null}
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  {g.values.map((v,vi)=>(
+                    <div key={vi} className="grid items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 md:grid-cols-[1fr_1fr_64px_1fr_1fr_auto]">
+                      <input className={cn(inputCls,"py-1.5")} placeholder="Valeur (ex: Rouge)" value={v.value} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:x.values.map((vv,j)=>j===vi?{...vv,value:e.target.value}:vv)}:x))}/>
+                      <input className={cn(inputCls,"py-1.5")} placeholder="Libellé" value={v.label} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:x.values.map((vv,j)=>j===vi?{...vv,label:e.target.value}:vv)}:x))}/>
+                      <label className="flex h-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-slate-50" title="Couleur">
+                        <input type="color" className="h-6 w-8 cursor-pointer border-0 bg-transparent p-0" value={v.color||"#000000"} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:x.values.map((vv,j)=>j===vi?{...vv,color:e.target.value}:vv)}:x))}/>
+                      </label>
+                      <input className={cn(inputCls,"py-1.5")} placeholder="URL image" value={v.image} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:x.values.map((vv,j)=>j===vi?{...vv,image:e.target.value}:vv)}:x))}/>
+                      <select className={cn(selectCls,"py-1.5")} value={v.addon_product_id} onChange={e=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:x.values.map((vv,j)=>j===vi?{...vv,addon_product_id:e.target.value}:vv)}:x))}>
+                        <option value="">Pas d'add-on</option>
+                        {choiceRows.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                      <button
+                        type="button"
+                        title="Supprimer cette valeur"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50"
+                        onClick={()=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:x.values.filter((_,j)=>j!==vi)}:x))}
+                      >
+                        <Icon name="trash" size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <Button tone="secondary" size="sm" icon="plus" onClick={()=>setOptionGroups(optionGroups.map((x,i)=>i===gi?{...x,values:[...x.values,emptyOptionValue()]}:x))}>
+                    Valeur
+                  </Button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 transition hover:text-red-700"
+                    onClick={()=>setOptionGroups(optionGroups.filter((_,i)=>i!==gi))}
+                  >
+                    <Icon name="trash" size={13} />
+                    Supprimer le groupe
+                  </button>
+                </div>
+              </div>
+            ))}
+            {optionGroups.length===0? (
+              <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
+                Aucun groupe configuré. Les variantes ci-dessous peuvent aussi générer automatiquement les choix.
+              </p>
+            ) : null}
+          </div>
+        </Section>
+
+        <Section
+          step={5}
+          title="Variantes"
+          description="Combinaisons vendables avec prix, SKU et stock propres."
+          collapsible
+          defaultOpen={variants.length>0}
+          badge={<Badge tone={variants.length>0?"blue":"gray"} size="sm">{variants.length}/50</Badge>}
+          actions={
+            <Button tone="secondary" size="sm" icon="plus" onClick={()=>variants.length<50&&setVariants([...variants,{name:"",options_text:"",price:"",sku:"",stock:"0",is_active:true}])}>
+              Variante
+            </Button>
+          }
+        >
+          {variants.length===0? (
+            <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
+              Aucune variante. Ajoutez-en si le produit existe en plusieurs tailles ou couleurs.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              <div className="hidden gap-2 px-1 text-[11px] font-bold tracking-wide text-slate-400 uppercase md:grid md:grid-cols-[1fr_1.3fr_110px_110px_90px_auto]">
+                <span>Nom</span><span>Options</span><span className="text-right">Prix</span><span>SKU</span><span>Stock</span><span />
+              </div>
+              {variants.map((v,idx)=>(
+                <div key={idx} className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 md:grid-cols-[1fr_1.3fr_110px_110px_90px_auto] md:items-center md:bg-white">
+                  <input className={cn(inputCls,"py-2")} placeholder="Nom ex : Rouge / M" value={v.name} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,name:e.target.value}:x))}/>
+                  <input className={cn(inputCls,"py-2")} placeholder="Couleur: Rouge, Taille: M" value={v.options_text} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,options_text:e.target.value}:x))}/>
+                  <MoneyInput value={v.price} onChange={(val)=>setVariants(variants.map((x,i)=>i===idx?{...x,price:val}:x))} min="0"/>
+                  <input className={cn(inputCls,"py-2")} placeholder="SKU" value={v.sku} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,sku:e.target.value}:x))}/>
+                  <input type="number" min={0} className={cn(inputCls,"fx-num py-2")} placeholder="Stock" value={v.stock} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,stock:e.target.value}:x))}/>
+                  <div className="flex items-center justify-between gap-2 md:justify-end">
+                    <label className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500" title="Variante active">
+                      <input type="checkbox" checked={v.is_active} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,is_active:e.target.checked}:x))}/>
+                      Active
+                    </label>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+                      onClick={()=>setVariants(variants.filter((_,i)=>i!==idx))}
+                    >
+                      <Icon name="trash" size={13} />
+                      Retirer
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section
+          step={6}
+          title="Offres par quantité"
+          description="Ex : 2 pièces = 3 900 DA."
+          collapsible
+          defaultOpen={offers.length>0}
+          badge={<Badge tone={offers.length>0?"blue":"gray"} size="sm">{offers.length}/10</Badge>}
+          actions={
+            <Button tone="secondary" size="sm" icon="plus" onClick={()=>offers.length<10&&setOffers([...offers,{min_quantity:"2",total_price:"",label:""}])}>
+              Offre
+            </Button>
+          }
+        >
+          {offers.length===0? (
+            <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
+              Aucune offre. Les paliers de quantité augmentent le panier moyen.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {offers.map((o,idx)=>(
+                <div key={idx} className="grid items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 md:grid-cols-[110px_170px_1fr_auto] md:bg-white">
+                  <Field label="À partir de">
+                    <input type="number" min={2} max={50} className={cn(inputCls,"fx-num py-2")} value={o.min_quantity} onChange={e=>setOffers(offers.map((x,i)=>i===idx?{...x,min_quantity:e.target.value}:x))}/>
+                  </Field>
+                  <Field label="Prix total">
+                    <MoneyInput value={o.total_price} onChange={(val)=>setOffers(offers.map((x,i)=>i===idx?{...x,total_price:val}:x))} min="0"/>
+                  </Field>
+                  <Field label="Libellé">
+                    <input className={cn(inputCls,"py-2")} placeholder="Pack duo" value={o.label} onChange={e=>setOffers(offers.map((x,i)=>i===idx?{...x,label:e.target.value}:x))}/>
+                  </Field>
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 items-center justify-center justify-self-end rounded-lg text-red-500 transition hover:bg-red-50"
+                    title="Retirer cette offre"
+                    onClick={()=>setOffers(offers.filter((_,i)=>i!==idx))}
+                  >
+                    <Icon name="trash" size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section
+          step={7}
+          title="Images landing"
+          description="Images longues affichées dans la fiche produit (style page de vente)."
+          collapsible
+          defaultOpen={landingImages.length>0}
+          badge={<Badge tone={landingImages.length>0?"blue":"gray"} size="sm">{landingImages.length}/20</Badge>}
+        >
+          <input
+            ref={landingRef}
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp"
+            className={fileInputCls}
+            disabled={uploading!==null||landingImages.length>=20}
+          />
+          <Button
+            tone="secondary"
+            size="sm"
+            className="mt-3"
+            icon={uploading==="landing"?undefined:"upload"}
+            onClick={()=>upload(Array.from(landingRef.current?.files??[]),"landing")}
+            disabled={uploading!==null||landingImages.length>=20}
+          >
+            {uploading==="landing"?(<><Spinner size={14} /> Téléversement…</>):"Ajouter des images landing"}
+          </Button>
+          {landingImages.length>0? (
+            <div className="fx-scroll mt-3 flex gap-2 overflow-x-auto pb-1">
+              {landingImages.map((url,idx)=>(
+                <div key={url+idx} className="relative shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="" className="h-24 w-20 rounded-lg border border-slate-200 object-cover"/>
+                  <button
+                    type="button"
+                    className="absolute -top-1.5 -end-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition hover:bg-red-600"
+                    title="Retirer cette image"
+                    onClick={()=>setLandingImages(landingImages.filter((_,i)=>i!==idx))}
+                  >
+                    <Icon name="x" size={11} strokeWidth={2.6} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </Section>
+
+        <Section
+          step={8}
+          title="Produits connexes et cross-selling"
+          description="Les connexes s'affichent en bas de fiche ; le cross-selling sert aux suggestions additionnelles."
+          collapsible
+          defaultOpen={relatedIds.length>0||crossSellIds.length>0}
+          badge={
+            relatedIds.length+crossSellIds.length>0? (
+              <Badge tone="blue" size="sm">{relatedIds.length+crossSellIds.length} lien(s)</Badge>
+            ) : undefined
+          }
+        >
+          {choiceRows.length===0? (
+            <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
+              Créez d&apos;autres produits pour utiliser cette section.
+            </p>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {([
+                {title:"Produits connexes",ids:relatedIds,set:setRelatedIds},
+                {title:"Cross-selling",ids:crossSellIds,set:setCrossSellIds},
+              ]).map((group)=>(
+                <div key={group.title}>
+                  <div className="mb-2 flex items-center justify-between gap-2 text-sm font-bold text-slate-800">
+                    {group.title}
+                    <Badge tone={group.ids.length>0?"blue":"gray"} size="sm">{group.ids.length}</Badge>
+                  </div>
+                  <div className="fx-scroll max-h-52 space-y-1 overflow-auto rounded-xl border border-slate-200 p-2">
+                    {choiceRows.map(p=>(
+                      <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm text-slate-700 transition hover:bg-slate-50">
+                        <input type="checkbox" checked={group.ids.includes(p.id)} onChange={()=>toggleId(group.ids,p.id,group.set)}/>
+                        <span className="truncate">{p.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section
+          step={9}
+          title="Ordre des éléments de la page produit"
+          description="Contrôle l'ordre d'affichage des blocs sur la fiche."
+          collapsible
+        >
+          <ol className="space-y-2">
+            {pageOrder.map((key,idx)=>(
+              <li key={key} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2">
+                <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-slate-700">
+                  <Icon name="grip" size={14} className="text-slate-400" />
+                  <span className="fx-num text-xs font-bold text-slate-400">{idx+1}.</span>
+                  <span className="truncate">{ORDER_LABELS[key]??key}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-1">
+                  <button type="button" className={cn(subtleBtn,"px-2")} disabled={idx===0} title="Monter" onClick={()=>setPageOrder(move(pageOrder,idx,idx-1))}>
+                    <Icon name="arrowUp" size={13} />
+                  </button>
+                  <button type="button" className={cn(subtleBtn,"px-2")} disabled={idx===pageOrder.length-1} title="Descendre" onClick={()=>setPageOrder(move(pageOrder,idx,idx+1))}>
+                    <Icon name="arrowDown" size={13} />
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </Section>
       </div>
-    </section>
 
-    <section className={section}>
-      <div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="text-base font-bold text-slate-900">Variantes</h3><p className="mt-1 text-xs text-slate-500">Combinaisons vendables avec prix, SKU et stock propres.</p></div><button type="button" className={subtleBtn} onClick={()=>variants.length<50&&setVariants([...variants,{name:"",options_text:"",price:"",sku:"",stock:"0",is_active:true}])}>+ Variante</button></div>
-      <div className="space-y-2">{variants.map((v,idx)=><div key={idx} className="grid gap-2 rounded-xl border bg-slate-50 p-3 md:grid-cols-[1fr_1.3fr_110px_110px_90px_auto]">
-        <input className="rounded-lg border px-3 py-2 text-sm" placeholder="Nom ex: Rouge / M" value={v.name} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,name:e.target.value}:x))}/>
-        <input className="rounded-lg border px-3 py-2 text-sm" placeholder="Couleur: Rouge, Taille: M" value={v.options_text} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,options_text:e.target.value}:x))}/>
-        <input type="number" className="rounded-lg border px-3 py-2 text-sm" placeholder="Prix DA" value={v.price} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,price:e.target.value}:x))}/>
-        <input className="rounded-lg border px-3 py-2 text-sm" placeholder="SKU" value={v.sku} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,sku:e.target.value}:x))}/>
-        <input type="number" min="0" className="rounded-lg border px-3 py-2 text-sm" placeholder="Stock" value={v.stock} onChange={e=>setVariants(variants.map((x,i)=>i===idx?{...x,stock:e.target.value}:x))}/>
-        <button type="button" className="text-sm font-semibold text-red-500" onClick={()=>setVariants(variants.filter((_,i)=>i!==idx))}>Retirer</button>
-      </div>)}</div>
-    </section>
+      {/* ------------------------------------------------------------ rail -- */}
+      <aside className="min-w-0 space-y-4 lg:sticky lg:top-20">
+        <section className={sectionCls}>
+          <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
+            <Icon name="eye" size={16} className="text-slate-400" />
+            <h3 className="text-sm font-bold tracking-tight text-slate-900">Visibilité</h3>
+            <Badge tone={isActive?"green":"gray"} dot size="sm" className="ms-auto">{isActive?"En ligne":"Masqué"}</Badge>
+          </div>
+          <div className="space-y-2 px-5 py-4">
+            <Switch checked={isActive} onChange={(e)=>setIsActive(e.target.checked)} label="Visible sur la boutique" description="Sinon, la fiche reste accessible uniquement via l'administration."/>
+            <Switch checked={isFeatured} onChange={(e)=>setIsFeatured(e.target.checked)} label="Mis en avant" description="Affiché dans les sections « produits populaires »."/>
+            <Switch checked={isDigital} onChange={(e)=>setIsDigital(e.target.checked)} label="Produit digital" description="Aucune livraison ni stock physique."/>
+          </div>
+        </section>
 
-    <section className={section}>
-      <div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="text-base font-bold text-slate-900">Offres</h3><p className="mt-1 text-xs text-slate-500">Ex : 2 pièces = 3 900 DA.</p></div><button type="button" className={subtleBtn} onClick={()=>offers.length<10&&setOffers([...offers,{min_quantity:"2",total_price:"",label:""}])}>+ Offre</button></div>
-      <div className="space-y-2">{offers.map((o,idx)=><div key={idx} className="grid gap-2 rounded-xl border bg-slate-50 p-3 md:grid-cols-[100px_160px_1fr_auto]">
-        <input type="number" min="2" max="50" className="rounded-lg border px-3 py-2 text-sm" value={o.min_quantity} onChange={e=>setOffers(offers.map((x,i)=>i===idx?{...x,min_quantity:e.target.value}:x))}/>
-        <input type="number" min="0" step=".01" className="rounded-lg border px-3 py-2 text-sm" placeholder="Total DA" value={o.total_price} onChange={e=>setOffers(offers.map((x,i)=>i===idx?{...x,total_price:e.target.value}:x))}/>
-        <input className="rounded-lg border px-3 py-2 text-sm" placeholder="Libellé" value={o.label} onChange={e=>setOffers(offers.map((x,i)=>i===idx?{...x,label:e.target.value}:x))}/>
-        <button type="button" className="text-sm font-semibold text-red-500" onClick={()=>setOffers(offers.filter((_,i)=>i!==idx))}>Retirer</button>
-      </div>)}</div>
-    </section>
+        <section className={sectionCls}>
+          <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
+            <Icon name="clipboard" size={16} className="text-slate-400" />
+            <h3 className="text-sm font-bold tracking-tight text-slate-900">Stock et référence</h3>
+          </div>
+          <div className="space-y-4 px-5 py-4">
+            <Field label="Suivi du stock" htmlFor="product-stock-tracking">
+              <select id="product-stock-tracking" className={selectCls} value={stockTracking} onChange={e=>setStockTracking(e.target.value as StockTracking)}>
+                <option value="none">Ne pas suivre</option>
+                <option value="global">Quantité globale</option>
+                <option value="variants">Quantité par variante</option>
+              </select>
+            </Field>
+            <Field label="SKU produit" htmlFor="product-sku">
+              <input id="product-sku" className={cn(inputCls,"fx-num")} value={sku} onChange={e=>setSku(e.target.value)} placeholder="Ex : MTL-X2-NOIR"/>
+            </Field>
+            {(mode==="create"||allowStockEdit)&&stockTracking==="global"? (
+              <Field label={mode==="create"?"Quantité initiale":"Quantité en stock"} htmlFor="product-stock"
+                hint={mode==="edit"?"Un ajustement justifié est disponible sous ce formulaire.":undefined}>
+                <input id="product-stock" type="number" min={0} className={cn(inputCls,"fx-num")} value={stock} onChange={e=>setStock(e.target.value)}/>
+              </Field>
+            ) : null}
+            <Field label="Alerte si stock ≤" htmlFor="product-threshold" hint="Déclenche l'alerte dans le tableau de bord.">
+              <input id="product-threshold" type="number" min={0} className={cn(inputCls,"fx-num")} value={threshold} onChange={e=>setThreshold(e.target.value)}/>
+            </Field>
+          </div>
+        </section>
 
-    <section className={section}>
-      <div className="mb-4"><h3 className="text-base font-bold text-slate-900">Stock & référence</h3></div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <div><label className={label}>Suivi du stock</label><select className={input} value={stockTracking} onChange={e=>setStockTracking(e.target.value as StockTracking)}><option value="none">Ne pas suivre</option><option value="global">Quantité globale</option><option value="variants">Quantité par variantes</option></select></div>
-        <div><label className={label}>SKU produit</label><input className={input} value={sku} onChange={e=>setSku(e.target.value)}/></div>
-        {(mode==="create"||allowStockEdit)&&stockTracking==="global"&&<div><label className={label}>{mode==="create"?"Quantité initiale":"Quantité en stock"}</label><input type="number" min="0" className={input} value={stock} onChange={e=>setStock(e.target.value)}/></div>}
-        <div><label className={label}>Alerte stock faible</label><input type="number" min="0" className={input} value={threshold} onChange={e=>setThreshold(e.target.value)}/></div>
+        <section className={sectionCls}>
+          <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
+            <Icon name="sliders" size={16} className="text-slate-400" />
+            <h3 className="text-sm font-bold tracking-tight text-slate-900">Options produit</h3>
+          </div>
+          <div className="space-y-4 px-5 py-4">
+            <Field label="Nom sur le bordereau" htmlFor="product-shipping-label" hint="Utilisé par le transporteur.">
+              <input id="product-shipping-label" className={inputCls} value={shippingLabel} onChange={e=>setShippingLabel(e.target.value)} placeholder="Optionnel"/>
+            </Field>
+            <Field label="Quantité minimale" htmlFor="product-min-qty" hint="Par commande (1 à 50).">
+              <input id="product-min-qty" type="number" min={1} max={50} className={cn(inputCls,"fx-num")} value={minOrderQuantity} onChange={e=>setMinOrderQuantity(e.target.value)}/>
+            </Field>
+          </div>
+        </section>
+
+        <details className={cn(sectionCls,"group")} open={Boolean(seoTitle||seoDescription)}>
+          <summary className="flex cursor-pointer items-center gap-2 px-5 py-4 list-none [&::-webkit-details-marker]:hidden">
+            <Icon name="search" size={16} className="text-slate-400" />
+            <h3 className="text-sm font-bold tracking-tight text-slate-900">SEO</h3>
+            {seoTitle||seoDescription? <Badge tone="green" size="sm" className="ms-1">Renseigné</Badge> : <Badge tone="gray" size="sm" className="ms-1">Vide</Badge>}
+            <Icon name="chevronDown" size={16} className="ms-auto text-slate-400 transition group-open:rotate-180" />
+          </summary>
+          <div className="space-y-4 border-t border-slate-100 px-5 py-4">
+            <Field label="Titre SEO" htmlFor="product-seo-title" hint={`${seoTitle.length}/160`}>
+              <input id="product-seo-title" className={inputCls} value={seoTitle} onChange={e=>setSeoTitle(e.target.value)} maxLength={160}/>
+            </Field>
+            <Field label="Description SEO" htmlFor="product-seo-description" hint={`${seoDescription.length}/300`}>
+              <textarea id="product-seo-description" className={cn(inputCls,"resize-y")} rows={3} value={seoDescription} onChange={e=>setSeoDescription(e.target.value)} maxLength={300}/>
+            </Field>
+          </div>
+        </details>
+      </aside>
+
+      {/* ------------------------------------------------------ action bar -- */}
+      <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg shadow-slate-900/10 backdrop-blur lg:col-span-2">
+        <Button type="submit" tone="primary" disabled={busy||uploading!==null} icon={busy||uploading!==null?undefined:"check"}>
+          {uploading!==null?(<><Spinner size={15} /> Attendez la fin des images…</>)
+            :busy?(<><Spinner size={15} /> Enregistrement…</>)
+            :mode==="create"?"Créer le produit":"Enregistrer les modifications"}
+        </Button>
+        <span className="text-xs text-slate-400">
+          {mode==="create"?"Le produit est créé visible : pensez à vérifier les photos.":"Les modifications sont appliquées immédiatement sur la boutique."}
+        </span>
+        {error? <p className="flex items-center gap-1.5 text-sm font-medium text-red-600"><Icon name="alert" size={14} />{error}</p> : null}
+        {okMsg&&!error? <p className="flex items-center gap-1.5 text-sm font-medium text-emerald-600"><Icon name="checkCircle" size={14} />{okMsg}</p> : null}
       </div>
-    </section>
-
-    <section className={section}>
-      <div className="mb-4"><h3 className="text-base font-bold text-slate-900">Produits connexes & cross-selling</h3><p className="mt-1 text-xs text-slate-500">Les produits connexes sont affichés dans la fiche. Le cross-selling sert aux suggestions additionnelles.</p></div>
-      {choiceRows.length===0?<p className="text-sm text-slate-400">Créez d'autres produits pour utiliser cette section.</p>:<div className="grid gap-4 md:grid-cols-2">
-        <div><div className="mb-2 text-sm font-bold">Produits connexes</div><div className="max-h-52 space-y-1 overflow-auto rounded-xl border p-2">{choiceRows.map(p=><label key={p.id} className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-slate-50"><input type="checkbox" checked={relatedIds.includes(p.id)} onChange={()=>toggleId(relatedIds,p.id,setRelatedIds)}/>{p.name}</label>)}</div></div>
-        <div><div className="mb-2 text-sm font-bold">Cross-selling</div><div className="max-h-52 space-y-1 overflow-auto rounded-xl border p-2">{choiceRows.map(p=><label key={p.id} className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-slate-50"><input type="checkbox" checked={crossSellIds.includes(p.id)} onChange={()=>toggleId(crossSellIds,p.id,setCrossSellIds)}/>{p.name}</label>)}</div></div>
-      </div>}
-    </section>
-
-    <section className={section}>
-      <div className="mb-4"><h3 className="text-base font-bold text-slate-900">Options produit</h3></div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <div><label className={label}>Nom sur bordereau livraison</label><input className={input} value={shippingLabel} onChange={e=>setShippingLabel(e.target.value)} placeholder="Optionnel"/></div>
-        <div><label className={label}>Quantité minimale par commande</label><input type="number" min="1" max="50" className={input} value={minOrderQuantity} onChange={e=>setMinOrderQuantity(e.target.value)}/></div>
-      </div>
-      <div className="mt-5"><div className="mb-2 text-sm font-bold">Ordre des éléments dans la page produit</div><div className="space-y-2">{pageOrder.map((key,idx)=><div key={key} className="flex items-center justify-between rounded-xl border bg-slate-50 px-3 py-2"><span className="text-sm font-medium">{ORDER_LABELS[key]??key}</span><div className="flex gap-1"><button type="button" className={subtleBtn} disabled={idx===0} onClick={()=>setPageOrder(move(pageOrder,idx,idx-1))}>↑</button><button type="button" className={subtleBtn} disabled={idx===pageOrder.length-1} onClick={()=>setPageOrder(move(pageOrder,idx,idx+1))}>↓</button></div></div>)}</div></div>
-    </section>
-
-    <section className={section}>
-      <div className="mb-4"><h3 className="text-base font-bold text-slate-900">SEO</h3></div>
-      <div className="grid gap-4 md:grid-cols-2"><div><label className={label}>Titre SEO</label><input className={input} value={seoTitle} onChange={e=>setSeoTitle(e.target.value)} maxLength={160}/></div><div><label className={label}>Description SEO</label><textarea className={input} rows={2} value={seoDescription} onChange={e=>setSeoDescription(e.target.value)} maxLength={300}/></div></div>
-    </section>
-
-    <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
-      <button type="submit" className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-50" disabled={busy||uploading!==null}>{uploading!==null?"Attendez la fin des images…":busy?"Enregistrement…":mode==="create"?"Créer le produit":"Enregistrer les modifications"}</button>
-      {error&&<p className="text-sm text-red-600">{error}</p>}{okMsg&&<p className="text-sm text-emerald-600">{okMsg}</p>}
-    </div>
-  </form>;
+    </form>
+  );
 }
