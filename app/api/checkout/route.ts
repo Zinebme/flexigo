@@ -8,6 +8,7 @@ import { hit, clientIpFromHeaders } from "../../../lib/rate-limit";
 import { normalizeDZPhone } from "../../../lib/phone";
 import { toErrorResponse } from "../../../lib/errors";
 import { notifyTelegramEvent } from "../../../lib/integrations/telegram";
+import { resolveSouqCheckoutSettings } from "../../../lib/storefront/souq/checkout-settings";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -46,6 +47,7 @@ const checkoutBody = z.object({
    * sends "ar" and receives Arabic messages instead of French ones.
    */
   locale: z.enum(["fr", "ar", "en"]).optional(),
+  custom_fields: z.record(z.string().regex(/^[a-z][a-z0-9_]{0,39}$/), z.string().trim().max(200)).optional(),
 });
 
 /** Stable machine codes raised by fn_place_cod_order → French messages. */
@@ -172,6 +174,20 @@ export async function POST(req: NextRequest) {
     }
 
     const service = getAdminSupabase();
+    const { data: storeSettings, error: settingsError } = await service.from("stores").select("settings").eq("id", store.id).single();
+    if (settingsError) throw settingsError;
+    const checkoutConfig = resolveSouqCheckoutSettings((storeSettings?.settings as { checkout?: unknown } | null)?.checkout);
+    const emailConfig = checkoutConfig.fields.find((field) => field.key === "email");
+    if (emailConfig?.enabled && emailConfig.required && !body.email) {
+      return Response.json({ ok: false, error: locale === "ar" ? "يرجى إدخال البريد الإلكتروني" : "Veuillez renseigner l’email." }, { status: 400 });
+    }
+    const configuredFields = checkoutConfig.customFields.filter((field) => field.enabled);
+    const answers = body.custom_fields ?? {};
+    if (Object.keys(answers).some((key) => !configuredFields.some((field) => field.id === key)) ||
+        configuredFields.some((field) => (field.required && !answers[field.id]?.trim()) ||
+          (answers[field.id] && field.type === "choice" && !field.options.includes(answers[field.id]!)))) {
+      return Response.json({ ok: false, error: locale === "ar" ? "يرجى التحقق من الحقول الإضافية" : "Vérifiez les champs supplémentaires." }, { status: 400 });
+    }
     const { data: suspendedCustomer, error: customerStatusError } = await service
       .from("customers")
       .select("id")
@@ -255,6 +271,21 @@ export async function POST(req: NextRequest) {
       return Response.json({ ok: false, error: messageFor(code, locale) }, { status: 400 });
     }
     const out = data as { order_id: string; order_number: string; subtotal_cents: number; shipping_fee_cents: number; total_cents: number; status: string };
+
+    const answeredFields = configuredFields.filter((field) => answers[field.id]);
+    if (answeredFields.length) {
+      // Reuse the existing private order notes, visible only to the store team.
+      // Values and labels have strict limits and are scoped to this store.
+      const onOneLine = (value: string) => value.replace(/[\r\n\t]+/g, " ");
+      const note = `Réponses du formulaire :\n${answeredFields.map((field) => `${onOneLine(field.label)}: ${onOneLine(answers[field.id] ?? "")}`).join("\n")}`;
+      const { error: notesError } = await service.from("orders").update({ internal_notes: note })
+        .eq("store_id", store.id).eq("id", out.order_id);
+      if (notesError) {
+        // The order has already been placed by the RPC: do not signal failure
+        // and tempt the buyer to create a duplicate order.
+        console.error("Checkout custom answers could not be stored", notesError);
+      }
+    }
 
     const selectedLines = body.lines.filter((line) => line.selected_options && Object.keys(line.selected_options).length > 0);
     if (selectedLines.length) {

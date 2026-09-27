@@ -9,7 +9,7 @@ const DZD_FORMAT = new Intl.NumberFormat("fr-DZ", { maximumFractionDigits: 0 });
 
 /** Format an amount in cents as Algerian Dinar: 220000 → "2 200 DA". */
 export function formatDA(cents: number): string {
-  return `${DZD_FORMAT.format(Math.round(cents / 100))} DA`;
+  return `${DZD_FORMAT.format(Math.round(cents / 100)).replace(/[\u202F\u00A0]/g, "\u00A0")} DA`;
 }
 
 export function formatDateFr(value: string | Date | null | undefined): string {

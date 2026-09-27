@@ -6,6 +6,7 @@ import { WILAYAS } from "../../lib/algeria/wilayas";
 import { getCommunes } from "../../lib/algeria/communes";
 import { formatDA } from "../../lib/utils";
 import type { StorefrontDict } from "../../lib/i18n/dictionaries";
+import { resolveSouqCheckoutSettings } from "../../lib/storefront/souq/checkout-settings";
 
 export interface CheckoutLineInput {
   product_id: string;
@@ -34,13 +35,18 @@ export function CheckoutForm({
   storeSlug,
   line,
   dict,
+  checkoutSettings,
 }: {
   storeSlug: string;
   line: CheckoutLineInput;
   currency: string;
   dict: StorefrontDict;
   whatsapp: string | null;
+  checkoutSettings?: unknown;
 }) {
+  const configured = useMemo(() => resolveSouqCheckoutSettings(checkoutSettings), [checkoutSettings]);
+  const customFields = configured.customFields.filter((item) => item.enabled);
+  const [customAnswers, setCustomAnswers] = useState<Record<string, string>>({});
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -86,6 +92,10 @@ export function CheckoutForm({
       setState({ status: "error", message: dict.checkout.office + " requis." });
       return;
     }
+    if (customFields.some((field) => field.required && !customAnswers[field.id]?.trim())) {
+      setState({ status: "error", message: "Veuillez renseigner les champs obligatoires." });
+      return;
+    }
 
     setState({ status: "loading" });
     try {
@@ -112,6 +122,7 @@ export function CheckoutForm({
         utm_campaign: url.searchParams.get("utm_campaign"),
         referrer: document.referrer || null,
         website,
+        custom_fields: Object.fromEntries(customFields.filter((field) => customAnswers[field.id]?.trim()).map((field) => [field.id, customAnswers[field.id]?.trim()])),
       };
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -176,15 +187,15 @@ export function CheckoutForm({
           <input id="co-phone" className={input} value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" inputMode="tel" placeholder="0550 12 34 56" required />
         </div>
         <div>
-          <label className={label} htmlFor="co-email">{dict.checkout.emailOptional}</label>
-          <input id="co-email" className={input} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+          <label className={label} htmlFor="co-email">{dict.checkout.emailOptional}{configured.fields.find((field) => field.key === "email")?.required ? " *" : ""}</label>
+          <input id="co-email" className={input} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required={configured.fields.find((field) => field.key === "email")?.required} />
         </div>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label className={label} htmlFor="co-wilaya">{dict.checkout.wilaya} *</label>
-          <select id="co-wilaya" className={input} value={wilayaCode} onChange={(e) => { setWilayaCode(Number(e.target.value)); setCommune(""); setOffice(""); setOffices([]); setOfficeAvailable(false); setDeliveryType("home"); }}>
+          <select id="co-wilaya" className={input} value={wilayaCode} onChange={(e) => { setWilayaCode(Number(e.target.value)); setCommune(""); setOffice(""); setOffices([]); }}>
             {WILAYAS.map((w) => (
               <option key={w.code} value={w.code}>{w.name}</option>
             ))}
@@ -246,6 +257,13 @@ export function CheckoutForm({
           </div>
         ) : deliveryType === "office" && officeAvailable ? <p className="mt-3 text-sm text-slate-600">La boutique confirmera le bureau et son adresse après votre commande.</p> : null}
       </div>
+
+      {customFields.map((field) => <div key={field.id}>
+        <label htmlFor={`co-custom-${field.id}`} className={label}>{field.label}{field.required ? " *" : ""}</label>
+        {field.type === "choice" ? <select id={`co-custom-${field.id}`} className={input} value={customAnswers[field.id] ?? ""} required={field.required} onChange={(event) => setCustomAnswers((current) => ({ ...current, [field.id]: event.target.value }))}>
+          <option value="">Choisir</option>{field.options.map((option) => <option key={option} value={option}>{option}</option>)}
+        </select> : <input id={`co-custom-${field.id}`} className={input} maxLength={200} required={field.required} value={customAnswers[field.id] ?? ""} onChange={(event) => setCustomAnswers((current) => ({ ...current, [field.id]: event.target.value }))} />}
+      </div>)}
 
       {state.status === "error" ? (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" role="alert">

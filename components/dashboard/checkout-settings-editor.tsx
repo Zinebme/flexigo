@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import {
   resolveSouqCheckoutSettings,
+  type SouqFormSection,
+  type SouqCustomField,
   type SouqCheckoutFieldKey,
   type SouqCheckoutSettingsInput,
 } from "@/lib/storefront/souq/checkout-settings";
@@ -21,6 +23,10 @@ const FIELD_LABELS: Record<SouqCheckoutFieldKey, string> = {
 // The checkout API and order RPC require these values. Hiding them would make
 // the public form impossible to submit, so they stay protected in the builder.
 const REQUIRED_CORE = new Set<SouqCheckoutFieldKey>(["first_name", "phone", "wilaya", "commune"]);
+const SECTION_LABELS: Record<SouqFormSection, string> = {
+  offers: "Offres", contact: "Coordonnées", delivery: "Livraison", quantity: "Quantité",
+  options: "Variantes et choix", custom: "Champs personnalisés", summary: "Récapitulatif",
+};
 
 interface Props {
   initial: unknown;
@@ -35,12 +41,30 @@ export function CheckoutSettingsEditor({ initial, onSave, title = "Formulaire de
   const [showOffers, setShowOffers] = useState(resolved.showQuantityOffers);
   const [showDeliveryChoice, setShowDeliveryChoice] = useState(resolved.showDeliveryChoice);
   const [variantDisplay, setVariantDisplay] = useState(resolved.variantDisplay);
+  const [sectionOrder, setSectionOrder] = useState(resolved.sectionOrder);
+  const [customFields, setCustomFields] = useState(resolved.customFields);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function patchField(key: SouqCheckoutFieldKey, patch: { enabled?: boolean; required?: boolean }) {
     setFields((current) => current.map((field) => field.key === key ? { ...field, ...patch } : field));
+  }
+
+  function moveSection(index: number, direction: -1 | 1) {
+    setSectionOrder((current) => {
+      const next = [...current];
+      const other = index + direction;
+      if (other < 0 || other >= next.length) return current;
+      const moved = next[index]!;
+      next[index] = next[other]!;
+      next[other] = moved;
+      return next;
+    });
+  }
+
+  function patchCustom(id: string, patch: Partial<SouqCustomField>) {
+    setCustomFields((current) => current.map((field) => field.id === id ? { ...field, ...patch } : field));
   }
 
   async function submit(event: React.FormEvent) {
@@ -60,6 +84,8 @@ export function CheckoutSettingsEditor({ initial, onSave, title = "Formulaire de
         show_delivery_choice: showDeliveryChoice,
         variant_display: variantDisplay,
         show_email_field: fields.find((field) => field.key === "email")?.enabled ?? false,
+        section_order: sectionOrder,
+        custom_fields: customFields.map((field) => ({ ...field, label: field.label.trim(), options: field.type === "choice" ? [...new Set(field.options.map((option) => option.trim()).filter(Boolean))] : [] })),
       });
       setMessage("Formulaire enregistré.");
     } catch (cause) {
@@ -78,12 +104,28 @@ export function CheckoutSettingsEditor({ initial, onSave, title = "Formulaire de
         </p>
       </div>
 
+      <div className="rounded-xl border border-slate-200 p-4">
+        <h4 className="font-semibold text-slate-900">Ordre du formulaire</h4>
+        <p className="mt-1 text-xs text-slate-500">Déplacez les blocs affichés dans la commande. Le bouton de confirmation reste à la fin.</p>
+        <ol className="mt-3 grid gap-2 sm:grid-cols-2">
+          {sectionOrder.map((section, index) => (
+            <li key={section} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <span>{index + 1}. {SECTION_LABELS[section]}</span>
+              <span className="flex gap-1">
+                <button type="button" aria-label={`Monter ${SECTION_LABELS[section]}`} disabled={index === 0} onClick={() => moveSection(index, -1)} className="rounded border px-2 py-1 disabled:opacity-40">↑</button>
+                <button type="button" aria-label={`Descendre ${SECTION_LABELS[section]}`} disabled={index === sectionOrder.length - 1} onClick={() => moveSection(index, 1)} className="rounded border px-2 py-1 disabled:opacity-40">↓</button>
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
       <div className="overflow-hidden rounded-xl border border-slate-200">
         <div className="grid grid-cols-[1fr_88px_100px] gap-2 bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">
           <span>Champ</span><span>Afficher</span><span>Obligatoire</span>
         </div>
-        {fields.filter((field) => field.key !== "office").map((field) => {
-          const locked = REQUIRED_CORE.has(field.key);
+        {fields.map((field) => {
+          const locked = REQUIRED_CORE.has(field.key) || field.key === "office";
           return (
             <div key={field.key} className="grid grid-cols-[1fr_88px_100px] items-center gap-2 border-t border-slate-100 px-3 py-3 text-sm">
               <div>
@@ -102,6 +144,23 @@ export function CheckoutSettingsEditor({ initial, onSave, title = "Formulaire de
         <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm font-medium text-slate-700"><input type="checkbox" checked={showOffers} onChange={(event) => setShowOffers(event.target.checked)} />Afficher les offres par quantité</label>
         <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm font-medium text-slate-700"><input type="checkbox" checked={showDeliveryChoice} onChange={(event) => setShowDeliveryChoice(event.target.checked)} />Proposer le choix domicile ou bureau selon les tarifs configurés</label>
         <label className="text-sm font-medium text-slate-700">Présentation des variantes<select className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" value={variantDisplay} onChange={(event) => setVariantDisplay(event.target.value as typeof variantDisplay)}><option value="dynamic">Automatique selon le type</option><option value="buttons">Boutons</option><option value="dropdown">Liste déroulante</option></select></label>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div><h4 className="font-semibold text-slate-900">Champs personnalisés</h4><p className="text-xs text-slate-500">Texte ou choix unique. Les réponses figurent dans les notes de la commande.</p></div>
+          <button type="button" disabled={customFields.length >= 12} className="rounded-lg border border-blue-300 px-3 py-2 text-sm text-blue-700 disabled:opacity-40" onClick={() => setCustomFields((current) => [...current, { id: `f_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`, label: "Nouveau champ", type: "text", options: [], enabled: true, required: false }])}>+ Ajouter</button>
+        </div>
+        <div className="mt-3 space-y-3">
+          {customFields.map((field) => <div key={field.id} className="grid gap-2 rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm sm:grid-cols-2">
+            <label>Libellé<input className="mt-1 w-full rounded border p-2" maxLength={80} required value={field.label} onChange={(event) => patchCustom(field.id, { label: event.target.value })} /></label>
+            <label>Type<select className="mt-1 w-full rounded border p-2" value={field.type} onChange={(event) => patchCustom(field.id, { type: event.target.value as SouqCustomField["type"] })}><option value="text">Texte</option><option value="choice">Boutons de choix</option></select></label>
+            {field.type === "choice" ? <label className="sm:col-span-2">Choix (un par ligne)<textarea className="mt-1 w-full rounded border p-2" rows={3} value={field.options.join("\n")} onChange={(event) => patchCustom(field.id, { options: event.target.value.split("\n").slice(0, 20) })} /></label> : null}
+            <label className="flex items-center gap-2"><input type="checkbox" checked={field.enabled} onChange={(event) => patchCustom(field.id, { enabled: event.target.checked })} /> Visible</label>
+            <label className="flex items-center gap-2"><input type="checkbox" disabled={!field.enabled} checked={field.enabled && field.required} onChange={(event) => patchCustom(field.id, { required: event.target.checked })} /> Obligatoire</label>
+            <button type="button" className="justify-self-start text-red-600" onClick={() => setCustomFields((current) => current.filter((item) => item.id !== field.id))}>Supprimer ce champ</button>
+          </div>)}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">

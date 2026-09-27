@@ -121,7 +121,7 @@ export function NoorProductView({ data }: { data: NoorProductViewData }) {
 
           {data.description ? <p className="mt-4 line-clamp-3 text-sm leading-7 text-[var(--noor-muted)]">{data.description}</p> : null}
 
-          {data.optionGroups.length ? (
+          {data.optionGroups.length && data.settings.sectionOrder.join(",") === "offers,contact,delivery,quantity,options,custom,summary" ? (
             <section className="mt-7 border-t border-[var(--noor-border)] pt-6" aria-labelledby="noor-options-title">
               <h2 id="noor-options-title" className="mb-4 text-sm font-semibold text-[var(--noor-ink)]">{data.copy.product.chooseOptions}</h2>
               <SouqOptionPickers groups={data.optionGroups} state={form} copy={data.copy} lang={data.lang} />
@@ -129,14 +129,14 @@ export function NoorProductView({ data }: { data: NoorProductViewData }) {
             </section>
           ) : null}
 
-          {data.settings.showQuantityOffers ? (
+          {data.settings.showQuantityOffers && data.settings.sectionOrder.join(",") === "offers,contact,delivery,quantity,options,custom,summary" ? (
             <section className="mt-6">
               <SouqQuantityOffers baseUnitCents={displayPrice} offers={data.offers} productId={data.product.id} quantity={form.quantity} onChange={form.setQuantity} copy={data.copy} lang={data.lang} currency={data.currency} />
             </section>
           ) : null}
 
           <div className="noor-order-form mt-7">
-            <SouqOrderFormView data={{ ...data, showOptionPickers: false, showQuantityOffers: false }} form={form} formRef={formRef} />
+            <SouqOrderFormView data={{ ...data, showOptionPickers: data.settings.sectionOrder.join(",") !== "offers,contact,delivery,quantity,options,custom,summary", showQuantityOffers: data.settings.sectionOrder.join(",") !== "offers,contact,delivery,quantity,options,custom,summary" }} form={form} formRef={formRef} />
           </div>
 
           <ul className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-[var(--noor-radius-card)] border border-[var(--noor-border)] bg-[var(--noor-border)] text-[11px] sm:grid-cols-3">

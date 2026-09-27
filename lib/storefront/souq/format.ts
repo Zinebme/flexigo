@@ -10,9 +10,9 @@ import type { StoreLanguage } from "../../types";
 const NUMBER = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
 
 function group(cents: number): string {
-  // Normalize exotic group separators (narrow no-break space, no-break space)
-  // to a plain space so the price renders identically across browsers.
-  return NUMBER.format(Math.round(cents / 100)).replace(/[\u202F\u00A0]/g, " ");
+  // Keep grouped digits together in RTL layouts (plain spaces may split and
+  // visually reverse the thousands group in mixed Arabic/Latin lines).
+  return NUMBER.format(Math.round(cents / 100)).replace(/[\u202F\u00A0]/g, "\u00A0");
 }
 
 /** "2 900 دج" (ar) / "2 900 DA" (fr, en). */

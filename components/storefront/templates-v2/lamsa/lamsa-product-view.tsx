@@ -67,12 +67,12 @@ export function LamsaProductView({ data }: { data: LamsaProductViewData }) {
           <h1 className="lamsa-display mt-3 text-[1.65rem] leading-[1.55] text-[var(--lamsa-ink)] sm:text-[2rem]">{data.product.name}</h1>
           <div className="mt-3"><LamsaPrice cents={displayPrice} compareAtCents={data.product.compareAtPriceCents} lang={data.lang} currency={data.currency} large /></div>
 
-          {data.optionGroups.length ? <section className="mt-7 border-t border-[var(--lamsa-border)] pt-6" aria-labelledby="lamsa-options-title"><h2 id="lamsa-options-title" className="mb-4 text-sm font-semibold text-[var(--lamsa-ink)]">{data.copy.product.chooseOptions}</h2><SouqOptionPickers groups={data.optionGroups} state={form} copy={data.copy} lang={data.lang} />{form.optionIssues.length && form.submitState.status === "error" ? <p className="souq-error mt-2" role="alert">{data.copy.errors.options}</p> : null}</section> : null}
+          {data.optionGroups.length && data.settings.sectionOrder.join(",") === "offers,contact,delivery,quantity,options,custom,summary" ? <section className="mt-7 border-t border-[var(--lamsa-border)] pt-6" aria-labelledby="lamsa-options-title"><h2 id="lamsa-options-title" className="mb-4 text-sm font-semibold text-[var(--lamsa-ink)]">{data.copy.product.chooseOptions}</h2><SouqOptionPickers groups={data.optionGroups} state={form} copy={data.copy} lang={data.lang} />{form.optionIssues.length && form.submitState.status === "error" ? <p className="souq-error mt-2" role="alert">{data.copy.errors.options}</p> : null}</section> : null}
 
-          {data.settings.showQuantityOffers ? <section className="mt-6"><SouqQuantityOffers baseUnitCents={displayPrice} offers={data.offers} productId={data.product.id} quantity={form.quantity} onChange={form.setQuantity} copy={data.copy} lang={data.lang} currency={data.currency} /></section> : null}
+          {data.settings.showQuantityOffers && data.settings.sectionOrder.join(",") === "offers,contact,delivery,quantity,options,custom,summary" ? <section className="mt-6"><SouqQuantityOffers baseUnitCents={displayPrice} offers={data.offers} productId={data.product.id} quantity={form.quantity} onChange={form.setQuantity} copy={data.copy} lang={data.lang} currency={data.currency} /></section> : null}
 
           <div className="lamsa-order-form mt-7">
-            <SouqOrderFormView data={{ ...data, showOptionPickers: false, showQuantityOffers: false }} form={form} formRef={formRef} />
+            <SouqOrderFormView data={{ ...data, showOptionPickers: data.settings.sectionOrder.join(",") !== "offers,contact,delivery,quantity,options,custom,summary", showQuantityOffers: data.settings.sectionOrder.join(",") !== "offers,contact,delivery,quantity,options,custom,summary" }} form={form} formRef={formRef} />
           </div>
 
           <ul className="mt-5 grid grid-cols-2 gap-px overflow-hidden border border-[var(--lamsa-border)] bg-[var(--lamsa-border)] text-[11px] sm:grid-cols-3">

@@ -107,11 +107,13 @@ interface FieldErrors {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  email?: string;
   wilaya?: string;
   commune?: string;
   address?: string;
   office?: string;
   options?: string;
+  custom?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -316,6 +318,7 @@ export function useSouqOrderState(
       const wilaya = fieldSetting(data.settings, "wilaya");
       const commune = fieldSetting(data.settings, "commune");
       const addressField = fieldSetting(data.settings, "address");
+      const emailSetting = fieldSetting(data.settings, "email");
 
       const firstName = field("souq-first-name");
       const lastName = field("souq-last-name");
@@ -324,13 +327,14 @@ export function useSouqOrderState(
       const addressValue = field("souq-address");
       const officeValue = field("souq-office");
 
-      if (first.enabled && first.required && firstName.length < 2) errors.firstName = data.copy.errors.firstName;
+      if (first.enabled && first.required && firstName.length < (last.enabled ? 2 : 3)) errors.firstName = data.copy.errors.firstName;
       if (last.enabled && last.required && lastName.length < 2) errors.lastName = data.copy.errors.lastName;
       if (phone.enabled && phone.required) {
         if (phoneValue.length === 0) errors.phone = data.copy.errors.phone;
         else if (!normalizeDZPhone(phoneValue)) errors.phone = data.copy.errors.phone;
         else if (!isValidDZMobile(phoneValue)) errors.phone = data.copy.errors.phoneMobile;
       }
+      if (emailSetting.enabled && emailSetting.required && !field("souq-email")) errors.email = data.lang === "ar" ? "يرجى إدخال البريد الإلكتروني" : "Veuillez renseigner l’email.";
       if (wilaya.enabled && wilaya.required && (!wilayaCode || wilayaCode < 1)) errors.wilaya = data.copy.errors.wilaya;
       if (commune.enabled && commune.required && communeValue.length < 2) errors.commune = data.copy.errors.commune;
       if (deliveryType === "home" && addressField.enabled && addressField.required && addressValue.length < 4) {
@@ -338,6 +342,16 @@ export function useSouqOrderState(
       }
       if (deliveryType === "office" && event.currentTarget.querySelector('select[name="souq-office"]') && officeValue.length < 2) {
         errors.office = data.copy.errors.office;
+      }
+      if (deliveryType === "office" && (!data.officeDeliveryEnabled || outOfRangeDelivery("office", data.zones, wilayaCode))) {
+        errors.office = data.lang === "ar" ? "التوصيل إلى المكتب غير متاح لهذه الولاية" : "Livraison au bureau indisponible pour cette wilaya.";
+      }
+      const customAnswers: Record<string, string> = {};
+      for (const custom of data.settings.customFields.filter((item) => item.enabled)) {
+        const answer = field(`souq-custom-${custom.id}`);
+        if (custom.required && !answer) errors.custom = data.lang === "ar" ? `يرجى تحديد ${custom.label}` : `Veuillez renseigner ${custom.label}.`;
+        if (custom.type === "choice" && answer && !custom.options.includes(answer)) errors.custom = data.copy.errors.sendFailed;
+        if (answer) customAnswers[custom.id] = answer;
       }
       if (optionIssues.length > 0) {
         const issue = optionIssues[0];
@@ -395,6 +409,7 @@ export function useSouqOrderState(
         office: deliveryType === "office" ? officeValue || null : null,
         website: field("souq-website"),
         locale: data.lang,
+        custom_fields: customAnswers,
         ...(data.previewMode ? {} : { abandoned_session_key: sessionKeyRef.current ??= crypto.randomUUID(), estimated_total_cents: preview.totalCents }),
       };
 
@@ -830,6 +845,7 @@ export function SouqOrderFormView({
   const wilaya = fieldSetting(settings, "wilaya");
   const commune = fieldSetting(settings, "commune");
   const address = fieldSetting(settings, "address");
+  const sectionOrder = (key: string) => settings.sectionOrder.indexOf(key as (typeof settings.sectionOrder)[number]);
 
   const homeAvailable = settings.showDeliveryChoice;
   const officeAvailable = settings.showDeliveryChoice && data.officeDeliveryEnabled && !outOfRangeDelivery("office", zones, form.wilayaCode);
@@ -885,16 +901,16 @@ export function SouqOrderFormView({
         </span>
       </header>
 
-      <form onSubmit={form.submit} noValidate className="space-y-5 p-4 sm:p-5">
+      <form onSubmit={form.submit} noValidate className="flex flex-col gap-5 p-4 sm:p-5">
         {submitState.status === "error" ? (
-          <p role="alert" className="flex items-start gap-2 rounded-[14px] border border-red-200 bg-red-50 px-3.5 py-3 text-[13px] font-bold text-red-700">
+          <p role="alert" className="order-first flex items-start gap-2 rounded-[14px] border border-red-200 bg-red-50 px-3.5 py-3 text-[13px] font-bold text-red-700">
             <SouqIcon name="close" className="mt-0.5 h-4 w-4 shrink-0" />
             {submitState.message}
           </p>
         ) : null}
 
         {/* Quantity offers */}
-        {data.showQuantityOffers !== false && settings.showQuantityOffers ? (
+        {data.showQuantityOffers !== false && settings.showQuantityOffers ? <div style={{ order: sectionOrder("offers") }}>
           <SouqQuantityOffers
             baseUnitCents={form.variant?.price_cents ?? product.priceCents}
             offers={data.offers}
@@ -905,10 +921,10 @@ export function SouqOrderFormView({
             lang={lang}
             currency={data.currency}
           />
-        ) : null}
+          </div> : null}
 
         {/* Contact */}
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2" style={{ order: sectionOrder("contact") }}>
           {first.enabled ? (
             <div data-field="firstName">
               <label className="souq-label" htmlFor="souq-first-name">
@@ -987,15 +1003,16 @@ export function SouqOrderFormView({
           {email.enabled ? (
             <div data-field="email">
               <label className="souq-label" htmlFor="souq-email">
-                {copy.checkout.emailOptional}
+                {copy.checkout.emailOptional} {email.required ? <span className="text-[var(--souq-danger)]">*</span> : null}
               </label>
-              <input id="souq-email" name="souq-email" className="souq-input" type="email" dir="ltr" autoComplete="email" maxLength={120} />
+              <input id="souq-email" name="souq-email" className="souq-input" type="email" dir="ltr" autoComplete="email" maxLength={120} required={email.required} />
+              {fieldErrors.email ? <p role="alert" className="souq-error">{fieldErrors.email}</p> : null}
             </div>
           ) : null}
         </div>
 
         {/* Delivery */}
-        <div className="space-y-4">
+        <div className="space-y-4" style={{ order: sectionOrder("delivery") }}>
           {settings.showDeliveryChoice ? (
             <div data-field="delivery">
               <span className="souq-label">{copy.checkout.deliveryMethod}</span>
@@ -1059,7 +1076,7 @@ export function SouqOrderFormView({
                     const value = event.target.value;
                     form.setWilayaCode(value ? Number(value) : null);
                     setCommuneValue("");
-                    setOffices([]); setOfficeValue(""); form.setDeliveryType("home");
+                    setOffices([]); setOfficeValue("");
                   }}
                 >
                   <option value="">{copy.checkout.wilayaPlaceholder}</option>
@@ -1154,14 +1171,15 @@ export function SouqOrderFormView({
             </div>
           ) : null}
           {form.deliveryType === "office" && officeAvailable && offices.length === 0 && !data.previewMode ? <p className="text-xs text-slate-500">{lang === "ar" ? "سيتم تأكيد مكتب الاستلام وعنوانه معك بعد الطلب." : lang === "en" ? "The store will confirm your pickup office and address after the order." : "La boutique confirmera le bureau et son adresse après votre commande."}</p> : null}
+          {form.deliveryType === "office" && !officeAvailable ? <p data-field="office" role="alert" className="souq-error">{fieldErrors.office ?? (lang === "ar" ? "التوصيل إلى المكتب غير متاح لهذه الولاية، اختر ولاية أخرى أو التوصيل إلى المنزل." : "Livraison au bureau indisponible pour cette wilaya. Choisissez une autre wilaya ou la livraison à domicile.")}</p> : null}
         </div>
 
         {/* Quantity (when no bundle offer is selected) */}
-        {settings.showQuantity ? <SouqQuantityStepper value={form.quantity} onChange={form.setQuantity} copy={copy} disabled={submitting} /> : null}
+        {settings.showQuantity ? <div style={{ order: sectionOrder("quantity") }}><SouqQuantityStepper value={form.quantity} onChange={form.setQuantity} copy={copy} disabled={submitting} /></div> : null}
 
         {/* Dynamic option groups live in the form: they drive variant + price */}
         {data.showOptionPickers !== false && data.optionGroups.length > 0 ? (
-          <div className="rounded-[16px] border border-[var(--souq-border)] bg-slate-50/60 p-3.5">
+          <div style={{ order: sectionOrder("options") }} className="rounded-[16px] border border-[var(--souq-border)] bg-slate-50/60 p-3.5">
             <p className="mb-3 flex items-center gap-2 text-[13px] font-extrabold text-slate-700">
               <SouqIcon name="spark" className="h-4 w-4 text-[var(--souq-accent)]" />
               {copy.product.chooseOptions}
@@ -1180,23 +1198,36 @@ export function SouqOrderFormView({
           </div>
         ) : null}
 
+        {settings.customFields.some((item) => item.enabled) ? <div data-field="custom" style={{ order: sectionOrder("custom") }} className="grid gap-4 sm:grid-cols-2">
+          {settings.customFields.filter((item) => item.enabled).map((item) => <div key={item.id}>
+            <label className="souq-label" htmlFor={`souq-custom-${item.id}`}>{item.label}{item.required ? " *" : ""}</label>
+            {item.type === "choice" ? <div className="flex flex-wrap gap-2" role="group" aria-label={item.label}>
+              {item.options.map((option) => <label key={option} className="cursor-pointer rounded-xl border border-[var(--souq-border)] bg-white px-3 py-2 text-sm has-[:checked]:border-[var(--souq-primary)] has-[:checked]:bg-[var(--souq-primary-soft)]">
+                <input type="radio" name={`souq-custom-${item.id}`} value={option} className="me-2 accent-[var(--souq-primary)]" />{option}
+              </label>)}
+            </div> : <input id={`souq-custom-${item.id}`} name={`souq-custom-${item.id}`} required={item.required} maxLength={200} className="souq-input" />}
+          </div>)}
+          {fieldErrors.custom ? <p role="alert" className="souq-error sm:col-span-2">{fieldErrors.custom}</p> : null}
+        </div> : null}
+
         {/* Honeypot — humans never see it */}
         <div className="absolute -left-[9999px] top-auto" aria-hidden="true">
           <label htmlFor="souq-website">Ne pas remplir</label>
           <input id="souq-website" name="souq-website" type="text" tabIndex={-1} autoComplete="off" />
         </div>
 
-        <SouqOrderSummary preview={preview} copy={copy} lang={lang} currency={data.currency} showInformational={data.optionGroups.length > 0} />
+        <div style={{ order: sectionOrder("summary") }}><SouqOrderSummary preview={preview} copy={copy} lang={lang} currency={data.currency} showInformational={data.optionGroups.length > 0} /></div>
 
         {/* Out of stock: explained in Arabic, never a silent disabled button. */}
         {!form.inStock ? (
-          <p role="alert" className="rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12.5px] font-bold text-amber-700">
+          <p role="alert" style={{ order: 98 }} className="rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12.5px] font-bold text-amber-700">
             {copy.product.notAvailable}
           </p>
         ) : null}
 
         <button
           type="submit"
+          style={{ order: 99 }}
           disabled={submitting || !form.inStock}
           className="souq-press flex w-full items-center justify-center gap-2 rounded-[16px] bg-[var(--souq-accent)] px-5 py-4 text-base font-extrabold text-[var(--souq-accent-text)] shadow-[0_16px_30px_-18px_rgb(245_158_11_/_0.95)] transition hover:bg-[var(--souq-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -1215,7 +1246,7 @@ export function SouqOrderFormView({
           )}
         </button>
 
-        <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] font-bold text-slate-500">
+        <ul style={{ order: 100 }} className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] font-bold text-slate-500">
           <li className="flex items-center gap-1.5">
             <SouqIcon name="cash" className="h-4 w-4 text-[var(--souq-primary)]" />
             {copy.checkout.codNote}

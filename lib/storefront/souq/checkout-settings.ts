@@ -32,6 +32,18 @@ export type SouqCheckoutFieldKey = (typeof SOUQ_CHECKOUT_FIELD_KEYS)[number];
 
 export const SOUQ_VARIANT_DISPLAYS = ["dynamic", "buttons", "dropdown"] as const;
 export type SouqVariantDisplay = (typeof SOUQ_VARIANT_DISPLAYS)[number];
+export const SOUQ_FORM_SECTIONS = ["offers", "contact", "delivery", "quantity", "options", "custom", "summary"] as const;
+export type SouqFormSection = (typeof SOUQ_FORM_SECTIONS)[number];
+
+const customFieldSchema = z.object({
+  id: z.string().regex(/^[a-z][a-z0-9_]{0,39}$/),
+  label: z.string().trim().min(1).max(80),
+  type: z.enum(["text", "choice"]),
+  options: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
+  enabled: z.boolean(),
+  required: z.boolean(),
+}).refine((field) => field.type !== "choice" || field.options.length > 0, { message: "Ajoutez au moins un choix." });
+export type SouqCustomField = z.infer<typeof customFieldSchema>;
 
 const fieldSchema = z.object({
   key: z.enum(SOUQ_CHECKOUT_FIELD_KEYS),
@@ -46,6 +58,8 @@ export const souqCheckoutSettingsSchema = z.object({
   show_delivery_choice: z.boolean().optional(),
   variant_display: z.enum(SOUQ_VARIANT_DISPLAYS).optional(),
   show_email_field: z.boolean().optional(),
+  section_order: z.array(z.enum(SOUQ_FORM_SECTIONS)).max(SOUQ_FORM_SECTIONS.length).optional(),
+  custom_fields: z.array(customFieldSchema).max(12).optional(),
 });
 
 export type SouqCheckoutSettingsInput = z.infer<typeof souqCheckoutSettingsSchema>;
@@ -62,6 +76,8 @@ export interface SouqCheckoutSettings {
   showQuantityOffers: boolean;
   showDeliveryChoice: boolean;
   variantDisplay: SouqVariantDisplay;
+  sectionOrder: SouqFormSection[];
+  customFields: SouqCustomField[];
 }
 
 /**
@@ -84,6 +100,8 @@ export const SOUQ_CHECKOUT_DEFAULTS: SouqCheckoutSettings = {
   showQuantityOffers: true,
   showDeliveryChoice: true,
   variantDisplay: "dynamic",
+  sectionOrder: [...SOUQ_FORM_SECTIONS],
+  customFields: [],
 };
 
 export function resolveSouqCheckoutSettings(raw: unknown): SouqCheckoutSettings {
@@ -95,8 +113,8 @@ export function resolveSouqCheckoutSettings(raw: unknown): SouqCheckoutSettings 
     if (!override) return base;
     return {
       key: base.key,
-      enabled: override.enabled ?? base.enabled,
-      required: override.required ?? base.required,
+      enabled: (["first_name", "phone", "wilaya", "commune", "office"] as string[]).includes(base.key) ? true : override.enabled ?? base.enabled,
+      required: (["first_name", "phone", "wilaya", "commune", "office"] as string[]).includes(base.key) ? true : override.required ?? base.required,
     };
   });
 
@@ -106,6 +124,8 @@ export function resolveSouqCheckoutSettings(raw: unknown): SouqCheckoutSettings 
     showQuantityOffers: input.show_quantity_offers ?? SOUQ_CHECKOUT_DEFAULTS.showQuantityOffers,
     showDeliveryChoice: input.show_delivery_choice ?? SOUQ_CHECKOUT_DEFAULTS.showDeliveryChoice,
     variantDisplay: input.variant_display ?? SOUQ_CHECKOUT_DEFAULTS.variantDisplay,
+    sectionOrder: [...new Set([...(input.section_order ?? []), ...SOUQ_FORM_SECTIONS])],
+    customFields: (input.custom_fields ?? []).filter((field, index, all) => all.findIndex((item) => item.id === field.id) === index),
   };
 }
 

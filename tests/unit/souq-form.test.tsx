@@ -99,7 +99,7 @@ const submitButton = () => document.querySelector('button[type="submit"]') as HT
 function packButton(quantityLabel: string, priceLabel: string): HTMLButtonElement {
   const button = screen
     .getAllByRole("button")
-    .find((node) => node.textContent?.includes(quantityLabel) && node.textContent.includes(priceLabel));
+    .find((node) => node.textContent?.includes(quantityLabel) && node.textContent.replace(/\u00a0/g, " ").includes(priceLabel));
   if (!button) throw new Error(`quantity pack not found: ${quantityLabel} / ${priceLabel}`);
   return button as HTMLButtonElement;
 }
@@ -125,11 +125,11 @@ describe("SOUQ — COD form interactions", () => {
 
     await user.selectOptions(wilayaSelect(), "16");
     expect(summary().textContent).toContain("500 دج"); // 50 000 centimes, home
-    expect(summary().textContent).toContain("3 400 دج"); // 2 900 + 500
+    expect(summary().textContent?.replace(/\u00a0/g, " ")).toContain("3 400 دج"); // 2 900 + 500
 
     await user.click(await screen.findByRole("radio", { name: new RegExp(copy.checkout.office) }));
     expect(summary().textContent).toContain("300 دج"); // office fee for wilaya 16
-    expect(summary().textContent).toContain("3 200 دج"); // 2 900 + 300
+    expect(summary().textContent?.replace(/\u00a0/g, " ")).toContain("3 200 دج"); // 2 900 + 300
   });
 
   it("falls back to the wilaya-independent zone for a wilaya without its own fee", async () => {
@@ -138,7 +138,7 @@ describe("SOUQ — COD form interactions", () => {
 
     await user.selectOptions(wilayaSelect(), "31"); // no dedicated zone in the fixture
     expect(summary().textContent).toContain("700 دج"); // zone 0 home fee
-    expect(summary().textContent).toContain("3 600 دج");
+    expect(summary().textContent?.replace(/\u00a0/g, " ")).toContain("3 600 دج");
   });
 
   it("loads the communes of the chosen wilaya", async () => {
@@ -163,6 +163,31 @@ describe("SOUQ — COD form interactions", () => {
     await user.click(await screen.findByRole("radio", { name: new RegExp(copy.checkout.office) }));
     expect(document.getElementById("souq-address")).toBeNull();
     expect(document.getElementById("souq-office")).toBeInstanceOf(HTMLSelectElement);
+  });
+
+  it("keeps office delivery selected while the buyer chooses a wilaya", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    const office = screen.getByRole("radio", { name: new RegExp(copy.checkout.office) }) as HTMLInputElement;
+    await user.click(office);
+    await user.selectOptions(wilayaSelect(), "16");
+    expect(office.checked).toBe(true);
+    expect(document.getElementById("souq-address")).toBeNull();
+    expect(await screen.findByLabelText(/اختر مكتب الاستلام/)).toBeInstanceOf(HTMLSelectElement);
+  });
+
+  it("moves offers after contact and validates a custom choice", async () => {
+    const user = userEvent.setup();
+    renderForm({ settings: resolveSouqCheckoutSettings({
+      section_order: ["contact", "offers", "delivery", "quantity", "options", "custom", "summary"],
+      custom_fields: [{ id: "gift", label: "التغليف", type: "choice", options: ["هدية", "عادي"], enabled: true, required: true }],
+    }) });
+    const contact = document.querySelector('[data-field="firstName"]')?.parentElement as HTMLElement;
+    const offer = packButton(copy.product.twoUnits, "5 200 دج").closest('div[style]') as HTMLElement;
+    expect(Number(contact.style.order)).toBeLessThan(Number(offer.style.order));
+    expect(screen.getByRole("group", { name: "التغليف" })).not.toBeNull();
+    await user.click(submitButton());
+    expect(screen.getAllByRole("alert").some((node) => node.textContent?.includes("التغليف"))).toBe(true);
   });
 
   it("allows an office request without inventing a pickup address when none is configured", async () => {
@@ -199,8 +224,8 @@ describe("SOUQ — COD form interactions", () => {
     await user.click(pack);
 
     expect(pack.getAttribute("aria-pressed")).toBe("true");
-    expect(summary().textContent).toContain("5 200 دج"); // pack price, not 2 × 2 900
-    expect(summary().textContent).toContain("5 700 دج"); // 5 200 + 500 shipping
+    expect(summary().textContent?.replace(/\u00a0/g, " ")).toContain("5 200 دج"); // pack price, not 2 × 2 900
+    expect(summary().textContent?.replace(/\u00a0/g, " ")).toContain("5 700 دج"); // 5 200 + 500 shipping
   });
 
   it("blocks the order in Arabic when the selected variant is out of stock", async () => {

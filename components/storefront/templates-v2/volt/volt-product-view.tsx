@@ -32,9 +32,9 @@ export function VoltProductView({data}:{data:VoltProductViewData}){
     <div className="volt-panel flex min-h-16 flex-col items-center justify-center gap-1 p-2"><VoltIcon name="truck" className="h-4 w-4 text-[var(--volt-blue)]"/>58 ولاية</div>
     <div className="volt-panel flex min-h-16 flex-col items-center justify-center gap-1 p-2"><VoltIcon name="shield" className="h-4 w-4 text-[var(--volt-blue)]"/>طلب آمن</div>
    </div>
-   {data.optionGroups.length?<section className="mt-6 border-t border-[var(--volt-border)] pt-5"><h2 className="mb-4 text-xs font-black uppercase tracking-wider text-slate-700">اختر المواصفات</h2><SouqOptionPickers groups={data.optionGroups} state={form} copy={data.copy} lang={data.lang}/></section>:null}
-   {data.settings.showQuantityOffers?<section className="mt-5"><SouqQuantityOffers baseUnitCents={displayPrice} offers={data.offers} productId={data.product.id} quantity={form.quantity} onChange={form.setQuantity} copy={data.copy} lang={data.lang} currency={data.currency}/></section>:null}
-   <div className="volt-order-form mt-6"><SouqOrderFormView data={{...data,showOptionPickers:false,showQuantityOffers:false}} form={form} formRef={formRef}/></div>
+   {data.optionGroups.length && data.settings.sectionOrder.join(",") === "offers,contact,delivery,quantity,options,custom,summary"?<section className="mt-6 border-t border-[var(--volt-border)] pt-5"><h2 className="mb-4 text-xs font-black uppercase tracking-wider text-slate-700">اختر المواصفات</h2><SouqOptionPickers groups={data.optionGroups} state={form} copy={data.copy} lang={data.lang}/></section>:null}
+   {data.settings.showQuantityOffers && data.settings.sectionOrder.join(",") === "offers,contact,delivery,quantity,options,custom,summary"?<section className="mt-5"><SouqQuantityOffers baseUnitCents={displayPrice} offers={data.offers} productId={data.product.id} quantity={form.quantity} onChange={form.setQuantity} copy={data.copy} lang={data.lang} currency={data.currency}/></section>:null}
+   <div className="volt-order-form mt-6"><SouqOrderFormView data={{...data,showOptionPickers:data.settings.sectionOrder[0]!=="offers",showQuantityOffers:data.settings.sectionOrder[0]!=="offers"}} form={form} formRef={formRef}/></div>
   </div>
  </div>
 }

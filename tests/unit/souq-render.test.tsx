@@ -100,7 +100,7 @@ describe("SOUQ — product card rendering", () => {
     expect(html).toContain("خصم 26%");
     expect(html).toContain(copy.product.inStock);
     expect(html).toContain(copy.product.orderNow);
-    expect(html).toContain("2 900 دج");
+    expect(html).toContain("2\u00a0900 دج");
     expect(html).toContain('href="/s/souq-plus/produit/saat-dhakiyya"');
   });
 
@@ -258,7 +258,7 @@ describe("SOUQ — product page rendering", () => {
     expect(html).toContain("souq-sticky-cta");
     expect(html).toContain("lg:hidden"); // desktop keeps the inline form CTA
     expect(html).toContain(`${copy.product.orderNow} •`);
-    expect(html).toContain("2 900 دج");
+    expect(html).toContain("2\u00a0900 دج");
     expect(html).toContain("souq-order-form"); // scroll target id
   });
 });

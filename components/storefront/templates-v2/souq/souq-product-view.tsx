@@ -194,7 +194,7 @@ export function SouqProductView({ data }: { data: SouqProductViewData }) {
           ) : null}
 
           {/* Option groups live next to the price (form keeps its own copy hidden) */}
-          {data.optionGroups.length > 0 ? (
+          {data.optionGroups.length > 0 && data.settings.sectionOrder.join(",") === "offers,contact,delivery,quantity,options,custom,summary" ? (
             <div className="mt-5">
               <p className="mb-3 flex items-center gap-2 text-[13px] font-extrabold text-slate-700">
                 <SouqIcon name="spark" className="h-4 w-4 text-[var(--souq-accent)]" />
@@ -210,7 +210,7 @@ export function SouqProductView({ data }: { data: SouqProductViewData }) {
           ) : null}
 
           {/* Quantity offers next to the price too */}
-          <div className="mt-5">
+          {data.settings.showQuantityOffers && data.settings.sectionOrder.join(",") === "offers,contact,delivery,quantity,options,custom,summary" ? <div className="mt-5">
             <SouqQuantityOffers
               baseUnitCents={displayPriceCents}
               offers={data.offers}
@@ -221,7 +221,7 @@ export function SouqProductView({ data }: { data: SouqProductViewData }) {
               lang={lang}
               currency={currency}
             />
-          </div>
+          </div> : null}
 
           <SouqTrustStrip
             className="mt-5"
@@ -235,7 +235,7 @@ export function SouqProductView({ data }: { data: SouqProductViewData }) {
 
           <div className="mt-5">
             <SouqOrderFormView
-              data={{ ...data, anchorId, showOptionPickers: false, showQuantityOffers: false }}
+              data={{ ...data, anchorId, showOptionPickers: data.settings.sectionOrder.join(",") !== "offers,contact,delivery,quantity,options,custom,summary", showQuantityOffers: data.settings.sectionOrder.join(",") !== "offers,contact,delivery,quantity,options,custom,summary" }}
               form={form}
               formRef={formRef}
             />

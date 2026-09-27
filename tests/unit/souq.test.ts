@@ -296,9 +296,9 @@ describe("SOUQ — badges and formatting", () => {
   });
 
   it("formats prices with the Arabic dinar suffix and thousands separators", () => {
-    expect(formatSouqPrice(290000, "ar", "DZD")).toBe("2 900 دج");
-    expect(formatSouqPrice(290000, "fr", "DZD")).toBe("2 900 DA");
-    expect(formatSouqPrice(290000, "en", "DZD")).toBe("2 900 DA");
+    expect(formatSouqPrice(290000, "ar", "DZD")).toBe("2\u00a0900 دج");
+    expect(formatSouqPrice(290000, "fr", "DZD")).toBe("2\u00a0900 DA");
+    expect(formatSouqPrice(290000, "en", "DZD")).toBe("2\u00a0900 DA");
   });
 });
 
