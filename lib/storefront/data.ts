@@ -3,13 +3,14 @@
  * Store resolution is cached 30 s (see resolve.ts); theme/settings are cheap
  * point reads.
  */
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { LANG_COOKIE, normalizeLang } from "./lang";
 import { getAnonSupabase } from "../supabase/anon";
 import { t, type StorefrontDict } from "../i18n/dictionaries";
 import type { StoreLanguage } from "../types";
 import type { StoreSettings } from "../supabase/database.types";
-import { resolveStoreBySlug } from "./resolve";
+import { resolveStoreByHostname, resolveStoreBySlug } from "./resolve";
+import { cleanHostname } from "./hosts";
 
 export interface StorefrontData {
   id: string;
@@ -52,6 +53,14 @@ export async function getStorefrontData(
   const dict = t(chosenLang);
 
   const anon = getAnonSupabase();
+  // On a tenant hostname, links stay on that hostname. /s/[slug] remains a preview fallback.
+  let base = `/s/${store.slug}`;
+  try {
+    const host = cleanHostname((await headers()).get("host") ?? "");
+    if (host && (await resolveStoreByHostname(host))?.id === store.id) {
+      base = `https://${host}`;
+    }
+  } catch { /* fallback for static or preview rendering */ }
   const [{ data: theme }, { data: storeRow }] = await Promise.all([
     anon.from("themes").select("*").eq("store_id", store.id).maybeSingle(),
     anon.from("stores").select("settings").eq("id", store.id).maybeSingle(),
@@ -79,6 +88,6 @@ export async function getStorefrontData(
       : null,
     dict,
     lang: chosenLang,
-    base: `/s/${store.slug}`,
+    base,
   };
 }

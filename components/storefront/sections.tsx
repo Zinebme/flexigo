@@ -353,7 +353,7 @@ export async function RenderSection({
   /** Optional position on the page (SOUQ uses it for unique anchor ids). */
   index?: number;
 }) {
-  const base = `/s/${data.slug}`;
+  const base = data.base;
   const s = section;
   const tpl = data.template_key ?? "market";
 

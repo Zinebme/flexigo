@@ -33,11 +33,13 @@ type SubmitState =
  */
 export function CheckoutForm({
   storeSlug,
+  base,
   line,
   dict,
   checkoutSettings,
 }: {
   storeSlug: string;
+  base: string;
   line: CheckoutLineInput;
   currency: string;
   dict: StorefrontDict;
@@ -155,7 +157,7 @@ export function CheckoutForm({
         </div>
         <p className="mt-4 text-sm text-emerald-700">{dict.success.note}</p>
         <Link
-          href={`/s/${storeSlug}/boutique`}
+          href={`${base}/boutique`}
           className="mt-6 inline-block rounded-lg bg-emerald-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-emerald-700"
         >
           {dict.success.continue}

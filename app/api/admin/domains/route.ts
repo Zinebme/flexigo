@@ -6,12 +6,14 @@ import { domainSchema, parseBody } from "@/lib/schemas";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { generateToken } from "@/lib/crypto/encrypt";
+import { platformHostname } from "@/lib/storefront/hosts";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const createSchema = domainSchema.extend({
   is_primary: z.boolean().optional().default(false),
+  dns_mode: z.enum(["apex", "subdomain"]).optional().default("apex"),
 });
 
 export async function POST(req: Request) {
@@ -22,6 +24,9 @@ export async function POST(req: Request) {
 
     const { data: store } = await admin.from("stores").select("id").eq("id", input.store_id).is("deleted_at", null).maybeSingle();
     if (!store) throw err("NOT_FOUND", "Site introuvable");
+    if (input.hostname === platformHostname() || input.hostname.endsWith(`.${platformHostname()}`)) {
+      throw err("VALIDATION", "Ce domaine est réservé aux sous-domaines automatiques Marqova.");
+    }
 
     // hostname unique check
     const { data: clash } = await admin.from("domains").select("id").eq("hostname", input.hostname).maybeSingle();
@@ -38,6 +43,7 @@ export async function POST(req: Request) {
         is_primary: false,
         status: "pending",
         verification_token: token,
+        verification_data: { dns_mode: input.dns_mode },
       } as never)
       .select("id, hostname")
       .single();

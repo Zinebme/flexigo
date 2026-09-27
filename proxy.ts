@@ -13,7 +13,8 @@
  * This file runs on the SERVER (Node runtime). It never exposes secrets.
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { resolveStoreByHost } from "./lib/storefront/resolve";
+import { resolveReadyPrimaryHostname, resolveStoreByHostname } from "./lib/storefront/resolve";
+import { cleanHostname, platformHostname } from "./lib/storefront/hosts";
 
 const PLATFORM_HOSTS = new Set(
   (process.env.FLEXIGO_PLATFORM_HOSTS ?? "")
@@ -24,6 +25,7 @@ const PLATFORM_HOSTS = new Set(
 
 /** Paths that always belong to the platform, never to a tenant. */
 const PLATFORM_PATHS = /^\/(admin|dashboard|api|login|register|auth|preview)(\/|$)/;
+const PLATFORM_ONLY_PATHS = /^\/(admin|dashboard|login|register|auth|preview)(\/|$)/;
 
 const STOREFRONT_CSP = [
   "default-src 'self'",
@@ -63,7 +65,12 @@ function storefrontCsp(): string {
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const host = (request.headers.get("host") ?? "").toLowerCase();
+  const hostname = cleanHostname(host);
   const { pathname } = request.nextUrl;
+  const isPlatformHost =
+    PLATFORM_HOSTS.has(host) || PLATFORM_HOSTS.has(hostname) || hostname === platformHostname() ||
+    (process.env.NODE_ENV === "development" && !hostname.includes(".")) ||
+    (process.env.FLEXIGO_PREVIEW === "1" && hostname.endsWith(".e2b.app"));
 
   // Preview harness (development only, FLEXIGO_PREVIEW=1): opening the preview
   // URL lands on the SOUQ demo storefront instead of the platform landing page.
@@ -74,6 +81,10 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   }
 
   // 1. Platform paths always pass through (dashboard, admin, api, auth).
+  if (!isPlatformHost && PLATFORM_ONLY_PATHS.test(pathname) && hostname) {
+    const url = new URL(request.nextUrl.pathname + request.nextUrl.search, process.env.NEXT_PUBLIC_APP_URL ?? `https://${platformHostname()}`);
+    return NextResponse.redirect(url);
+  }
   if (PLATFORM_PATHS.test(pathname) || pathname.startsWith("/_next") || host === "") {
     const res = NextResponse.next();
     if (pathname.startsWith("/admin") || pathname.startsWith("/dashboard")) {
@@ -83,32 +94,38 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   }
 
   // 2. Already a /s/[slug] path on the platform host → pass through.
-  if (pathname.startsWith("/s/")) {
+  if (isPlatformHost && pathname.startsWith("/s/")) {
     const res = NextResponse.next();
     res.headers.set("Content-Security-Policy", storefrontCsp());
     return res;
   }
 
   // 3. Platform host root → platform landing (brand page).
-  const isPlatformHost =
-    PLATFORM_HOSTS.has(host) ||
-    (process.env.NODE_ENV === "development" && !host.includes(".")) ||
-    // Hosted dev preview domain, when the preview harness is enabled.
-    (process.env.FLEXIGO_PREVIEW === "1" && host.endsWith(".e2b.app"));
   if (isPlatformHost) {
     return NextResponse.next();
   }
 
   // 4. Custom domain → resolve tenant.
-  let store: { slug: string } | null = null;
+  let store: { id: string; slug: string } | null = null;
   try {
-    store = await resolveStoreByHost(host);
+    store = await resolveStoreByHostname(hostname);
   } catch {
     store = null; // DB unreachable: fail closed for unknown hosts
   }
   if (!store) {
     return new NextResponse("Domaine inconnu.", { status: 404 });
   }
+  if (pathname.startsWith("/s/")) {
+    return new NextResponse("Page introuvable.", { status: 404 });
+  }
+  // Keep the verified primary hostname canonical only after Sites/SSL is ready.
+  try {
+    const primary = await resolveReadyPrimaryHostname(store.id);
+    if (primary && primary !== hostname) {
+      const canonical = new URL(request.nextUrl.pathname + request.nextUrl.search, `https://${primary}`);
+      return NextResponse.redirect(canonical, 308);
+    }
+  } catch { /* The storefront still works if canonical lookup is unavailable. */ }
   const url = request.nextUrl.clone();
   url.pathname = pathname === "/" ? `/s/${store.slug}` : `/s/${store.slug}${pathname}`;
   const res = NextResponse.rewrite(url);

@@ -3,8 +3,8 @@ import type { StorefrontData } from "../../lib/storefront/data";
 import { LangSwitcher } from "./lang-switcher";
 
 export function StorefrontHeader({ data }: { data: StorefrontData }) {
-  const { dict, settings, theme, website_type, slug, name } = data;
-  const base = `/s/${slug}`;
+  const { dict, settings, theme, website_type, name } = data;
+  const base = data.base;
   const isShop = website_type === "ecommerce" || website_type === "single_product";
 
   const links = [

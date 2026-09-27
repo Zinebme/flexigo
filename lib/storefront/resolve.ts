@@ -10,6 +10,7 @@
 import { getAdminSupabase } from "../supabase/admin";
 import type { StoreRow } from "../supabase/database.types";
 import { isSupabaseConfigured } from "../supabase/config";
+import { cleanHostname, subdomainStoreSlug } from "./hosts";
 
 export interface ResolvedStore {
   id: string;
@@ -25,6 +26,7 @@ export interface ResolvedStore {
 const CACHE_TTL_MS = 30_000;
 const slugCache = new Map<string, { value: ResolvedStore | null; expires: number }>();
 const hostCache = new Map<string, { value: ResolvedStore | null; expires: number }>();
+const primaryCache = new Map<string, { value: string | null; expires: number }>();
 
 function cached<T>(map: Map<string, { value: T; expires: number }>, key: string, load: () => Promise<T>): Promise<T> {
   const now = Date.now();
@@ -73,7 +75,7 @@ export async function resolveStoreBySlug(slug: string): Promise<ResolvedStore | 
 
 export async function resolveStoreByHost(host: string): Promise<ResolvedStore | null> {
   if (!isSupabaseConfigured()) return null;
-  const cleanHost = host.toLowerCase().trim();
+  const cleanHost = cleanHostname(host);
   if (!/^[a-z0-9.-]{4,253}$/.test(cleanHost)) return null;
   return cached(hostCache, cleanHost, async () => {
     const admin = getAdminSupabase();
@@ -100,8 +102,28 @@ export async function resolveStoreByHost(host: string): Promise<ResolvedStore | 
   });
 }
 
+/** Explicit verified custom domains take precedence over automatic subdomains. */
+export async function resolveStoreByHostname(host: string): Promise<ResolvedStore | null> {
+  const custom = await resolveStoreByHost(host);
+  if (custom) return custom;
+  const slug = subdomainStoreSlug(host);
+  return slug ? resolveStoreBySlug(slug) : null;
+}
+
+/** Only a verified primary domain explicitly activated in hosting is a safe redirect target. */
+export async function resolveReadyPrimaryHostname(storeId: string): Promise<string | null> {
+  return cached(primaryCache, storeId, async () => {
+    const { data } = await getAdminSupabase().from("domains")
+      .select("hostname, verification_data").eq("store_id", storeId)
+      .eq("status", "verified").eq("is_primary", true).is("deleted_at", null).maybeSingle();
+    const meta = data?.verification_data as Record<string, unknown> | null;
+    return meta?.hosting_ready === true ? data?.hostname ?? null : null;
+  });
+}
+
 /** Force-cache invalidation (called after publish/status/domain changes). */
 export function invalidateStoreCaches(): void {
   slugCache.clear();
   hostCache.clear();
+  primaryCache.clear();
 }

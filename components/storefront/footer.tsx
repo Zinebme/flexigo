@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { StorefrontData } from "../../lib/storefront/data";
 
 export function StorefrontFooter({ data }: { data: StorefrontData }) {
-  const { dict, settings, name, slug, website_type } = data;
-  const base = `/s/${slug}`;
+  const { dict, settings, name, website_type } = data;
+  const base = data.base;
   const c = settings?.contact;
   const isShop = website_type === "ecommerce" || website_type === "single_product";
 

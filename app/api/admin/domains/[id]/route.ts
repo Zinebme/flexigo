@@ -11,7 +11,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const { id } = await params;
     const ctx = await getAdminContext();
-    const body = (await req.json().catch(() => ({}))) as { is_primary?: boolean; status?: string };
+    const body = (await req.json().catch(() => ({}))) as { is_primary?: boolean; status?: string; dns_mode?: string; hosting_ready?: boolean };
     const admin = getAdminSupabase();
 
     const { data: domain } = await admin.from("domains").select("*").eq("id", id).maybeSingle();
@@ -22,12 +22,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       if ((domain as { status: string }).status !== "verified") {
         throw err("VALIDATION", "Un domaine doit être vérifié avant de devenir principal.");
       }
-      await admin.from("domains").update({ is_primary: false } as never).eq("store_id", (domain as { store_id: string }).store_id);
+      const { error: clearError } = await admin.from("domains").update({ is_primary: false } as never).eq("store_id", (domain as { store_id: string }).store_id).eq("is_primary", true);
+      if (clearError) throw clearError;
       updates.is_primary = true;
     }
     // "verified" can only be set by the DNS verification endpoint.
     if (body.status && ["pending", "failed"].includes(body.status)) {
       updates.status = body.status;
+    }
+    if (body.dns_mode === "apex" || body.dns_mode === "subdomain") {
+      updates.verification_data = { ...((domain as { verification_data?: Record<string, unknown> | null }).verification_data ?? {}), dns_mode: body.dns_mode };
+    }
+    if (typeof body.hosting_ready === "boolean") {
+      if (body.hosting_ready && (domain as { status: string }).status !== "verified") throw err("VALIDATION", "Vérifiez le TXT avant d'activer le routage.");
+      updates.verification_data = { ...((domain as { verification_data?: Record<string, unknown> | null }).verification_data ?? {}), ...(updates.verification_data as object ?? {}), hosting_ready: body.hosting_ready };
     }
 
     if (Object.keys(updates).length === 0) throw err("VALIDATION", "Aucune mise à jour.");

@@ -20,20 +20,23 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
     const hostname = (domain as { hostname: string }).hostname;
     const token = (domain as { verification_token: string }).verification_token;
+    const previous = ((domain as { verification_data?: Record<string, unknown> | null }).verification_data ?? {});
     const check = await verifyDomainByDns(hostname, token);
 
     if (!check.ok) {
-      await admin.from("domains").update({
-        status: "pending",
+      const { error } = await admin.from("domains").update({
+        status: "failed",
         verification_data: {
+          ...previous,
           last_checked_at: new Date().toISOString(),
           last_result: "failed",
           detail: check.detail,
         },
       } as never).eq("id", id);
+      if (error) throw error;
 
       return NextResponse.json(
-        { ok: false, status: "pending", detail: check.detail },
+        { ok: false, status: "failed", detail: check.detail },
         { status: 409 },
       );
     }
@@ -43,6 +46,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       status: "verified",
       verified_at: verifiedAt,
       verification_data: {
+        ...previous,
         last_checked_at: verifiedAt,
         last_result: "verified",
       },

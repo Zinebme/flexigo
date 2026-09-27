@@ -163,6 +163,7 @@ export default async function CommandePage({
 
       <CheckoutForm
         storeSlug={data.slug}
+        base={data.base}
         line={lineInput}
         checkoutSettings={(data.settings as { checkout?: unknown } | null)?.checkout}
         currency={data.currency}
