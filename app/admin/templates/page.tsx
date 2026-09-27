@@ -4,7 +4,7 @@ import { getAdminSupabase } from "@/lib/supabase/admin";
 import { READY_TEMPLATES, templatePreviewPath } from "@/lib/templates/defaults";
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { Icon } from "@/components/ui/icons";
-import { adminBtnCls } from "@/components/admin/ui";
+import { adminBtnCls } from "@/components/admin/button-class";
 
 export const dynamic = "force-dynamic";
 

@@ -4,7 +4,7 @@ import { getPlatformStats } from "@/lib/admin/stats";
 import { formatDA, formatDateTimeFr, timeAgoFr } from "@/lib/utils";
 import { PageHeader, Card, CardHeader, Stat, Table, Th, Td, Badge, EmptyState } from "@/components/ui";
 import { Icon, type IconName } from "@/components/ui/icons";
-import { adminBtnCls } from "@/components/admin/ui";
+import { adminBtnCls } from "@/components/admin/button-class";
 
 export const dynamic = "force-dynamic";
 

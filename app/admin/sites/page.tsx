@@ -4,7 +4,7 @@ import { getTemplate } from "@/lib/templates/defaults";
 import { formatDA, timeAgoFr } from "@/lib/utils";
 import { PageHeader, Card, Table, Th, Td, Badge, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/ui/icons";
-import { adminBtnCls } from "@/components/admin/ui";
+import { adminBtnCls } from "@/components/admin/button-class";
 import { SitesFilter } from "@/components/admin/sites-filter";
 import { SiteActions, STATUS_LABEL, STATUS_TONE } from "@/components/admin/site-actions";
 import type { StoreStatus } from "@/components/admin/site-actions";

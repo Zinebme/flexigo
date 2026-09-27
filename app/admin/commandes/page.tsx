@@ -4,7 +4,7 @@ import { getAdminSupabase } from "@/lib/supabase/admin";
 import { PageHeader, Card, Table, Th, Td, Badge, EmptyState, inputCls, selectCls } from "@/components/ui";
 import { Icon } from "@/components/ui/icons";
 import { OrderStatusBadge } from "@/components/order-status";
-import { adminBtnCls } from "@/components/admin/ui";
+import { adminBtnCls } from "@/components/admin/button-class";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/lib/types";
 import { formatDA, formatDateTimeFr, timeAgoFr, cn } from "@/lib/utils";
 

@@ -3,7 +3,7 @@ import { getAdminContext } from "@/lib/auth/admin-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { PageHeader, Card, CardHeader, Table, Th, Td, Badge, EmptyState, inputCls, selectCls } from "@/components/ui";
 import { Icon } from "@/components/ui/icons";
-import { adminBtnCls } from "@/components/admin/ui";
+import { adminBtnCls } from "@/components/admin/button-class";
 import { formatDateTimeFr, timeAgoFr, cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
