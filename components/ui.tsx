@@ -249,13 +249,17 @@ export function Card({
   children,
   className = "",
   hover = false,
+  id,
 }: {
   children: React.ReactNode;
   className?: string;
   hover?: boolean;
+  /** Optional DOM id — used for in-page anchors (e.g. `#modifier`). */
+  id?: string;
 }) {
   return (
     <div
+      id={id}
       className={cn(
         "rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.03]",
         hover && "transition hover:border-slate-300 hover:shadow-md hover:shadow-slate-900/[0.06]",

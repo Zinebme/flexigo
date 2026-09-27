@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, Spinner } from "@/components/ui";
+import { Icon } from "@/components/ui/icons";
+import { useToast } from "@/components/ui/toast";
 
 /** Soft-delete with confirmation dialog (never a hard delete from UI). */
 export function DeleteProductButton({ productId, productName }: { productId: string; productName: string }) {
   const router = useRouter();
+  const toast = useToast();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,45 +21,42 @@ export function DeleteProductButton({ productId, productName }: { productId: str
     const data = (await res.json().catch(() => ({}))) as { error?: { message?: string } | string };
     setBusy(false);
     if (!res.ok) {
-      setError(typeof data.error === "string" ? data.error : (data.error?.message ?? "Suppression impossible"));
+      const message = typeof data.error === "string" ? data.error : (data.error?.message ?? "Suppression impossible");
+      setError(message);
+      toast.error("Suppression impossible", message);
       return;
     }
+    toast.success("Produit supprimé", `« ${productName} » est retiré de la boutique.`);
     router.push("/dashboard/produits");
+    router.refresh();
   }
 
   if (!confirming) {
     return (
-      <button
-        className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 shadow-sm transition hover:bg-red-100"
-        onClick={() => setConfirming(true)}
-      >
+      <Button tone="dangerSoft" icon="trash" onClick={() => setConfirming(true)}>
         Supprimer le produit
-      </button>
+      </Button>
     );
   }
 
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-      <p className="mb-3 text-sm font-medium text-red-700">
-        Supprimer « {productName} » ? Il disparaîtra de la boutique (les commandes passées sont conservées).
+    <div className="rounded-xl border border-red-200 bg-red-50/70 p-3.5">
+      <p className="flex items-start gap-2 text-sm leading-6 font-medium text-red-800">
+        <Icon name="alert" size={16} className="mt-1 shrink-0" />
+        <span>
+          Supprimer « <strong>{productName}</strong> » ? Il disparaîtra de la boutique, mais les
+          commandes passées conservent leurs articles.
+        </span>
       </p>
-      <div className="flex gap-2">
-        <button
-          className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-          onClick={del}
-          disabled={busy}
-        >
-          {busy ? "Suppression…" : "Oui, supprimer"}
-        </button>
-        <button
-          className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-100"
-          onClick={() => setConfirming(false)}
-          disabled={busy}
-        >
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button tone="danger" size="sm" disabled={busy} onClick={del} icon={busy ? undefined : "trash"}>
+          {busy ? (<><Spinner size={14} /> Suppression…</>) : "Oui, supprimer"}
+        </Button>
+        <Button tone="secondary" size="sm" disabled={busy} onClick={() => setConfirming(false)}>
           Annuler
-        </button>
+        </Button>
       </div>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error ? <p className="mt-2 text-xs font-medium text-red-700">{error}</p> : null}
     </div>
   );
 }

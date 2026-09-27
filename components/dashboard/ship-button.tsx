@@ -2,22 +2,36 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, Spinner, inputCls } from "@/components/ui";
+import { apiErrorMessage, useToast } from "@/components/ui/toast";
 
 /**
  * "Envoyer au transporteur" — creates a shipment via the store's active
  * provider (mock/manual). POST /api/dashboard/orders/[id]/ship.
+ *
+ * Kept from the order-management branch: `compact` mode for the orders table,
+ * the optional manual tracking number (sent as `tracking_number`) and the
+ * `router.refresh()` so the shipment/tracking panel shows up immediately.
+ * Feedback goes through a toast instead of inline text.
  */
-export function ShipButton({ orderId, providerKey, enabled, compact = false }: { orderId: string; providerKey: string; enabled: boolean; compact?: boolean }) {
+export function ShipButton({
+  orderId,
+  providerKey,
+  enabled,
+  compact = false,
+}: {
+  orderId: string;
+  providerKey: string;
+  enabled: boolean;
+  compact?: boolean;
+}) {
   const router = useRouter();
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [okMsg, setOkMsg] = useState<string | null>(null);
   const [tracking, setTracking] = useState("");
   const manual = providerKey === "manual";
 
   async function ship() {
-    setError(null);
-    setOkMsg(null);
     setBusy(true);
     const res = await fetch(`/api/dashboard/orders/${orderId}/ship`, {
       method: "POST",
@@ -26,23 +40,67 @@ export function ShipButton({ orderId, providerKey, enabled, compact = false }: {
     });
     const data = (await res.json().catch(() => ({}))) as { error?: string; tracking_number?: string };
     setBusy(false);
-    if (!res.ok) setError(data.error ?? "Erreur inconnue");
-    else { setOkMsg(`${manual ? "Expédition enregistrée" : "Envoi créé"}${data.tracking_number ? ` — n° ${data.tracking_number}` : ""}.`); router.refresh(); }
+    if (!res.ok) {
+      toast.error("Envoi impossible", apiErrorMessage(data, "Erreur inconnue"));
+      return;
+    }
+    toast.success(
+      manual ? "Expédition enregistrée" : "Colis transmis au transporteur",
+      data.tracking_number ? `Numéro de suivi : ${data.tracking_number}` : undefined,
+    );
+    router.refresh();
   }
 
   if (!enabled) return null;
+
+  if (compact) {
+    return (
+      <Button
+        tone="primary"
+        size="sm"
+        icon={busy ? undefined : "truck"}
+        disabled={busy}
+        onClick={() => void ship()}
+      >
+        {busy ? <Spinner size={14} /> : manual ? "Expédier" : "Transporteur"}
+      </Button>
+    );
+  }
+
   return (
     <div className="space-y-2">
-      {manual && !compact && <label className="block text-sm font-medium text-slate-700">Numéro de suivi (facultatif)<input value={tracking} onChange={e => setTracking(e.target.value)} maxLength={120} className="mt-1 block w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="À renseigner après dépôt" /></label>}
-      <button
-        className={compact ? "rounded-lg bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50" : "rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-50"}
-        onClick={ship}
+      {manual ? (
+        <label className="block">
+          <span className="text-sm font-medium text-slate-700">Numéro de suivi (facultatif)</span>
+          <input
+            value={tracking}
+            onChange={(e) => setTracking(e.target.value)}
+            maxLength={120}
+            placeholder="À renseigner après dépôt"
+            className={`${inputCls} mt-1 w-full`}
+          />
+        </label>
+      ) : null}
+      <Button
+        tone="primary"
+        className="w-full"
+        icon={busy ? undefined : "truck"}
         disabled={busy}
+        onClick={() => void ship()}
       >
-        {busy ? "Enregistrement…" : compact ? manual ? "🚚 Expédier" : "🚚 Transporteur" : manual ? "Marquer comme expédiée" : `Envoyer via ${providerKey}`}
-      </button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {okMsg && <p className="text-sm text-emerald-600">{okMsg}</p>}
+        {busy ? (
+          <>
+            <Spinner size={15} /> Envoi en cours…
+          </>
+        ) : manual ? (
+          "Marquer comme expédiée"
+        ) : (
+          `Envoyer via ${providerKey}`
+        )}
+      </Button>
+      <p className="text-center text-xs text-slate-400">
+        Transporteur configuré : <span className="font-semibold text-slate-600">{providerKey}</span>
+      </p>
     </div>
   );
 }

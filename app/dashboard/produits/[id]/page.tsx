@@ -1,15 +1,23 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { getMerchantContext } from "@/lib/auth/merchant-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { can } from "@/lib/types";
-import { PageHeader, Card, CardHeader, EmptyState, Badge } from "@/components/ui";
+import { PageHeader, Card, CardHeader, EmptyState, Badge, Button } from "@/components/ui";
+import { Icon } from "@/components/ui/icons";
 import { ProductForm } from "@/components/dashboard/product-form";
 import { StockAdjustForm } from "@/components/dashboard/stock-adjust-form";
 import { DeleteProductButton } from "@/components/dashboard/delete-product-button";
-import { formatDA } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3 py-2">
+      <span className="text-xs font-medium text-slate-500">{label}</span>
+      <span className="min-w-0 text-right text-xs font-semibold text-slate-800">{children}</span>
+    </div>
+  );
+}
 
 export default async function ProductEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -40,6 +48,11 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
     option_groups?: unknown;
   };
 
+  const variantRows = (variants ?? []) as Array<{ id: string; name: string; options: Record<string, string> | null; price_cents: number | null; stock: number; is_active: boolean }>;
+  const offerRows = (offers ?? []) as Array<{ min_quantity: number; total_price_cents: number; label: string | null; free_shipping?: boolean }>;
+  const imageRows = (images ?? []) as Array<{ url: string }>;
+  const categoryRows = (categories ?? []) as Array<{ id: string; name: string }>;
+
   const initial = {
     id: p.id,
     name: p.name,
@@ -66,10 +79,10 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
     is_active: p.is_active,
     is_featured: p.is_featured,
     category_id: p.category_id,
-    images: ((images ?? []) as Array<{ url: string }>).map((im) => im.url),
+    images: imageRows.map((im) => im.url),
     seo_title: p.seo_title ?? "",
     seo_description: p.seo_description ?? "",
-    variants: ((variants ?? []) as Array<{ id: string; name: string; options: Record<string, string> | null; price_cents: number | null; stock: number; is_active: boolean }>).map((v) => ({
+    variants: variantRows.map((v) => ({
       id: v.id,
       name: v.name,
       options_text: v.options ? Object.entries(v.options).map(([k, val]) => `${k}: ${val}`).join(", ") : "",
@@ -78,7 +91,7 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
       stock: v.stock,
       is_active: v.is_active,
     })),
-    offers: ((offers ?? []) as Array<{ min_quantity: number; total_price_cents: number; label: string | null; free_shipping?: boolean }>).map((o) => ({
+    offers: offerRows.map((o) => ({
       min_quantity: o.min_quantity,
       total_price: o.total_price_cents / 100,
       label: o.label ?? "",
@@ -87,62 +100,128 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
   };
 
   const low = p.stock <= p.low_stock_threshold && p.stock > 0;
+  const categoryName = categoryRows.find((c) => c.id === p.category_id)?.name ?? null;
+  const priceLabel = new Intl.NumberFormat("fr-DZ", { maximumFractionDigits: 2 }).format(p.price_cents / 100);
+  const thumb = imageRows[0]?.url ?? null;
 
   return (
     <>
       <PageHeader
+        backHref="/dashboard/produits"
+        backLabel="Produits"
+        eyebrow="Modifier le produit"
         title={p.name}
         subtitle={`/${p.slug}`}
       >
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href={`/s/${ctx.store.slug}/produit/${p.slug}`}
-            target="_blank"
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
-          >
-            Voir sur le site
-          </Link>
-          <Link href="/dashboard/produits" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
-            ← Retour
-          </Link>
-        </div>
+        <Badge tone={p.is_active ? "green" : "gray"} dot size="sm">{p.is_active ? "En ligne" : "Masqué"}</Badge>
+        <Badge tone={p.stock === 0 ? "red" : low ? "amber" : "green"} size="sm" icon="package">
+          {p.stock === 0 ? "Rupture" : low ? `Stock faible · ${p.stock}` : `En stock · ${p.stock}`}
+        </Badge>
+        {p.is_featured ? <Badge tone="purple" size="sm" icon="star">Vedette</Badge> : null}
+        <Button href={`/s/${ctx.store.slug}/produit/${p.slug}`} external tone="secondary" size="sm" icon="external">
+          Voir sur le site
+        </Button>
       </PageHeader>
 
-      <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-        <span className="text-xl font-extrabold text-slate-900">{formatDA(p.price_cents)}</span>
-        <Badge tone={p.is_active ? "green" : "gray"}>{p.is_active ? "Visible" : "Masqué"}</Badge>
-        <Badge tone={p.stock === 0 ? "red" : low ? "amber" : "green"}>{p.stock === 0 ? "Rupture" : low ? `Stock faible · ${p.stock}` : `Stock · ${p.stock}`}</Badge>
-        {p.is_featured && <Badge tone="purple">★ Vedette</Badge>}
+      {/* Product snapshot: thumbnail + key facts, always visible. */}
+      <div className="mb-5 flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-900/[0.03]">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 ring-1 ring-inset ring-slate-200">
+          {thumb ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={thumb} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <Icon name="image" size={20} className="text-slate-400" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-slate-900">
+            <span className="fx-num">{priceLabel} DA</span>
+            {p.compare_at_price_cents != null ? (
+              <span className="fx-num text-xs font-medium text-slate-400 line-through">
+                {(p.compare_at_price_cents as number) / 100} DA
+              </span>
+            ) : null}
+            <span className="text-xs font-medium text-slate-400">·</span>
+            <span className="text-xs font-medium text-slate-500">{imageRows.length} photo(s)</span>
+            <span className="text-xs font-medium text-slate-400">·</span>
+            <span className="text-xs font-medium text-slate-500">{variantRows.length} variante(s)</span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            {categoryName ? `Catégorie : ${categoryName} · ` : ""}
+            SKU : <span className="fx-num font-semibold text-slate-700">{p.sku || "—"}</span>
+            {p.is_digital ? " · Produit digital" : ""}
+          </p>
+        </div>
       </div>
 
-      <div className="max-w-5xl space-y-5">
-          {canManage ? (
-            <ProductForm mode="edit" initial={initial} categories={(categories ?? []) as Array<{ id: string; name: string }>} productChoices={(productChoices ?? []) as Array<{ id: string; name: string }>} />
-          ) : (
-            <Card><EmptyState icon="🔒" title="Accès en lecture seule" text="Votre rôle permet de consulter mais pas de modifier les produits." /></Card>
-          )}
+      {canManage ? (
+        <ProductForm mode="edit" initial={initial} categories={categoryRows} productChoices={(productChoices ?? []) as Array<{ id: string; name: string }>} />
+      ) : (
+        <Card>
+          <EmptyState
+            icon={<Icon name="lock" size={24} />}
+            title="Accès en lecture seule"
+            text="Votre rôle permet de consulter mais pas de modifier les produits."
+          />
+        </Card>
+      )}
 
-          <Card className="overflow-hidden">
-            <CardHeader title="Ajustement de stock" subtitle="Chaque mouvement est justifié et journalisé (audit).">
-              <div className="flex gap-2">
-                <Badge tone={p.stock === 0 ? "red" : low ? "amber" : "green"}>
-                  {p.stock === 0 ? "Rupture" : low ? "Stock faible" : "En stock"}
-                </Badge>
-                {p.is_featured && <Badge tone="purple">★ Vedette</Badge>}
-              </div>
-            </CardHeader>
-            <div className="p-5"><StockAdjustForm productId={p.id} currentStock={p.stock} canAdjust={canManage} /></div>
-          </Card>
-          {canManage && (
-            <Card className="overflow-hidden border-red-100">
-              <CardHeader title="Zone dangereuse" />
-              <div className="p-5"><p className="mb-3 text-sm text-slate-500">
-                La suppression est <span className="font-semibold text-slate-700">douce</span> : le produit devient invisible
-                mais les commandes passées conservent leurs articles (snapshot).
+      <div className="mt-5 grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader
+            icon="clipboard"
+            title="Ajustement de stock"
+            subtitle="Chaque mouvement est justifié et journalisé (audit)."
+          >
+            <Badge tone={p.stock === 0 ? "red" : low ? "amber" : "green"} size="sm" dot>
+              {p.stock === 0 ? "Rupture" : low ? `Stock faible (${p.stock})` : `En stock (${p.stock})`}
+            </Badge>
+            <span className="text-xs text-slate-500">
+              Alerte si ≤ <strong className="fx-num text-slate-700">{p.low_stock_threshold}</strong>
+            </span>
+          </CardHeader>
+          <div className="px-5 py-4">
+            {canManage ? (
+              <StockAdjustForm productId={p.id} currentStock={p.stock} canAdjust />
+            ) : (
+              <p className="text-sm text-slate-500">
+                Votre rôle ne permet pas les mouvements de stock.
               </p>
-              <DeleteProductButton productId={p.id} productName={p.name} /></div>
+            )}
+          </div>
+        </Card>
+
+        <div className="space-y-4">
+          <Card>
+            <CardHeader icon="package" title="Résumé de la fiche" />
+            <div className="divide-y divide-slate-100 px-5 py-1">
+              <InfoRow label="Référence (SKU)"><span className="fx-num">{p.sku || "—"}</span></InfoRow>
+              <InfoRow label="Catégorie">{categoryName ?? "Aucune"}</InfoRow>
+              <InfoRow label="Suivi du stock">
+                {p.stock_tracking_mode === "variants" ? "Par variante" : p.stock_tracking_mode === "none" ? "Non suivi" : "Quantité globale"}
+              </InfoRow>
+              <InfoRow label="Variantes">{variantRows.length}</InfoRow>
+              <InfoRow label="Offres quantité">{offerRows.length}</InfoRow>
+              <InfoRow label="Images landing">{(p.landing_images ?? []).length}</InfoRow>
+              <InfoRow label="Quantité min.">
+                <span className="fx-num">{p.min_order_quantity ?? 1}</span>
+              </InfoRow>
+            </div>
+          </Card>
+
+          {canManage ? (
+            <Card>
+              <CardHeader icon="alert" title="Zone dangereuse" />
+              <div className="px-5 py-4">
+                <p className="mb-3 text-xs leading-5 text-slate-500">
+                  La suppression est <span className="font-semibold text-slate-700">douce</span> : le produit devient
+                  invisible sur la boutique, mais les commandes passées conservent leurs articles (snapshot).
+                </p>
+                <DeleteProductButton productId={p.id} productName={p.name} />
+              </div>
             </Card>
-          )}
+          ) : null}
+        </div>
       </div>
     </>
   );

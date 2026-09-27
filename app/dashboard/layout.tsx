@@ -1,9 +1,12 @@
 import Link from "next/link";
-import { getMerchantContext } from "@/lib/auth/merchant-context";
+import { getMerchantContext, roleLabelFr } from "@/lib/auth/merchant-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { isAppError } from "@/lib/errors";
-import { DashboardMobileNav, DashboardSidebar } from "@/components/dashboard/sidebar";
+import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { DashboardTopbar, type StoreOption } from "@/components/dashboard/topbar";
+import { NavProvider } from "@/components/dashboard/nav-context";
+import { ToastProvider } from "@/components/ui/toast";
+import { Icon } from "@/components/ui/icons";
 import { getLangDir, type DashboardLang } from "@/lib/i18n/dashboard";
 
 export const metadata = { title: "Espace marchand" };
@@ -18,15 +21,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-2xl">🔒</div>
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 ring-1 ring-amber-100">
+            <Icon name="lock" size={24} />
+          </div>
           <h1 className="text-lg font-bold text-slate-900">
             {isAppError(e) && e.code === "NOT_FOUND" ? "Site introuvable" : "Accès non disponible"}
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm leading-6 text-slate-500">
             {isAppError(e) ? e.message : "Vous n'avez pas accès à un site marchand."}
           </p>
-          <div className="mt-6 flex flex-col items-center gap-2">
-            <Link href="/" className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
+          <div className="mt-6 flex flex-col items-center gap-3">
+            <Link
+              href="/"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            >
+              <Icon name="arrowLeft" size={16} />
               Retour à l&apos;accueil
             </Link>
             <Link href="/login" className="text-sm font-semibold text-blue-600 hover:underline">
@@ -57,21 +66,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const dir = getLangDir(dashboardLang);
 
   return (
-    <div className={`merchant-dashboard min-h-screen bg-[#f5f6fa] ${dir === "rtl" ? "rtl" : "ltr"}`} dir={dir}>
-      <DashboardSidebar storeName={ctx.store.name} role={ctx.role} previewUrl={`/s/${ctx.store.slug}`} lang={dashboardLang} />
-      <div className={dir === "rtl" ? "lg:pr-60 lg:pl-0" : "lg:pl-60"}>
-        <DashboardTopbar
-          storeName={ctx.store.name}
-          storeId={ctx.store.id}
-          stores={stores}
-          userEmail={ctx.user.email ?? "compte"}
-          supportMode={ctx.mode === "support"}
-          supportStoreName={ctx.store.name}
-          lang={dashboardLang}
-        />
-        <DashboardMobileNav role={ctx.role} lang={dashboardLang} />
-        <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:py-8">{children}</main>
-      </div>
+    <div className={`merchant-dashboard min-h-screen bg-[var(--ui-bg)] ${dir === "rtl" ? "rtl" : "ltr"}`} dir={dir}>
+      <ToastProvider>
+        <NavProvider>
+          <DashboardSidebar storeName={ctx.store.name} role={ctx.role} previewUrl={`/s/${ctx.store.slug}`} lang={dashboardLang} />
+          <div className="lg:ps-60 print:ps-0">
+            <DashboardTopbar
+              storeName={ctx.store.name}
+              storeId={ctx.store.id}
+              stores={stores}
+              userEmail={ctx.user.email ?? "compte"}
+              supportMode={ctx.mode === "support"}
+              supportStoreName={ctx.store.name}
+              lang={dashboardLang}
+              roleLabel={roleLabelFr(ctx.role)}
+            />
+            <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:py-8">{children}</main>
+          </div>
+        </NavProvider>
+      </ToastProvider>
     </div>
   );
 }
