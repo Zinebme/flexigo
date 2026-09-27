@@ -1,9 +1,15 @@
 @import "tailwindcss";
 
 :root {
+  /* Storefront theme variables — overridden per store in the storefront layout. */
   --fx-primary: #1d4ed8;
   --fx-secondary: #f59e0b;
   --fx-bg: #ffffff;
+
+  /* Dashboard surface tokens (presentation only, never business logic). */
+  --ui-bg: #f6f7f9;
+  --ui-border: #e4e8ee;
+  --ui-focus: #2563eb;
 }
 
 html {
@@ -22,6 +28,7 @@ body {
     "Noto Sans",
     sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 /* Arabic (RTL) storefront typography */
@@ -29,14 +36,161 @@ body {
   font-family: "Noto Naskh Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
 }
 
-/* Thin scrollbars for dashboard tables */
+/* --- Numbers: aligned digits in tables, totals and stats ------------------ */
+.fx-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* --- Keyboard focus -------------------------------------------------------- */
+.fx-focus:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 2px;
+}
+
+/* --- Select chevron: drawn by CSS so `selectCls` needs no wrapper icon ----- */
+/* (RTL aware via background-position) */
+.fx-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 16px 16px;
+  background-position: right 0.7rem center;
+}
+
+[dir="rtl"] .fx-select {
+  background-position: left 0.7rem center;
+}
+
+/* --- Thin scrollbars for dashboard tables / nav --------------------------- */
+.fx-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
 .fx-scroll::-webkit-scrollbar {
   height: 8px;
   width: 8px;
 }
+.fx-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
 .fx-scroll::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 8px;
+  border-radius: 999px;
+}
+.fx-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* --- Motion (used by toasts, dropdowns, skeletons) ------------------------ */
+@keyframes fx-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fx-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fx-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fx-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fx-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes fx-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.fx-anim-fade-in {
+  animation: fx-fade-in 0.2s ease-out both;
+}
+.fx-anim-fade-up {
+  animation: fx-fade-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.fx-anim-pop {
+  animation: fx-pop 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.fx-anim-toast {
+  animation: fx-toast-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.fx-spin {
+  animation: fx-spin 0.7s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-anim-fade-in,
+  .fx-anim-fade-up,
+  .fx-anim-pop,
+  .fx-anim-toast,
+  .fx-spin {
+    animation: none;
+  }
+}
+
+/* --- Loading skeletons ---------------------------------------------------- */
+.fx-skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: #edf1f6;
+}
+.fx-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  animation: fx-shimmer 1.4s infinite;
+}
+
+/* --- Row / card affordances ---------------------------------------------- */
+.fx-row {
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* --- Print: order sheets print cleanly (nav and actions hidden) ---------- */
+@media print {
+  .fx-no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff;
+  }
+  .fx-print-flat {
+    box-shadow: none !important;
+    border-color: #d7dde5 !important;
+  }
 }
 
 .merchant-dashboard input:focus-visible,
