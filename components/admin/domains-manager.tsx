@@ -13,12 +13,14 @@ interface Domain {
 interface DnsTargets { cname: string; apexIps: string[] }
 
 function DnsRow({ type, name, value }: { type: string; name: string; value: string }) {
-  const [copied, setCopied] = useState(false);
-  return <div className="grid gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm sm:grid-cols-[5rem_1fr_1.5fr_auto] sm:items-center">
-    <strong>{type}</strong><code className="break-all">{name}</code><code className="break-all">{value}</code>
-    <button type="button" className="rounded-lg border px-3 py-2 hover:bg-slate-50" onClick={async () => {
-      try { await navigator.clipboard.writeText(value); setCopied(true); window.setTimeout(() => setCopied(false), 2000); } catch { setCopied(false); }
-    }}>{copied ? "Copié" : "Copier"}</button>
+  const [copied, setCopied] = useState<"name" | "value" | null>(null);
+  async function copy(target: "name" | "value") {
+    try { await navigator.clipboard.writeText(target === "name" ? name : value); setCopied(target); window.setTimeout(() => setCopied(null), 2000); } catch { setCopied(null); }
+  }
+  return <div className="grid gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm sm:grid-cols-[5rem_1fr_1.5fr] sm:items-center">
+    <strong>{type}</strong>
+    <div className="flex min-w-0 items-center gap-2"><code className="break-all">{name}</code><button type="button" className="shrink-0 rounded-lg border px-2 py-1 hover:bg-slate-50" onClick={() => void copy("name")}>{copied === "name" ? "Copié" : "Copier nom"}</button></div>
+    <div className="flex min-w-0 items-center gap-2"><code className="break-all">{value}</code><button type="button" className="shrink-0 rounded-lg border px-2 py-1 hover:bg-slate-50" onClick={() => void copy("value")}>{copied === "value" ? "Copié" : "Copier valeur"}</button></div>
   </div>;
 }
 
