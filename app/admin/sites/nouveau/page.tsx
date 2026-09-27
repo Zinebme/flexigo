@@ -16,8 +16,12 @@ export default async function NouveauSitePage() {
   return (
     <>
       <PageHeader
+        backHref="/admin/sites"
+        backLabel="Sites"
+        eyebrow="Studio de production"
+        icon="sparkles"
         title="Nouveau site — Website Creation Studio"
-        subtitle="Studio interne de production — 11 étapes : CLIENT / TEMPLATE / IDENTITÉ / CONTENU / PRODUITS / CATÉGORIES / LIVRAISON COD / INTÉGRATIONS / DOMAINE / COMPTE CLIENT / FINAL REVIEW. Tout est recalculé côté serveur, prêt pour livraison client."
+        subtitle="11 étapes : CLIENT / TEMPLATE / IDENTITÉ / CONTENU / PRODUITS / CATÉGORIES / LIVRAISON COD / INTÉGRATIONS / DOMAINE / COMPTE CLIENT / FINAL REVIEW. Tout est recalculé côté serveur, prêt pour livraison client."
       />
       <Card className="p-5">
         <WizardClient

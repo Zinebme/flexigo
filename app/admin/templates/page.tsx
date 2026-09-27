@@ -1,7 +1,10 @@
+import Link from "next/link";
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { READY_TEMPLATES, templatePreviewPath } from "@/lib/templates/defaults";
-import { PageHeader, Card } from "@/components/ui";
+import { PageHeader, Card, Badge } from "@/components/ui";
+import { Icon } from "@/components/ui/icons";
+import { adminBtnCls } from "@/components/admin/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -13,87 +16,124 @@ export default async function AdminTemplatesPage() {
   for (const s of (stores ?? []) as Array<{ template_key: string }>) {
     countByTpl.set(s.template_key, (countByTpl.get(s.template_key) ?? 0) + 1);
   }
+  const totalSites = (stores ?? []).length;
 
   return (
     <>
-      <PageHeader title="Templates" subtitle="Uniquement les templates réellement prêts à livrer. Cliquez sur Visualiser avant de les utiliser pour un client." />
+      <PageHeader
+        eyebrow="Plateforme"
+        icon="palette"
+        title="Templates"
+        subtitle="Uniquement les templates réellement prêts à livrer. Visualisez avant de les utiliser pour un client."
+      >
+        <Badge tone="violet" size="sm">{READY_TEMPLATES.length} modèle(s)</Badge>
+        <Badge tone="gray" size="sm">{totalSites} site(s) créé(s)</Badge>
+        <Link href="/preview" target="_blank" className={adminBtnCls("secondary", "md")}>
+          <Icon name="eye" size={15} />
+          Comparer
+        </Link>
+      </PageHeader>
+
       <div className="grid gap-4 md:grid-cols-2">
-        {READY_TEMPLATES.map((tpl) => (
-          <Card key={tpl.key} className="overflow-hidden p-0">
-            {tpl.screenshotUrl ? (
-              <div className="relative flex items-start gap-3 border-b border-slate-100 bg-slate-50 p-3">
-                {/* Desktop preview */}
-                {/* eslint-disable-next-line @next/next/no-img-element -- static template previews from /public */}
-                <img
-                  src={tpl.screenshotUrl}
-                  alt={`Aperçu ${tpl.name}`}
-                  className="h-32 w-full max-w-[320px] flex-1 rounded-lg border border-slate-200 bg-white object-cover object-top"
-                  loading="lazy"
-                />
-                {/* Mobile preview (when the template provides one) */}
-                {tpl.previewMobileUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- static template previews from /public
+        {READY_TEMPLATES.map((tpl) => {
+          const preview = templatePreviewPath(tpl.key);
+          const used = countByTpl.get(tpl.key) ?? 0;
+          return (
+            <Card key={tpl.key} className="overflow-hidden p-0" hover>
+              {tpl.screenshotUrl ? (
+                <div className="relative flex items-start gap-3 border-b border-slate-100 bg-slate-50 p-3">
+                  {/* Desktop preview */}
+                  {/* eslint-disable-next-line @next/next/no-img-element -- static template previews from /public */}
                   <img
-                    src={tpl.previewMobileUrl}
-                    alt={`Aperçu mobile ${tpl.name}`}
-                    className="hidden h-32 w-[80px] shrink-0 rounded-lg border border-slate-200 bg-white object-cover object-top sm:block"
+                    src={tpl.screenshotUrl}
+                    alt={`Aperçu ${tpl.name}`}
+                    className="h-32 w-full max-w-[320px] flex-1 rounded-lg border border-slate-200 bg-white object-cover object-top"
                     loading="lazy"
                   />
-                ) : null}
-                {tpl.direction === "rtl" ? (
-                  <span className="absolute bottom-4 start-5 rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-bold text-white">
-                    RTL — العربية
+                  {/* Mobile preview (when the template provides one) */}
+                  {tpl.previewMobileUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- static template previews from /public
+                    <img
+                      src={tpl.previewMobileUrl}
+                      alt={`Aperçu mobile ${tpl.name}`}
+                      className="hidden h-32 w-[80px] shrink-0 rounded-lg border border-slate-200 bg-white object-cover object-top sm:block"
+                      loading="lazy"
+                    />
+                  ) : null}
+                  {tpl.direction === "rtl" ? (
+                    <span className="absolute bottom-4 start-5 inline-flex items-center gap-1 rounded-full bg-slate-900/85 px-2 py-0.5 text-[10px] font-bold text-white">
+                      <Icon name="globe" size={10} />
+                      RTL — العربية
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      className="h-11 w-11 shrink-0 rounded-xl ring-1 ring-inset ring-slate-900/10"
+                      style={{ background: tpl.theme.primaryColor }}
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="truncate font-bold text-slate-900">{tpl.name}</div>
+                      <div className="fx-num truncate text-xs text-slate-400">{tpl.key}</div>
+                    </div>
+                  </div>
+                  <Badge tone={used > 0 ? "violet" : "gray"} size="sm" icon="store">
+                    {used} site(s)
+                  </Badge>
+                </div>
+
+                <p className="mt-3 text-sm leading-6 text-slate-600">{tpl.description}</p>
+
+                <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-slate-600">
+                    <Icon name="layers" size={11} className="text-slate-400" />
+                    Types : {tpl.websiteTypes.join(", ")}
                   </span>
-                ) : null}
-              </div>
-            ) : null}
-            <div className="p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl" style={{ background: tpl.theme.primaryColor }} />
-                <div>
-                  <div className="font-bold text-slate-900">{tpl.name}</div>
-                  <div className="font-mono text-xs text-slate-400">{tpl.key}</div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-slate-600">
+                    <Icon name="fileText" size={11} className="text-slate-400" />
+                    Typo : {tpl.theme.typography}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-slate-600">
+                    <Icon name="sliders" size={11} className="text-slate-400" />
+                    Boutons : {tpl.theme.buttonShape}
+                  </span>
+                  <span className="rounded-full px-2 py-1 font-semibold text-white" style={{ background: tpl.theme.primaryColor }}>
+                    Primaire
+                  </span>
+                  <span className="rounded-full px-2 py-1 font-semibold text-white" style={{ background: tpl.theme.secondaryColor }}>
+                    Secondaire
+                  </span>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+                  {preview ? (
+                    <>
+                      <a href={preview} target="_blank" rel="noreferrer" className={adminBtnCls("primary", "sm")}>
+                        <Icon name="eye" size={14} />
+                        Visualiser
+                      </a>
+                      <a href={`${preview}/produit`} target="_blank" rel="noreferrer" className={adminBtnCls("secondary", "sm")}>
+                        <Icon name="package" size={14} />
+                        Page produit
+                      </a>
+                    </>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                      <Icon name="alert" size={13} />
+                      Aperçu indisponible
+                    </span>
+                  )}
+                  <span className="ms-auto text-xs text-slate-400">Démo — aucune commande réelle.</span>
                 </div>
               </div>
-              <div className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                {countByTpl.get(tpl.key) ?? 0} site(s)
-              </div>
-            </div>
-            <p className="mt-3 text-sm text-slate-600">{tpl.description}</p>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">Types: {tpl.websiteTypes.join(", ")}</span>
-              <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">Typo: {tpl.theme.typography}</span>
-              <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">Boutons: {tpl.theme.buttonShape}</span>
-              <span className="rounded-full px-2 py-1 text-white" style={{ background: tpl.theme.primaryColor }}>Primaire</span>
-              <span className="rounded-full px-2 py-1 text-white" style={{ background: tpl.theme.secondaryColor }}>Secondaire</span>
-            </div>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              {templatePreviewPath(tpl.key) ? (
-                <>
-                  <a
-                    href={templatePreviewPath(tpl.key) ?? "#"}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
-                  >
-                    Visualiser
-                  </a>
-                  <a
-                    href={`${templatePreviewPath(tpl.key)}/produit`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                  >
-                    Voir page produit
-                  </a>
-                </>
-              ) : null}
-              <span className="text-xs text-slate-400">Aperçu démo — aucune commande réelle.</span>
-            </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
     </>
   );
