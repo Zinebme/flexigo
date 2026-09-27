@@ -1,6 +1,7 @@
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
-import { PageHeader, Card, Table, Th, Td, Badge, Stat } from "@/components/ui";
+import { PageHeader, Card, CardHeader, Table, Th, Td, Badge, Stat, EmptyState } from "@/components/ui";
+import { Icon } from "@/components/ui/icons";
 import { formatDateTimeFr, timeAgoFr } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -25,30 +26,68 @@ export default async function AdminSantePage() {
 
   return (
     <>
-      <PageHeader title="Santé système" subtitle="Événements internes, erreurs, warnings — journal super-admin uniquement." />
+      <PageHeader
+        eyebrow="Plateforme"
+        icon="heart"
+        title="Santé système"
+        subtitle="Événements internes, erreurs et warnings — journal super-admin uniquement."
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Erreurs (100 derniers events)" value={errors} tone={errors > 0 ? "bad" : "good"} hint={`${allEvents.length} events totaux`} />
-        <Stat label="Warnings" value={warnings} tone={warnings > 0 ? "warn" : "good"} />
-        <Stat label="Audits 24h" value={(audits ?? []).length} hint="actions sensibles" tone="primary" />
+        <Stat label="Erreurs" value={errors} tone={errors > 0 ? "bad" : "good"} icon="alert" hint={`Sur les ${allEvents.length} derniers événements`} />
+        <Stat label="Warnings" value={warnings} tone={warnings > 0 ? "warn" : "good"} icon="info" hint="À surveiller sans gravité immédiate" />
+        <Stat label="Audits 24h" value={(audits ?? []).length} tone="primary" icon="history" hint="Actions sensibles journalisées" />
       </div>
 
-      <Card className="mt-6">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h2 className="font-bold text-slate-900">100 derniers événements système</h2>
-          <p className="text-xs text-slate-500">Niveau, catégorie, message, site, timestamp — pas de secrets.</p>
+      {errors === 0 && warnings === 0 ? (
+        <div className="mt-5 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+            <Icon name="checkCircle" size={17} />
+          </span>
+          <p className="text-sm font-semibold text-emerald-800">
+            Aucune erreur ni warning sur les {allEvents.length} derniers événements système.
+          </p>
         </div>
-        <Table head={<><Th>Niveau</Th><Th>Catégorie</Th><Th>Message</Th><Th>Site</Th><Th>Quand</Th></>}>
-          {allEvents.map((e) => (
-            <tr key={e.id as string} className="hover:bg-slate-50">
-              <Td><Badge tone={(e.level as string) === "error" ? "red" : (e.level as string) === "warning" ? "amber" : "gray"}>{e.level as string}</Badge></Td>
-              <Td className="text-xs text-slate-600">{e.category as string}</Td>
-              <Td className="max-w-md truncate text-sm text-slate-600" title={e.message as string}>{e.message as string}</Td>
-              <Td className="text-xs text-slate-500">{e.store_id ? (storeMap.get(e.store_id as string)?.name ?? (e.store_id as string).slice(0, 8)) : "—"}</Td>
-              <Td className="whitespace-nowrap text-xs text-slate-500" title={formatDateTimeFr(e.created_at as string)}>{timeAgoFr(e.created_at as string)}</Td>
-            </tr>
-          ))}
-        </Table>
+      ) : null}
+
+      <Card className="mt-6 overflow-hidden">
+        <CardHeader icon="zap" title="100 derniers événements système" subtitle="Niveau, catégorie, message, site, timestamp — aucun secret.">
+          {errors > 0 ? <Badge tone="red" dot size="sm">{errors} erreur(s)</Badge> : null}
+          {warnings > 0 ? <Badge tone="amber" dot size="sm">{warnings} warning(s)</Badge> : null}
+        </CardHeader>
+        {allEvents.length === 0 ? (
+          <EmptyState icon={<Icon name="zap" size={24} />} title="Aucun événement" text="Les événements système apparaîtront ici." />
+        ) : (
+          <Table
+            head={
+              <>
+                <Th>Niveau</Th>
+                <Th>Catégorie</Th>
+                <Th>Message</Th>
+                <Th>Site</Th>
+                <Th>Quand</Th>
+              </>
+            }
+          >
+            {allEvents.map((e) => (
+              <tr key={e.id as string} className="fx-row">
+                <Td>
+                  <Badge tone={(e.level as string) === "error" ? "red" : (e.level as string) === "warning" ? "amber" : "gray"} dot size="sm">
+                    {e.level as string}
+                  </Badge>
+                </Td>
+                <Td className="text-xs text-slate-600">{e.category as string}</Td>
+                <Td className="max-w-md truncate text-sm text-slate-600" title={e.message as string}>{e.message as string}</Td>
+                <Td className="text-xs text-slate-500">
+                  {e.store_id ? (storeMap.get(e.store_id as string)?.name ?? (e.store_id as string).slice(0, 8)) : "—"}
+                </Td>
+                <Td className="text-xs text-slate-500 whitespace-nowrap" title={formatDateTimeFr(e.created_at as string)}>
+                  {timeAgoFr(e.created_at as string)}
+                </Td>
+              </tr>
+            ))}
+          </Table>
+        )}
       </Card>
     </>
   );

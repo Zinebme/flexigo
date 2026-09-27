@@ -1,9 +1,37 @@
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
-import { PageHeader, Card, Table, Th, Td, Badge, EmptyState } from "@/components/ui";
+import { PageHeader, Card, CardHeader, Table, Th, Td, Badge, EmptyState } from "@/components/ui";
+import { Icon, type IconName } from "@/components/ui/icons";
 import { formatDateTimeFr, timeAgoFr } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+function IntegrationCard({
+  icon,
+  title,
+  subtitle,
+  count,
+  children,
+}: {
+  icon: IconName;
+  title: string;
+  subtitle: string;
+  count: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader icon={icon} title={title} subtitle={subtitle}>
+        <Badge tone={count > 0 ? "blue" : "gray"} size="sm">{count}</Badge>
+      </CardHeader>
+      {count === 0 ? (
+        <EmptyState compact icon={<Icon name={icon} size={22} />} title="Aucune config" text="Les intégrations configurées apparaîtront ici." />
+      ) : (
+        children
+      )}
+    </Card>
+  );
+}
 
 export default async function AdminIntegrationsPage() {
   await getAdminContext();
@@ -19,102 +47,126 @@ export default async function AdminIntegrationsPage() {
   ]);
 
   const storeMap = new Map(((stores ?? []) as Array<{ id: string; name: string; slug: string }>).map((s) => [s.id, s]));
+  const shippingRows = (shipping ?? []) as Array<Record<string, unknown>>;
+  const marketingRows = (marketing ?? []) as Array<Record<string, unknown>>;
+  const sheetRows = (sheets ?? []) as Array<Record<string, unknown>>;
+  const whatsappRows = (whatsapp ?? []) as Array<Record<string, unknown>>;
+  const logRows = (logs ?? []) as Array<Record<string, unknown>>;
+
+  const broken =
+    shippingRows.filter((s) => s.status === "error").length +
+    sheetRows.filter((g) => g.last_status === "failure").length +
+    whatsappRows.filter((w) => w.status === "error").length;
+
+  const storeName = (id: unknown) => (typeof id === "string" ? (storeMap.get(id)?.name ?? id.slice(0, 8)) : "—");
 
   return (
     <>
-      <PageHeader title="Intégrations" subtitle="Vue plateforme des intégrations — shipping, pixels, Sheets, WhatsApp. Secrets chiffrés côté serveur." />
+      <PageHeader
+        eyebrow="Plateforme"
+        icon="plug"
+        title="Intégrations"
+        subtitle="Vue plateforme — shipping, pixels, Sheets, WhatsApp. Secrets chiffrés côté serveur."
+      >
+        {broken > 0 ? (
+          <Badge tone="red" dot>{broken} en erreur</Badge>
+        ) : (
+          <Badge tone="green" dot>Aucune erreur</Badge>
+        )}
+      </PageHeader>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="font-bold text-slate-900">Shipping ({(shipping ?? []).length})</h2>
-            <p className="text-xs text-slate-500">Providers: manual / navex (placeholder, docs à coller) / mock</p>
-          </div>
-          {(shipping ?? []).length === 0 ? <p className="p-4 text-sm text-slate-400">Aucune config.</p> : (
-            <Table head={<><Th>Site</Th><Th>Provider</Th><Th>Statut</Th><Th>MAJ</Th></>}>
-              {(shipping as Array<Record<string, unknown>>).map((s) => (
-                <tr key={s.id as string} className="hover:bg-slate-50">
-                  <Td className="font-medium text-slate-700">{storeMap.get(s.store_id as string)?.name ?? s.store_id as string}</Td>
-                  <Td className="font-mono text-xs">{s.provider_key as string}</Td>
-                  <Td><Badge tone={(s.status as string) === "configured" ? "green" : (s.status as string) === "error" ? "red" : "gray"}>{s.status as string}</Badge></Td>
-                  <Td className="text-xs text-slate-500" title={formatDateTimeFr(s.updated_at as string)}>{timeAgoFr(s.updated_at as string)}</Td>
-                </tr>
-              ))}
-            </Table>
-          )}
-        </Card>
+        <IntegrationCard icon="truck" title="Shipping" subtitle="Providers : manual / navex (placeholder, docs à coller) / mock" count={shippingRows.length}>
+          <Table head={<><Th>Site</Th><Th>Provider</Th><Th>Statut</Th><Th>MAJ</Th></>}>
+            {shippingRows.map((s) => (
+              <tr key={s.id as string} className="fx-row">
+                <Td className="font-medium text-slate-700">{storeName(s.store_id)}</Td>
+                <Td className="fx-num text-xs">{s.provider_key as string}</Td>
+                <Td>
+                  <Badge tone={(s.status as string) === "configured" ? "green" : (s.status as string) === "error" ? "red" : "gray"} dot size="sm">
+                    {s.status as string}
+                  </Badge>
+                </Td>
+                <Td className="text-xs text-slate-500" title={formatDateTimeFr(s.updated_at as string)}>{timeAgoFr(s.updated_at as string)}</Td>
+              </tr>
+            ))}
+          </Table>
+        </IntegrationCard>
 
-        <Card>
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="font-bold text-slate-900">Marketing Pixels ({(marketing ?? []).length})</h2>
-            <p className="text-xs text-slate-500">Meta, TikTok, Snapchat, Pinterest, GA4, GTM, Google Ads — IDs uniquement, pas de code.</p>
-          </div>
-          {(marketing ?? []).length === 0 ? <p className="p-4 text-sm text-slate-400">Aucune config.</p> : (
-            <Table head={<><Th>Site</Th><Th>Provider</Th><Th>Actif</Th></>}>
-              {(marketing as Array<Record<string, unknown>>).map((m) => (
-                <tr key={m.id as string} className="hover:bg-slate-50">
-                  <Td className="font-medium text-slate-700">{storeMap.get(m.store_id as string)?.name ?? m.store_id as string}</Td>
-                  <Td className="font-mono text-xs">{m.provider_key as string}</Td>
-                  <Td>{(m.is_active as boolean) ? <Badge tone="green">Actif</Badge> : <Badge tone="gray">Inactif</Badge>}</Td>
-                </tr>
-              ))}
-            </Table>
-          )}
-        </Card>
+        <IntegrationCard icon="chart" title="Marketing Pixels" subtitle="Meta, TikTok, Snapchat, Pinterest, GA4, GTM, Google Ads — IDs uniquement, pas de code." count={marketingRows.length}>
+          <Table head={<><Th>Site</Th><Th>Provider</Th><Th>Actif</Th></>}>
+            {marketingRows.map((m) => (
+              <tr key={m.id as string} className="fx-row">
+                <Td className="font-medium text-slate-700">{storeName(m.store_id)}</Td>
+                <Td className="fx-num text-xs">{m.provider_key as string}</Td>
+                <Td>
+                  {m.is_active ? <Badge tone="green" dot size="sm">Actif</Badge> : <Badge tone="gray" dot size="sm">Inactif</Badge>}
+                </Td>
+              </tr>
+            ))}
+          </Table>
+        </IntegrationCard>
 
-        <Card>
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="font-bold text-slate-900">Google Sheets ({(sheets ?? []).length})</h2>
-            <p className="text-xs text-slate-500">SA JSON chiffré (fxenc1.*) côté serveur — export commandes.</p>
-          </div>
-          {(sheets ?? []).length === 0 ? <p className="p-4 text-sm text-slate-400">Aucune config.</p> : (
-            <Table head={<><Th>Site</Th><Th>Actif</Th><Th>Dernier statut</Th><Th>MAJ</Th></>}>
-              {(sheets as Array<Record<string, unknown>>).map((g) => (
-                <tr key={g.id as string} className="hover:bg-slate-50">
-                  <Td className="font-medium text-slate-700">{storeMap.get(g.store_id as string)?.name ?? g.store_id as string}</Td>
-                  <Td>{(g.is_active as boolean) ? <Badge tone="green">Actif</Badge> : <Badge tone="gray">Inactif</Badge>}</Td>
-                  <Td><Badge tone={(g.last_status as string) === "success" ? "green" : (g.last_status as string) === "failure" ? "red" : "gray"}>{(g.last_status as string) ?? "—"}</Badge></Td>
-                  <Td className="text-xs text-slate-500" title={formatDateTimeFr(g.updated_at as string)}>{timeAgoFr(g.updated_at as string)}</Td>
-                </tr>
-              ))}
-            </Table>
-          )}
-        </Card>
+        <IntegrationCard icon="clipboard" title="Google Sheets" subtitle="SA JSON chiffré (fxenc1.*) côté serveur — export commandes." count={sheetRows.length}>
+          <Table head={<><Th>Site</Th><Th>Actif</Th><Th>Dernier statut</Th><Th>MAJ</Th></>}>
+            {sheetRows.map((g) => (
+              <tr key={g.id as string} className="fx-row">
+                <Td className="font-medium text-slate-700">{storeName(g.store_id)}</Td>
+                <Td>
+                  {g.is_active ? <Badge tone="green" dot size="sm">Actif</Badge> : <Badge tone="gray" dot size="sm">Inactif</Badge>}
+                </Td>
+                <Td>
+                  <Badge
+                    tone={(g.last_status as string) === "success" ? "green" : (g.last_status as string) === "failure" ? "red" : "gray"}
+                    dot
+                    size="sm"
+                  >
+                    {(g.last_status as string) ?? "—"}
+                  </Badge>
+                </Td>
+                <Td className="text-xs text-slate-500" title={formatDateTimeFr(g.updated_at as string)}>{timeAgoFr(g.updated_at as string)}</Td>
+              </tr>
+            ))}
+          </Table>
+        </IntegrationCard>
 
-        <Card>
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="font-bold text-slate-900">WhatsApp / Swivigo ({(whatsapp ?? []).length})</h2>
-            <p className="text-xs text-slate-500">Interface pluggable — bouton contact uniquement pour l'instant.</p>
-          </div>
-          {(whatsapp ?? []).length === 0 ? <p className="p-4 text-sm text-slate-400">Aucune config.</p> : (
-            <Table head={<><Th>Site</Th><Th>Provider</Th><Th>Statut</Th></>}>
-              {(whatsapp as Array<Record<string, unknown>>).map((w) => (
-                <tr key={w.id as string} className="hover:bg-slate-50">
-                  <Td className="font-medium text-slate-700">{storeMap.get(w.store_id as string)?.name ?? w.store_id as string}</Td>
-                  <Td className="font-mono text-xs">{w.provider as string}</Td>
-                  <Td><Badge tone={(w.status as string) === "connected" ? "green" : (w.status as string) === "error" ? "red" : "gray"}>{w.status as string}</Badge></Td>
-                </tr>
-              ))}
-            </Table>
-          )}
-        </Card>
+        <IntegrationCard icon="message" title="WhatsApp / Swivigo" subtitle="Interface pluggable — bouton contact uniquement pour l'instant." count={whatsappRows.length}>
+          <Table head={<><Th>Site</Th><Th>Provider</Th><Th>Statut</Th></>}>
+            {whatsappRows.map((w) => (
+              <tr key={w.id as string} className="fx-row">
+                <Td className="font-medium text-slate-700">{storeName(w.store_id)}</Td>
+                <Td className="fx-num text-xs">{w.provider as string}</Td>
+                <Td>
+                  <Badge tone={(w.status as string) === "connected" ? "green" : (w.status as string) === "error" ? "red" : "gray"} dot size="sm">
+                    {w.status as string}
+                  </Badge>
+                </Td>
+              </tr>
+            ))}
+          </Table>
+        </IntegrationCard>
       </div>
 
-      <Card className="mt-6">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h2 className="font-bold text-slate-900">Logs d'intégration (50 derniers)</h2>
-          <p className="text-xs text-slate-500">Journal interne — jamais de secrets.</p>
-        </div>
-        {(logs ?? []).length === 0 ? (
-          <EmptyState icon="🔌" title="Aucun log" text="Les tentatives d'envoi transporteur / Sheets apparaîtront ici." />
+      <Card className="mt-6 overflow-hidden">
+        <CardHeader icon="history" title="Logs d'intégration" subtitle="50 derniers — journal interne, jamais de secrets.">
+          <Badge tone={logRows.length > 0 ? "blue" : "gray"} size="sm">{logRows.length}</Badge>
+        </CardHeader>
+        {logRows.length === 0 ? (
+          <EmptyState icon={<Icon name="plug" size={24} />} title="Aucun log" text="Les tentatives d'envoi transporteur / Sheets apparaîtront ici." />
         ) : (
           <Table head={<><Th>Quand</Th><Th>Site</Th><Th>Provider</Th><Th>Statut</Th><Th>Message</Th></>}>
-            {(logs as Array<Record<string, unknown>>).map((l) => (
-              <tr key={l.id as string} className="hover:bg-slate-50">
-                <Td className="text-xs text-slate-500" title={formatDateTimeFr(l.created_at as string)}>{timeAgoFr(l.created_at as string)}</Td>
-                <Td className="text-xs text-slate-600">{storeMap.get(l.store_id as string)?.name ?? (l.store_id as string)?.slice(0, 8) ?? "—"}</Td>
-                <Td className="font-mono text-xs">{(l.provider_key as string) ?? "—"}</Td>
-                <Td><Badge tone={(l.status as string) === "success" ? "green" : (l.status as string) === "failure" ? "red" : "gray"}>{l.status as string}</Badge></Td>
+            {logRows.map((l) => (
+              <tr key={l.id as string} className="fx-row">
+                <Td className="text-xs text-slate-500 whitespace-nowrap" title={formatDateTimeFr(l.created_at as string)}>
+                  {timeAgoFr(l.created_at as string)}
+                </Td>
+                <Td className="text-xs text-slate-600">{storeName(l.store_id)}</Td>
+                <Td className="fx-num text-xs">{(l.provider_key as string) ?? "—"}</Td>
+                <Td>
+                  <Badge tone={(l.status as string) === "success" ? "green" : (l.status as string) === "failure" ? "red" : "gray"} dot size="sm">
+                    {l.status as string}
+                  </Badge>
+                </Td>
                 <Td className="max-w-xs truncate text-xs text-slate-600" title={l.message as string}>{l.message as string}</Td>
               </tr>
             ))}
@@ -123,17 +175,46 @@ export default async function AdminIntegrationsPage() {
       </Card>
 
       <Card className="mt-6 p-5">
-        <h3 className="font-bold text-slate-900">Navex — documentation d'intégration (placeholder sécurisé)</h3>
-        <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-          <p className="font-semibold">Aucun endpoint Navex n'est inventé.</p>
-          <p className="mt-1">Architecture prévue:</p>
-          <ul className="mt-1 list-disc pl-5">
-            <li>Interface <code className="font-mono">ShippingProvider</code> dans <code className="font-mono">lib/providers/shipping.ts</code> (createShipment, cancelShipment, getShipment, getTrackingStatus, listOffices, validateDestination).</li>
-            <li>Adapter <code className="font-mono">NavexProvider</code> lit <code className="font-mono">shipping_integrations.config</code> (base_url + token chiffrés fxenc1.*) côté serveur uniquement.</li>
-            <li>UI de configuration (base URL, token masqué, bouton Test connexion) dans <code className="font-mono">/dashboard/livraison</code> et <code className="font-mono">/admin/sites/[id]</code> → Administration avancée.</li>
-            <li>Placeholders Yalidine / Ecotrack : même interface, ajoutez <code className="font-mono">provider_key</code> + implémentez l'adapter + migration pour le check.</li>
+        <h3 className="flex items-center gap-2 text-sm font-bold tracking-tight text-slate-900">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            <Icon name="fileText" size={16} />
+          </span>
+          Navex — documentation d&apos;intégration (placeholder sécurisé)
+        </h3>
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs leading-5 text-amber-900">
+          <p className="flex items-center gap-1.5 font-semibold">
+            <Icon name="alert" size={13} className="shrink-0" />
+            Aucun endpoint Navex n&apos;est inventé.
+          </p>
+          <p className="mt-2 font-semibold">Architecture prévue :</p>
+          <ul className="mt-1 list-disc space-y-1 ps-5">
+            <li>
+              Interface <code className="fx-num rounded bg-white/70 px-1">ShippingProvider</code> dans{" "}
+              <code className="fx-num rounded bg-white/70 px-1">lib/providers/shipping.ts</code> (createShipment, cancelShipment,
+              getShipment, getTrackingStatus, listOffices, validateDestination).
+            </li>
+            <li>
+              Adapter <code className="fx-num rounded bg-white/70 px-1">NavexProvider</code> lit{" "}
+              <code className="fx-num rounded bg-white/70 px-1">shipping_integrations.config</code> (base_url + token chiffrés
+              fxenc1.*) côté serveur uniquement.
+            </li>
+            <li>
+              UI de configuration (base URL, token masqué, bouton Test connexion) dans{" "}
+              <code className="fx-num rounded bg-white/70 px-1">/dashboard/livraison</code> et{" "}
+              <code className="fx-num rounded bg-white/70 px-1">/admin/sites/[id]</code> → Administration avancée.
+            </li>
+            <li>
+              Placeholders Yalidine / Ecotrack : même interface, ajoutez{" "}
+              <code className="fx-num rounded bg-white/70 px-1">provider_key</code> + implémentez l&apos;adapter + migration pour le
+              check.
+            </li>
           </ul>
-          <p className="mt-2"><strong>TODO pour intégration réelle:</strong> coller la spec officielle Navex (URLs, auth, payloads) dans <code className="font-mono">lib/providers/navex.ts</code> (fichier à créer) et documenter dans <code className="font-mono">docs/navex.md</code>. Le mock adapter actuel permet de tester le flux sans credentials.</p>
+          <p className="mt-2">
+            <strong>TODO pour intégration réelle :</strong> coller la spec officielle Navex (URLs, auth, payloads) dans{" "}
+            <code className="fx-num rounded bg-white/70 px-1">lib/providers/navex.ts</code> (fichier à créer) et documenter dans{" "}
+            <code className="fx-num rounded bg-white/70 px-1">docs/navex.md</code>. Le mock adapter actuel permet de tester le flux
+            sans credentials.
+          </p>
         </div>
       </Card>
     </>

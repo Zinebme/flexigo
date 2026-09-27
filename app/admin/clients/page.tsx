@@ -1,6 +1,6 @@
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, Badge } from "@/components/ui";
 import { ClientsManager, type AdminClientRow } from "@/components/admin/clients-manager";
 
 export const dynamic = "force-dynamic";
@@ -81,7 +81,15 @@ export default async function AdminClientsPage() {
 
   return (
     <>
-      <PageHeader title="Clients" subtitle={`${clients.length} organisations clientes · fiche complète, sites, comptes, modification, suspension et suppression`} />
+      <PageHeader
+        eyebrow="Plateforme"
+        icon="users"
+        title="Clients"
+        subtitle="Fiche complète : sites, comptes, modification, suspension et suppression."
+      >
+        <Badge tone="violet" size="sm">{clients.length} organisation(s)</Badge>
+        <Badge tone="gray" size="sm">{clients.reduce((n, c) => n + c.store_count, 0)} site(s)</Badge>
+      </PageHeader>
       <ClientsManager key={JSON.stringify(clients)} clients={clients} />
     </>
   );

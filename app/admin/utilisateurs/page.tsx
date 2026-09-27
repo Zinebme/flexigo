@@ -1,6 +1,7 @@
 import { getAdminContext } from "@/lib/auth/admin-context";
 import { getAdminSupabase } from "@/lib/supabase/admin";
-import { PageHeader, Card, Table, Th, Td, Badge, EmptyState } from "@/components/ui";
+import { PageHeader, Card, CardHeader, Table, Th, Td, Badge, EmptyState } from "@/components/ui";
+import { Icon } from "@/components/ui/icons";
 import { PlatformAdminsManager } from "@/components/admin/platform-admins-manager";
 import { formatDateTimeFr } from "@/lib/utils";
 
@@ -18,46 +19,94 @@ export default async function AdminUtilisateursPage() {
   ]);
 
   const storeMap = new Map(((stores ?? []) as Array<{ id: string; name: string }>).map((s) => [s.id, s.name]));
-  const paIds = new Set(((platformAdmins ?? []) as Array<{ user_id: string }>).map((p) => p.user_id));
+  const adminRows = (platformAdmins ?? []) as Array<{ user_id: string; role: string; created_at: string }>;
+  const paIds = new Set(adminRows.map((p) => p.user_id));
+  const profileRows = (profiles ?? []) as Array<Record<string, unknown>>;
 
   return (
     <>
-      <PageHeader title="Utilisateurs" subtitle="Comptes de la plateforme — rôles marchands vs super-admin séparés." />
+      <PageHeader
+        eyebrow="Plateforme"
+        icon="users"
+        title="Utilisateurs"
+        subtitle="Comptes de la plateforme — rôles marchands et super-admin séparés."
+      >
+        <Badge tone="purple" dot size="sm">{paIds.size} super admin(s)</Badge>
+        <Badge tone="gray" size="sm">{profileRows.length} compte(s)</Badge>
+      </PageHeader>
 
-      <Card className="p-5">
-        <h3 className="font-bold text-slate-900">Administrateurs plateforme</h3>
-        <p className="mt-1 text-xs text-slate-500">SUPER_ADMIN ne peut être assigné depuis l'UI marchande — uniquement ici, avec re-confirmation.</p>
-        <div className="mt-4">
+      <Card>
+        <CardHeader
+          icon="shield"
+          title="Administrateurs plateforme"
+          subtitle="SUPER_ADMIN ne peut être assigné depuis l'UI marchande — uniquement ici, avec re-confirmation."
+        >
+          <Badge tone="purple" size="sm">{adminRows.length}</Badge>
+        </CardHeader>
+        <div className="px-5 py-4">
           <PlatformAdminsManager
             currentUserId={ctx.user.id}
-            platformAdmins={(platformAdmins ?? []) as Array<{ user_id: string; role: string; created_at: string }>}
+            platformAdmins={adminRows}
             profiles={(profiles ?? []) as Array<{ id: string; email: string | null }>}
           />
         </div>
       </Card>
 
-      <Card className="mt-6">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h2 className="font-bold text-slate-900">Comptes utilisateurs ({(profiles ?? []).length})</h2>
-        </div>
-        {(profiles ?? []).length === 0 ? (
-          <EmptyState icon="👤" title="Aucun utilisateur" />
+      <Card className="mt-6 overflow-hidden">
+        <CardHeader icon="user" title="Comptes utilisateurs" subtitle="200 derniers comptes créés">
+          <Badge tone={profileRows.length > 0 ? "blue" : "gray"} size="sm">{profileRows.length}</Badge>
+        </CardHeader>
+        {profileRows.length === 0 ? (
+          <EmptyState icon={<Icon name="users" size={24} />} title="Aucun utilisateur" text="Les comptes créés sur la plateforme apparaîtront ici." />
         ) : (
-          <Table head={<><Th>Email</Th><Th>Super admin</Th><Th>Memberships</Th><Th>Créé le</Th></>}>
-            {(profiles as Array<Record<string, unknown>>).map((p) => {
-              const memberships = (members as Array<Record<string, unknown>> | null)?.filter((m) => m.user_id === p.id) ?? [];
+          <Table
+            head={
+              <>
+                <Th>Email</Th>
+                <Th>Super admin</Th>
+                <Th>Memberships</Th>
+                <Th>Créé le</Th>
+              </>
+            }
+          >
+            {profileRows.map((p) => {
+              const memberships = ((members ?? []) as Array<Record<string, unknown>>).filter((m) => m.user_id === p.id);
               return (
-                <tr key={p.id as string} className="hover:bg-slate-50">
-                  <Td className="font-medium text-slate-800">{(p.email as string) ?? "—"}</Td>
-                  <Td>{paIds.has(p.id as string) ? <Badge tone="purple">SUPER_ADMIN</Badge> : <span className="text-xs text-slate-400">—</span>}</Td>
+                <tr key={p.id as string} className="fx-row">
+                  <Td>
+                    <span className="inline-flex items-center gap-1.5 font-medium text-slate-800">
+                      <Icon name="mail" size={13} className="text-slate-400" />
+                      {(p.email as string) ?? "—"}
+                    </span>
+                  </Td>
+                  <Td>
+                    {paIds.has(p.id as string) ? (
+                      <Badge tone="purple" size="sm" icon="shield">SUPER_ADMIN</Badge>
+                    ) : (
+                      <span className="text-xs text-slate-400">—</span>
+                    )}
+                  </Td>
                   <Td>
                     <div className="flex flex-wrap gap-1">
-                      {memberships.length === 0 ? <span className="text-xs text-slate-400">—</span> : memberships.slice(0, 3).map((m, i) => (
-                        <span key={i} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                          {storeMap.get(m.store_id as string) ?? (m.store_id as string).slice(0, 6)} · {m.role as string} · {m.status as string}
-                        </span>
-                      ))}
-                      {memberships.length > 3 && <span className="text-xs text-slate-400">+{memberships.length - 3}</span>}
+                      {memberships.length === 0 ? (
+                        <span className="text-xs text-slate-400">—</span>
+                      ) : (
+                        memberships.slice(0, 3).map((m, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+                            title={`${storeMap.get(m.store_id as string) ?? m.store_id} · ${m.role} · ${m.status}`}
+                          >
+                            <Icon name="store" size={11} className="text-slate-400" />
+                            {storeMap.get(m.store_id as string) ?? (m.store_id as string).slice(0, 6)}
+                            <span className="font-semibold text-slate-500">{m.role as string}</span>
+                            <span className={m.status === "active" ? "text-emerald-600" : "text-slate-400"}>{m.status as string}</span>
+                          </span>
+                        ))
+                      )}
+                      {memberships.length > 3 ? (
+                        <span className="text-xs font-semibold text-slate-400">+{memberships.length - 3}</span>
+                      ) : null}
                     </div>
                   </Td>
                   <Td className="text-xs text-slate-500">{formatDateTimeFr(p.created_at as string)}</Td>
