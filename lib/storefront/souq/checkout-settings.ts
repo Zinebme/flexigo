@@ -108,13 +108,24 @@ export function resolveSouqCheckoutSettings(raw: unknown): SouqCheckoutSettings 
   const parsed = souqCheckoutSettingsSchema.safeParse(raw);
   const input: SouqCheckoutSettingsInput = parsed.success ? parsed.data : {};
 
-  const fields: SouqCheckoutFieldSetting[] = SOUQ_CHECKOUT_DEFAULTS.fields.map((base) => {
-    const override = (input.fields ?? []).find((f) => f.key === base.key);
-    if (!override) return base;
+  // Preserve the merchant-defined field order. Older stores that never saved
+  // an order still fall back to the historical default. Missing fields are
+  // appended so a partial/legacy configuration can never break checkout.
+  const overrides = input.fields ?? [];
+  const requestedOrder = [...new Set(overrides.map((field) => field.key))];
+  const orderedKeys = [
+    ...requestedOrder,
+    ...SOUQ_CHECKOUT_DEFAULTS.fields.map((field) => field.key).filter((key) => !requestedOrder.includes(key)),
+  ];
+  const fields: SouqCheckoutFieldSetting[] = orderedKeys.map((key) => {
+    const base = SOUQ_CHECKOUT_DEFAULTS.fields.find((field) => field.key === key)!;
+    const override = overrides.find((field) => field.key === key);
+    if (!override) return { ...base };
+    const locked = (["first_name", "phone", "wilaya", "commune", "office"] as string[]).includes(key);
     return {
-      key: base.key,
-      enabled: (["first_name", "phone", "wilaya", "commune", "office"] as string[]).includes(base.key) ? true : override.enabled ?? base.enabled,
-      required: (["first_name", "phone", "wilaya", "commune", "office"] as string[]).includes(base.key) ? true : override.required ?? base.required,
+      key,
+      enabled: locked ? true : override.enabled ?? base.enabled,
+      required: locked ? true : override.required ?? base.required,
     };
   });
 
