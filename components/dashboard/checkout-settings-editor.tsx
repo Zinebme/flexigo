@@ -63,6 +63,18 @@ export function CheckoutSettingsEditor({ initial, onSave, title = "Formulaire de
     });
   }
 
+  function moveField(index: number, direction: -1 | 1) {
+    setFields((current) => {
+      const next = [...current];
+      const other = index + direction;
+      if (other < 0 || other >= next.length) return current;
+      const moved = next[index]!;
+      next[index] = next[other]!;
+      next[other] = moved;
+      return next;
+    });
+  }
+
   function patchCustom(id: string, patch: Partial<SouqCustomField>) {
     setCustomFields((current) => current.map((field) => field.id === id ? { ...field, ...patch } : field));
   }
@@ -121,17 +133,21 @@ export function CheckoutSettingsEditor({ initial, onSave, title = "Formulaire de
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200">
-        <div className="grid grid-cols-[1fr_88px_100px] gap-2 bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">
-          <span>Champ</span><span>Afficher</span><span>Obligatoire</span>
+        <div className="grid grid-cols-[1fr_76px_88px_100px] gap-2 bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+          <span>Champ</span><span>Ordre</span><span>Afficher</span><span>Obligatoire</span>
         </div>
-        {fields.map((field) => {
+        {fields.map((field, index) => {
           const locked = REQUIRED_CORE.has(field.key) || field.key === "office";
           return (
-            <div key={field.key} className="grid grid-cols-[1fr_88px_100px] items-center gap-2 border-t border-slate-100 px-3 py-3 text-sm">
+            <div key={field.key} className="grid grid-cols-[1fr_76px_88px_100px] items-center gap-2 border-t border-slate-100 px-3 py-3 text-sm">
               <div>
                 <span className="font-medium text-slate-800">{FIELD_LABELS[field.key]}</span>
                 {locked ? <span className="ml-2 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">requis par la commande</span> : null}
               </div>
+              <span className="flex gap-1">
+                <button type="button" aria-label={`Monter ${FIELD_LABELS[field.key]}`} disabled={index === 0} onClick={() => moveField(index, -1)} className="rounded border px-2 py-1 disabled:opacity-40">↑</button>
+                <button type="button" aria-label={`Descendre ${FIELD_LABELS[field.key]}`} disabled={index === fields.length - 1} onClick={() => moveField(index, 1)} className="rounded border px-2 py-1 disabled:opacity-40">↓</button>
+              </span>
               <input type="checkbox" className="h-4 w-4 rounded border-slate-300" checked={locked || field.enabled} disabled={locked} aria-label={`Afficher ${FIELD_LABELS[field.key]}`} onChange={(event) => patchField(field.key, { enabled: event.target.checked, required: event.target.checked ? field.required : false })} />
               <input type="checkbox" className="h-4 w-4 rounded border-slate-300" checked={locked || (field.enabled && field.required)} disabled={locked || !field.enabled} aria-label={`Rendre obligatoire ${FIELD_LABELS[field.key]}`} onChange={(event) => patchField(field.key, { required: event.target.checked })} />
             </div>
