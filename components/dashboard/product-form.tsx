@@ -416,7 +416,7 @@ export function ProductForm({
   const uploadPct=uploadProgress&&uploadProgress.total>0?Math.round((uploadProgress.done/uploadProgress.total)*100):0;
 
   return (
-    <form onSubmit={submit} className="product-editor grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <form onSubmit={submit} className="product-editor mx-auto w-full max-w-6xl space-y-5">
       {/* ------------------------------------------------------------ main -- */}
       <div className="min-w-0 space-y-5">
         <Section step={1} title="Informations générales" description="Identité du produit, URL et textes de vente.">
@@ -981,7 +981,7 @@ export function ProductForm({
       </div>
 
       {/* ------------------------------------------------------------ rail -- */}
-      <aside className="min-w-0 space-y-4 lg:sticky lg:top-20">
+      <aside className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <section className={sectionCls}>
           <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
             <Icon name="eye" size={16} className="text-slate-400" />
@@ -1063,7 +1063,7 @@ export function ProductForm({
       </aside>
 
       {/* ------------------------------------------------------ action bar -- */}
-      <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg shadow-slate-900/10 backdrop-blur lg:col-span-2">
+      <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg shadow-slate-900/10 backdrop-blur">
         <Button type="submit" tone="primary" disabled={busy||uploading!==null} icon={busy||uploading!==null?undefined:"check"}>
           {uploading!==null?(<><Spinner size={15} /> Attendez la fin des images…</>)
             :busy?(<><Spinner size={15} /> Enregistrement…</>)
