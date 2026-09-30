@@ -23,6 +23,7 @@ import { isValidDZMobile, normalizeDZPhone } from "@/lib/phone";
 import {
   composeFullName,
   fieldSetting,
+  type SouqCheckoutFieldKey,
   type SouqCheckoutSettings,
 } from "@/lib/storefront/souq/checkout-settings";
 import {
@@ -846,6 +847,10 @@ export function SouqOrderFormView({
   const commune = fieldSetting(settings, "commune");
   const address = fieldSetting(settings, "address");
   const sectionOrder = (key: string) => settings.sectionOrder.indexOf(key as (typeof settings.sectionOrder)[number]);
+  const fieldOrder = (key: SouqCheckoutFieldKey) => {
+    const index = settings.fields.findIndex((field) => field.key === key);
+    return index < 0 ? settings.fields.length : index;
+  };
 
   const homeAvailable = settings.showDeliveryChoice;
   const officeAvailable = settings.showDeliveryChoice && data.officeDeliveryEnabled && !outOfRangeDelivery("office", zones, form.wilayaCode);
@@ -926,7 +931,7 @@ export function SouqOrderFormView({
         {/* Contact */}
         <div className="grid gap-4 sm:grid-cols-2" style={{ order: sectionOrder("contact") }}>
           {first.enabled ? (
-            <div data-field="firstName">
+            <div data-field="firstName" style={{ order: fieldOrder("first_name") }}>
               <label className="souq-label" htmlFor="souq-first-name">
                 {copy.checkout.firstName} {first.required ? <span className="text-[var(--souq-danger)]">*</span> : null}
               </label>
@@ -950,7 +955,7 @@ export function SouqOrderFormView({
           ) : null}
 
           {last.enabled ? (
-            <div data-field="lastName">
+            <div data-field="lastName" style={{ order: fieldOrder("last_name") }}>
               <label className="souq-label" htmlFor="souq-last-name">
                 {copy.checkout.lastName} {last.required ? <span className="text-[var(--souq-danger)]">*</span> : null}
               </label>
@@ -973,7 +978,7 @@ export function SouqOrderFormView({
           ) : null}
 
           {phone.enabled ? (
-            <div data-field="phone">
+            <div data-field="phone" style={{ order: fieldOrder("phone") }}>
               <label className="souq-label" htmlFor="souq-phone">
                 {copy.checkout.phone} {phone.required ? <span className="text-[var(--souq-danger)]">*</span> : null}
               </label>
@@ -1001,7 +1006,7 @@ export function SouqOrderFormView({
           ) : null}
 
           {email.enabled ? (
-            <div data-field="email">
+            <div data-field="email" style={{ order: fieldOrder("email") }}>
               <label className="souq-label" htmlFor="souq-email">
                 {copy.checkout.emailOptional} {email.required ? <span className="text-[var(--souq-danger)]">*</span> : null}
               </label>
@@ -1061,7 +1066,7 @@ export function SouqOrderFormView({
 
           {wilaya.enabled ? (
             <div className="grid gap-4 sm:grid-cols-2">
-              <div data-field="wilaya">
+              <div data-field="wilaya" style={{ order: fieldOrder("wilaya") }}>
                 <label className="souq-label" htmlFor="souq-wilaya">
                   {copy.checkout.wilaya} {wilaya.required ? <span className="text-[var(--souq-danger)]">*</span> : null}
                 </label>
@@ -1094,7 +1099,7 @@ export function SouqOrderFormView({
               </div>
 
               {commune.enabled ? (
-                <div data-field="commune">
+                <div data-field="commune" style={{ order: fieldOrder("commune") }}>
                   <label className="souq-label" htmlFor="souq-commune">
                     {copy.checkout.commune} {commune.required ? <span className="text-[var(--souq-danger)]">*</span> : null}
                   </label>
@@ -1135,7 +1140,7 @@ export function SouqOrderFormView({
           ) : null}
 
           {form.deliveryType === "home" && address.enabled ? (
-            <div data-field="address">
+            <div data-field="address" style={{ order: fieldOrder("address") }}>
               <label className="souq-label" htmlFor="souq-address">
                 {copy.checkout.address} {address.required ? <span className="text-[var(--souq-danger)]">*</span> : null}
               </label>
@@ -1158,7 +1163,7 @@ export function SouqOrderFormView({
           ) : null}
 
           {form.deliveryType === "office" && officeAvailable && offices.length > 0 ? (
-            <div data-field="office">
+            <div data-field="office" style={{ order: fieldOrder("office") }}>
               <label className="souq-label" htmlFor="souq-office">
                 {lang === "ar" ? "اختر مكتب الاستلام" : lang === "en" ? "Choose a pickup office" : "Choisir un bureau de retrait"}
               </label>
